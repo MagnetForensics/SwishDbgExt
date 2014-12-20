@@ -1,0 +1,49 @@
+EXPORTS
+
+;--------------------------------------------------------------------
+; Core exports provided by the ExtCpp framework.
+;--------------------------------------------------------------------
+
+    DebugExtensionInitialize
+    DebugExtensionUninitialize
+    DebugExtensionNotify
+
+;--------------------------------------------------------------------
+; Extension commands.
+;--------------------------------------------------------------------
+
+    ms_dump
+    ms_hivelist
+    ms_readkcb
+    ms_readknode
+    ms_readkvalue
+
+    ms_consoles
+
+    ms_object
+
+    ms_credentials
+
+    ms_netstat
+    ms_mbr
+
+    ms_drivers
+
+    ms_timers
+    ms_vacbs
+
+    ms_process
+    ms_services
+    ms_callbacks
+    ms_ssdt
+
+    ms_idt
+    ms_gdt
+
+    ms_malscore
+
+    ms_exqueue
+
+    ms_store
+
+    help
