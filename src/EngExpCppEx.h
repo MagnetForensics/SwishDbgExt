@@ -110,7 +110,7 @@ public:
         ULONG64 BaseAddress,
         PVOID Buffer,
         ULONG BufferSize,
-        OUT PULONG OutBytesRead
+       _Out_ PULONG OutBytesRead
     );
 
 private:

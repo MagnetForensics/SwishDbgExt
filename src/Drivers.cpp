@@ -37,7 +37,23 @@ Revision History:
 #include "MoonSolsDbgExt.h"
 
 VOID
-MsDriverObject::Set()
+MsDriverObject::Set(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     m_ObjectPtr = m_TypedObject.GetPtr();
 
@@ -109,7 +125,23 @@ MsDriverObject::Set()
     }
 }
 
-MsDriverObject::~MsDriverObject()
+MsDriverObject::~MsDriverObject(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     Clear();
     /*
@@ -127,7 +159,23 @@ MsDriverObject::~MsDriverObject()
 
 
 vector<MsDriverObject>
-GetDrivers()
+GetDrivers(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    - 
+
+Return Value:
+
+    vector<MsDriverObject>.
+
+--*/
 {
     vector<HANDLE_OBJECT> DriverObjects = ObOpenObjectDirectory(ObGetDriverObject());
     vector<MsDriverObject> Drivers;

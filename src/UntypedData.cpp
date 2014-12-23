@@ -464,9 +464,25 @@ ExtRemoteUnTyped::TYPED_DATA g_UntypedData[] = {
 
 VOID
 ExtRemoteUnTyped::Set(
-    ULONG64 Ptr,
-    PCSTR TypeName
+    _In_ ULONG64 Ptr,
+    _In_ PCSTR TypeName
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Ptr - 
+    TypeName -
+
+Return Value:
+
+    VOID.
+
+--*/
 {
     m_UntypedDataPtr = Ptr;
 
@@ -506,8 +522,23 @@ ExtRemoteUnTyped::Set(
 
 ULONG
 GetUntypedTypeSize(
-_In_ PCSTR TypeName
+    _In_ PCSTR TypeName
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    TypeName -
+
+Return Value:
+
+    ULONG.
+
+--*/
 {
     ExtRemoteUnTyped Tmp(0, TypeName);
 
@@ -518,6 +549,21 @@ ExtRemoteUnTyped::PTYPED_DATA_FIELD
 ExtRemoteUnTyped::GetField(
     _In_ PCSTR Field
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Field -
+
+Return Value:
+
+    PTYPED_DATA_FIELD.
+
+--*/
 {
     PTYPED_DATA_FIELD ReturnResult = NULL;
     if (!m_Initialized) return FALSE;
@@ -540,6 +586,22 @@ GetFieldOffset(
     _In_ PCSTR TypeName,
     _In_ PCSTR Field
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    TypeName -
+    Field -
+
+Return Value:
+
+    ULONG.
+
+--*/
 {
     ExtRemoteUnTyped Tmp(TypeName);
 
@@ -550,6 +612,21 @@ BOOLEAN
 ExtRemoteUnTyped::HasField(
     _In_ PCSTR Field
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Field -
+
+Return Value:
+
+    BOOLEAN.
+
+--*/
 {
     if (!m_Initialized) return FALSE;
 
@@ -564,6 +641,21 @@ ULONG
 ExtRemoteUnTyped::GetFieldOffset(
     _In_ PCSTR Field
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Field -
+
+Return Value:
+
+    ULONG.
+
+--*/
 {
     ULONG Offset = 0;
 
@@ -577,6 +669,21 @@ VOID
 ExtRemoteUnTyped::SubtractOffset(
     _In_ PCSTR Field
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Field -
+
+Return Value:
+
+    VOID.
+
+--*/
 {
     ULONG Offset = GetFieldOffset(Field);
     m_UntypedDataPtr -= Offset;
@@ -586,16 +693,49 @@ ExtRemoteUnTyped::SubtractOffset(
 }
 
 ULONG64
-ExtRemoteUnTyped::GetPointerTo(void)
+ExtRemoteUnTyped::GetPointerTo(
+    VOID
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    -
+
+Return Value:
+
+    ULONG64.
+
+--*/
 {
     return m_UntypedDataPtr;
 }
 
 ExtRemoteUnTyped
 ExtRemoteUnTyped::Field(
-_In_ PCSTR Field,
-_In_ BOOLEAN IsPtr
+    _In_ PCSTR Field,
+    _In_ BOOLEAN IsPtr
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Field -
+    IsPtr - 
+
+Return Value:
+
+    ExtRemoteUntyped.
+
+--*/
 {
     PTYPED_DATA_FIELD TypedField = GetField(Field);
 
@@ -613,6 +753,21 @@ ExtRemoteUnTyped
 ExtRemoteUnTyped::Field(
     _In_ PCSTR Field
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Field - 
+
+Return Value:
+
+    ExtRemoteUnTyped.
+
+--*/
 {
     PTYPED_DATA_FIELD TypedField = GetField(Field);
 
@@ -626,7 +781,24 @@ ExtRemoteUnTyped::Field(
 }
 
 ExtRemoteUnTyped
-ExtRemoteUnTyped::ArrayElement(_In_ LONG64 Index)
+ExtRemoteUnTyped::ArrayElement(
+    _In_ LONG64 Index
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Index -
+
+Return Value:
+
+    ExtRemoteUnTyped.
+
+--*/
 {
     ULONG ArrayOffset;
 

@@ -1,23 +1,38 @@
 /*++
-MoonSols Incident Response & Digital Forensics Debugging Extension
-Copyright (C) 2014 MoonSols Ltd. All rights reserved.
+    MoonSols Incident Response & Digital Forensics Debugging Extension
+
+    Copyright (C) 2014 MoonSols Ltd.
+    Copyright (C) 2014 Matthieu Suiche (@msuiche)
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Module Name:
 
-- Ob.cpp
+    - Ob.cpp
 
 Abstract:
 
-- http://msdn.microsoft.com/en-us/windows/ff553536(v=vs.71).aspx
+    - http://msdn.microsoft.com/en-us/windows/ff553536(v=vs.71).aspx
 
 
 Environment:
 
-- User mode
+    - User mode
 
 Revision History:
 
-- Matthieu Suiche
+    - Matthieu Suiche
 --*/
 
 #include "MoonSolsDbgExt.h"
@@ -27,9 +42,25 @@ ExtRemoteTyped ObjTypeTable;
 
 BOOLEAN
 ObReadObject(
-IN ULONG64 Object,
-OUT PHANDLE_OBJECT HandleObj
+    _In_ ULONG64 Object,
+    _Out_ PHANDLE_OBJECT HandleObj
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Object - 
+    HandleObj - 
+
+Return Value:
+
+    BOOLEAN.
+
+--*/
 {
     BOOLEAN Result = FALSE;
     LPWSTR ObjName = NULL;
@@ -149,8 +180,23 @@ CleanUp:
 
 vector<HANDLE_OBJECT>
 ObOpenObjectDirectory(
-    ULONG64 InputObject
+    _In_ ULONG64 InputObject
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    InputObject - 
+
+Return Value:
+
+    vector<HANDLE_OBJECT>.
+
+--*/
 {
     vector<HANDLE_OBJECT> Handles;
     HANDLE_OBJECT Handle = { 0 };
@@ -193,10 +239,27 @@ ObOpenObjectDirectory(
 
 BOOLEAN
 ObOpenChildren(
-    OPTIONAL IN ULONG64 Root,
-    IN LPWSTR ObjName,
-    OUT PHANDLE_OBJECT OutHandle
+    _In_opt_ ULONG64 Root,
+    _In_ LPWSTR ObjName,
+    _Out_ PHANDLE_OBJECT OutHandle
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Root - 
+    ObjName -
+    OutHandle -
+
+Return Value:
+
+    BOOLEAN.
+
+--*/
 {
     vector<HANDLE_OBJECT> Dir = ObOpenObjectDirectory(Root);
     BOOLEAN Result = FALSE;
@@ -216,6 +279,21 @@ ObOpenChildren(
 ULONG64
 ObGetDriverObject(
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    ULONG64.
+
+--*/
 {
     ULONG64 Object = 0;;
 

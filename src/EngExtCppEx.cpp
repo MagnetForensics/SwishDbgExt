@@ -41,6 +41,21 @@ LPWSTR
 ExtRemoteTypedEx::GetUnicodeString2(
 ExtRemoteTyped TypedObject
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    - 
+
+Return Value:
+
+    LPWSTR.
+
+--*/
 {
     LPWSTR String = NULL;
 
@@ -64,9 +79,26 @@ ExtRemoteTyped TypedObject
 LPWSTR
 ExtRemoteTypedEx::GetUnicodeString(
     ExtRemoteTyped TypedObject,
-    _Out_writes_opt_(BufferChars) PWSTR Buffer,
+    _Out_writes_(MaxChars) PWSTR Buffer,
     _In_ ULONG MaxChars
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    TypedObject - 
+    Buffer - 
+    MaxChars - 
+
+Return Value:
+
+    LPWSTR.
+
+--*/
 {
     UNICODE_STRING SavedUnicodeString = {0};
 
@@ -105,9 +137,26 @@ ExtRemoteTypedEx::GetUnicodeString(
 LPWSTR
 ExtRemoteTypedEx::GetUnicodeStringEx(
     ULONG64 UntypedObject,
-    _Out_writes_opt_(BufferChars) PWSTR Buffer,
+    _Out_writes_opt_(MaxChars) PWSTR Buffer,
     _In_ ULONG MaxChars
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    UntypedObject - 
+    Buffer - 
+    MaxChars - 
+
+Return Value:
+
+    LPWSTR.
+
+--*/
 {
     ExtRemoteTyped TypedObject("(nt!_UNICODE_STRING *)@$extin", UntypedObject);
 
@@ -117,9 +166,26 @@ ExtRemoteTypedEx::GetUnicodeStringEx(
 LPWSTR
 ExtRemoteTypedEx::GetString(
     ULONG64 Address,
-    _Out_writes_opt_(BufferChars) LPWSTR Buffer,
+    _Out_writes_(MaxChars) LPWSTR Buffer,
     _In_ ULONG MaxChars
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    - Address
+    - Buffer
+    - MaxChars
+
+Return Value:
+
+    LPWSTR.
+
+--*/
 {
     RtlZeroMemory(Buffer, MaxChars);
 
@@ -134,8 +200,23 @@ ExtRemoteTypedEx::GetString(
 
 BOOLEAN
 IsValid(
-    ULONG64 Pointer
+    _In_ ULONG64 Pointer
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Pointer - 
+
+Return Value:
+
+    BOOLEAN.
+
+--*/
 {
     UCHAR Buffer[4];
     ULONG BytesRead;
@@ -148,11 +229,29 @@ IsValid(
 
 HRESULT
 ExtRemoteTypedEx::ReadVirtual(
-    ULONG64 BaseAddress,
-    PVOID Buffer,
-    ULONG BufferSize,
-    OPTIONAL OUT PULONG OutBytesRead
+    _In_ ULONG64 BaseAddress,
+    _Out_writes_(BufferSize) PVOID Buffer,
+    _In_ ULONG BufferSize,
+    _Out_opt_ PULONG OutBytesRead
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    BaseAddress - 
+    Buffer - 
+    BufferSize - 
+    OutBytesRead - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     HRESULT Result;
 
@@ -199,6 +298,21 @@ CleanUp:
 ULONG
 ExtRemoteTypedEx::GetPointerSize(
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     
+
+Return Value:
+
+    ULONG.
+
+--*/
 {
     ULONG PointerSize;
 
@@ -210,8 +324,23 @@ ExtRemoteTypedEx::GetPointerSize(
 
 ULONG64
 ExtRemoteTypedEx::GetPointer(
-ULONG64 Address
+    _In_ ULONG64 Address
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Address - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     ULONG64 Pointer = 0;
     // ULONG BytesRead;
@@ -229,10 +358,27 @@ ULONG64 Address
 
 LPSTR
 GetNameByOffset(
-    ULONG64 Offset,
-    LPSTR Name,
-    ULONG NameSize
+    _In_ ULONG64 Offset,
+    _Out_writes_(NameSize) LPSTR Name,
+    _In_ ULONG NameSize
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Offset - 
+    Name - 
+    NameSize - 
+
+Return Value:
+
+    LPSTR.
+
+--*/
 {
     HRESULT hResult;
     RtlZeroMemory(Name, NameSize);
@@ -252,8 +398,23 @@ GetNameByOffset(
 
 BOOLEAN
 IsPointerHooked(
-ULONG64 Ptr
+    _In_ ULONG64 Ptr
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Ptr - 
+
+Return Value:
+
+    BOOLEAN.
+
+--*/
 {
     UCHAR ByteCode[0x20] = { 0 };
     BOOLEAN Hooked = FALSE;
@@ -307,8 +468,23 @@ CleanUp:
 
 ULONG64
 GetFastRefPointer(
-ULONG64 Pointer
+    _In_ ULONG64 Pointer
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Pointer - 
+
+Return Value:
+
+    ULONG64.
+
+--*/
 {
     ULONG64 ExRefMask = (g_Ext->m_Control->IsPointer64Bit() == S_OK) ? ~0xF : ~0x7;
 
@@ -319,10 +495,27 @@ ULONG64 Pointer
 
 ULONG
 ReadPointersVirtual(
-    ULONG PointerCount,
-    ULONG64 Pointer,
-    PULONG64 OutPtrTable
+    _In_ ULONG PointerCount,
+    _In_ ULONG64 Pointer,
+    _Deref_out_range_(0, PointerCount) PULONG64 OutPtrTable
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    PointerCount - 
+    Pointer - 
+    OutPtrTable -
+
+Return Value:
+
+    ULONG.
+
+--*/
 {
     ULONG i;
     ULONG Result = TRUE;

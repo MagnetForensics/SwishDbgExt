@@ -48,7 +48,23 @@ Revision History:
 
 #include "MoonSolsDbgExt.h"
 
-StoreManager::StoreManager()
+StoreManager::StoreManager(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    -
+
+Return Value:
+
+    None.
+
+--*/
 {
     m_SmLogCtxOffset = GetFieldOffset("nt!_SM_GLOBALS", "StoreMgr.Log");
     m_SmcCacheMgrOffset = GetFieldOffset("nt!_SM_GLOBALS", "CacheMgr");
@@ -80,7 +96,23 @@ LPSTR LogEntryType[] = { "Add",
                         "Update" };
 
 BOOLEAN
-StoreManager::GetSmLogEntries()
+StoreManager::GetSmLogEntries(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    -
+
+Return Value:
+
+    BOOLEAN.
+
+--*/
 {
 //    SMP_LOG_BUFFER32 Log32;
     SMP_LOG_BUFFER64 Log64;
@@ -224,9 +256,25 @@ CleanUp:
 
 BOOL
 StoreManager::SmiDisplayCacheInformation(
-    ULONG64 CacheManager,
-    ULONG CacheIndex
+    _In_ ULONG64 CacheManager,
+    _In_ ULONG CacheIndex
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    CacheManager -
+    CacheIndex - 
+
+Return Value:
+
+    BOOLEAN.
+
+--*/
 {
     WCHAR UniqueId[256 + 1] = { 0 };
 
@@ -262,6 +310,21 @@ VOID
 StoreManager::SmiEnumCaches(
     ULONG CacheIndex
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    CacheIndex - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     ULONG Index;
 

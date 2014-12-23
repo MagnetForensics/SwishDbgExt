@@ -48,8 +48,23 @@ Revision History:
 
 PSTR
 GetProtocolType(
-    ULONG Type
+    _In_ ULONG Type
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Type - 
+
+Return Value:
+
+    PSTR.
+
+--*/
 {
     switch (Type)
     {
@@ -81,8 +96,23 @@ GetProtocolType(
 
 LPSTR
 GetTcbState(
-    ULONG State
+    _In_ ULONG State
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    State - 
+
+Return Value:
+
+    LPSTR.
+
+--*/
 {
     LPSTR TcbState[] = {
         "CLOSED",
@@ -105,7 +135,23 @@ GetTcbState(
 }
 
 vector<NETWORK_ENTRY>
-GetSockets()
+GetSockets(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    vector<NETWORK_ENTRY>.
+
+--*/
 {
     ULONG64 TableAddr;
     ULONG64 TableCountAddr;

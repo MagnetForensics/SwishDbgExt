@@ -62,6 +62,21 @@ ExtRemoteTyped
 ModuleIterator::Current(
 VOID
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     return m_ModuleList.GetTypedNodePtr();
 }
@@ -70,6 +85,21 @@ VOID
 ModuleIterator::Next(
 VOID
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     //
     // Could also use something like:
@@ -83,6 +113,21 @@ VOID
 ModuleIterator::Prev(
 VOID
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     m_ModuleList.Prev();
 }
@@ -91,6 +136,21 @@ BOOLEAN
 ModuleIterator::IsDone(
 VOID
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     BOOLEAN bIsDone = FALSE;
 
@@ -107,6 +167,21 @@ VOID
 VOID
 MsDllObject::Set(
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     RtlZeroMemory(&mm_CcDllObject, sizeof(mm_CcDllObject));
 
@@ -132,6 +207,21 @@ ProcessIterator::ProcessIterator(
     m_ProcessList(m_ProcessHead,
     "nt!_EPROCESS",
     "ActiveProcessLinks")
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     m_LinksType = ProcessLinksType;
 
@@ -153,7 +243,23 @@ ProcessIterator::ProcessIterator(
 }
 
 VOID
-ProcessIterator::First()
+ProcessIterator::First(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     m_ProcessList.StartHead();
 }
@@ -162,6 +268,21 @@ ExtRemoteTyped
 ProcessIterator::Current(
 VOID
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     return m_ProcessList.GetTypedNodePtr();
 }
@@ -170,6 +291,21 @@ ExtRemoteTyped
 ProcessIterator::CurrentNode(
 VOID
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     return m_ProcessList.GetTypedNode();
 }
@@ -178,6 +314,21 @@ VOID
 ProcessIterator::Next(
     VOID
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     //
     // Could also use something like:
@@ -191,6 +342,21 @@ VOID
 ProcessIterator::Prev(
     VOID
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     m_ProcessList.Prev();
 }
@@ -199,6 +365,21 @@ BOOLEAN
 ProcessIterator::IsDone(
     VOID
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     BOOLEAN bIsDone = FALSE;
 
@@ -213,6 +394,21 @@ BOOLEAN
 MsProcessObject::RestoreContext(
     VOID
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     BOOLEAN Result = FALSE;
 
@@ -228,6 +424,21 @@ BOOLEAN
 MsProcessObject::SwitchContext(
     VOID
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     BOOLEAN Result = FALSE;
 
@@ -244,7 +455,23 @@ CleanUp:
 }
 
 BOOLEAN
-MsProcessObject::GetDlls()
+MsProcessObject::GetDlls(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     BOOLEAN Result = TRUE;
 
@@ -310,7 +537,23 @@ CleanUp:
 }
 
 BOOLEAN
-MsProcessObject::GetHandles()
+MsProcessObject::GetHandles(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     ULONG64 TableCode = m_TypedObject.Field("ObjectTable").Field("TableCode").GetPtr();
     ULONG Level = (ULONG)(TableCode & 7);
@@ -455,6 +698,21 @@ CleanUp:
 VOID
 MsProcessObject::Set(
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     ULONG64 Peb;
 
@@ -540,7 +798,24 @@ MsProcessObject::Set(
     }
 }
 
-MsDllObject::MsDllObject(const MsDllObject& other)
+MsDllObject::MsDllObject(
+    const MsDllObject& other
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     *this = other;
 
@@ -548,7 +823,23 @@ MsDllObject::MsDllObject(const MsDllObject& other)
 }
 
 
-MsDllObject::~MsDllObject()
+MsDllObject::~MsDllObject(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     Clear();
 }
@@ -567,7 +858,23 @@ MsProcessObject::MsProcessObject(const MsProcessObject& other)
 }
 
 VOID
-MsProcessObject::Release() throw(...)
+MsProcessObject::Release(
+) throw(...)
+/*++
+
+Routine Description:
+
+Description.
+
+Arguments:
+
+-
+
+Return Value:
+
+None.
+
+--*/
 {
     DEREF_POINTER(m_CcProcessObject.CommandLine);
     DEREF_POINTER(m_CcProcessObject.DllPath);
@@ -575,7 +882,23 @@ MsProcessObject::Release() throw(...)
     DEREF_POINTER(m_EnvVarsBuffer);
 }
 
-MsProcessObject::~MsProcessObject()
+MsProcessObject::~MsProcessObject(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     try
     {
@@ -590,7 +913,24 @@ MsProcessObject::~MsProcessObject()
 }
 
 VOID
-PEFile::Free(void)
+PEFile::Free(
+    VOID
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     if (m_Image.Initialized)
     {
@@ -601,9 +941,25 @@ PEFile::Free(void)
 }
 
 ProcessArray GetProcesses(
-    OPTIONAL ULONG64 Pid,
-    ULONG Flags
-    )
+    _In_opt_ ULONG64 Pid,
+    _In_ ULONG Flags
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     Pid - 
+     Flags - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     ProcessArray ProcessList;
     ProcessArray MmProcessList;
@@ -713,8 +1069,23 @@ ProcessArray GetProcesses(
 
 MsProcessObject
 FindProcessByName(
-    LPSTR ProcessName
+    _In_ LPSTR ProcessName
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     ProcessName -
+
+Return Value:
+
+    None.
+
+--*/
 {
     ProcessIterator Processes;
     MsProcessObject ProcObject;
@@ -746,8 +1117,23 @@ FindProcessByName(
 
 MsProcessObject
 FindProcessByPid(
-    ULONG64 ProcessId
+    _In_ ULONG64 ProcessId
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     ProcessId - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     ProcessIterator Processes;
     MsProcessObject ProcObject;
@@ -781,7 +1167,7 @@ FindProcessByPid(
 
 BOOLEAN
 MsProcessObject::MmGetFirstVad(
-    PVAD_OBJECT VadInfo
+    _Inout_ PVAD_OBJECT VadInfo
 )
 {
     ULONG64 First, LeftChild;
@@ -820,8 +1206,23 @@ MsProcessObject::MmGetFirstVad(
 
 BOOLEAN
 MsProcessObject::MmGetNextVad(
-PVAD_OBJECT VadInfo
+    _Inout_ PVAD_OBJECT VadInfo
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     VadInfo - 
+
+Return Value:
+
+    BOOLEAN.
+
+--*/
 {
     ULONG64 Parent, Next;
     ULONG64 LeftChild, RightChild;
@@ -936,7 +1337,23 @@ PVAD_OBJECT VadInfo
 }
 
 BOOLEAN
-MsProcessObject::MmGetVads()
+MsProcessObject::MmGetVads(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    BOOLEAN.
+
+--*/
 {
     VAD_OBJECT VadInfo = { 0 };
 
@@ -953,7 +1370,23 @@ MsProcessObject::MmGetVads()
 }
 
 BOOLEAN
-MsProcessObject::GetThreads()
+MsProcessObject::GetThreads(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    BOOLEAN.
+
+--*/
 {
     ULONG64 ThreadListHead = m_TypedObject.Field("ThreadListHead").GetPointerTo().GetPtr();
 

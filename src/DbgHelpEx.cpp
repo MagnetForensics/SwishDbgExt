@@ -17,19 +17,19 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-    Module Name:
+Module Name:
 
     - DbgHelpEx.cpp
 
-    Abstract:
+Abstract:
 
     - http://msdn.microsoft.com/en-us/windows/ff553536(v=vs.71).aspx
 
-    Environment:
+Environment:
 
     - User mode
 
-    Revision History:
+Revision History:
 
     - Matthieu Suiche
 
@@ -46,6 +46,22 @@ PEFile::RtlGetRessourceData(
     ULONG Name,
     ULONG Type
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    - Name
+    - Type
+
+Return Value:
+
+    PVOID.
+
+--*/
 {
     PIMAGE_RESOURCE_DIRECTORY ImgResDir = NULL;
     PIMAGE_RESOURCE_DIRECTORY_ENTRY ImgResDirEntry;
@@ -115,6 +131,21 @@ CleanUp:
 BOOLEAN
 PEFile::RtlGetPdbInfo(
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    - 
+
+Return Value:
+
+    BOOLEAN.
+
+--*/
 {
     BOOLEAN Result = FALSE;
     PIMAGE_DEBUG_DIRECTORY DbgDir = NULL;
@@ -146,6 +177,21 @@ CleanUp:
 BOOLEAN
 PEFile::RtlGetExports(
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    -
+
+Return Value:
+
+    BOOLEAN.
+
+--*/
 {
     BOOLEAN Result = FALSE;
     PIMAGE_EXPORT_DIRECTORY ExportDir = NULL;
@@ -229,6 +275,21 @@ CleanUp:
 BOOLEAN
 PEFile::RtlGetFileVersion(
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    - 
+
+Return Value:
+
+    BOOLEAN.
+
+--*/
 {
     PVOID RessourceData = NULL;
 
@@ -329,6 +390,21 @@ CleanUp:
 BOOLEAN
 PEFile::RtlGetSections(
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    - 
+
+Return Value:
+
+    BOOLEAN.
+
+--*/
 {
     ULONG Index;
 
@@ -372,6 +448,21 @@ PEFile::RtlGetSections(
 BOOLEAN
 PEFile::InitImage(
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    - 
+
+Return Value:
+
+    BOOLEAN.
+
+--*/
 {
     PIMAGE_DOS_HEADER Header = NULL;
     PVOID Image = NULL;
@@ -493,6 +584,21 @@ CleanUp:
 BOOLEAN
 PEFile::GetInfoFull(
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    - 
+
+Return Value:
+
+    BOOLEAN.
+
+--*/
 {
     BOOLEAN Result = FALSE;
 

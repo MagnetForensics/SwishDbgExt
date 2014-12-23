@@ -40,16 +40,46 @@ Revision History:
 
 VOID
 OutThread(
-    PTHREAD_OBJECT Thread
+    _In_ PTHREAD_OBJECT Thread
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Thread - 
+
+Return Value:
+
+    None.
+
+--*/
 {
 
 }
 
 VOID
 OutHandles(
-    PHANDLE_OBJECT Handle
+    _In_ PHANDLE_OBJECT Handle
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Handle - 
+
+Return Value:
+
+    None.
+
+--*/
 {
 
 }
@@ -87,9 +117,25 @@ LPSTR IrpMajor[] = {
 
 VOID
 OutDriver(
-    MsDriverObject *Driver,
-    ULONG ExpandFlag
+    _In_ MsDriverObject *Driver,
+    _In_ ULONG ExpandFlag
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Driver - 
+    ExpandFlag -
+
+Return Value:
+
+    ULONG64.
+
+--*/
 {
     MsDriverObject::PFAST_IO_DISPATCH FastIo = NULL;
     UCHAR Name[512] = { 0 };

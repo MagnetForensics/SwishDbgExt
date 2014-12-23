@@ -64,7 +64,7 @@ typedef struct _PATTERN_DATA {
     UCHAR Pattern[12]; // Max Size 12
 } PATTERN_DATA, *PPATTERN_DATA;
 
-typedef void (CALLBACK *DISPLAY_CALLBACK)(IN BOOLEAN Verbose, IN ULONG64 Base, IN ULONG Offset);
+typedef void (CALLBACK *DISPLAY_CALLBACK)(_In_ BOOLEAN Verbose, _In_ ULONG64 Base, _In_ ULONG Offset);
 
 typedef struct _PATTERN_ENTRY {
     ULONG Type;
@@ -139,6 +139,23 @@ call_pop_signature_callback(
     ULONG64 Base,
     ULONG Offset
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Verbose - 
+    Base - 
+    Offset - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     if (Verbose) g_Ext->Dml("    CALL next/POP signature @ <link cmd=\"u 0x%I64X\">0x%X</link>\n", Base + Offset, Offset);
 }
@@ -150,6 +167,23 @@ fpu_signature_callback(
     ULONG64 Base,
     ULONG Offset
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Verbose - 
+    Base - 
+    Offset -
+
+Return Value:
+
+    None.
+
+--*/
 {
     if (Verbose) g_Ext->Dml("    FLDZ/FSTENV [esp-12] signature @ <link cmd=\"u 0x%I64X\">0x%X</link>\n", Base + Offset, Offset);
 }
@@ -161,6 +195,23 @@ push_call_signature_callback(
     ULONG64 Base,
     ULONG Offset
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Verbose - 
+    Base -
+    Offset -
+
+Return Value:
+
+    None.
+
+--*/
 {
     if (Verbose) g_Ext->Dml("    PUSH DWORD[]/CALL[] signature @ <link cmd=\"u 0x%I64X\">0x%X</link>\n", Base + Offset, Offset);
 }
@@ -172,6 +223,23 @@ function_prolog_signature_callback(
     ULONG64 Base,
     ULONG Offset
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Verbose - 
+    Base -
+    Offset -
+
+Return Value:
+
+    None.
+
+--*/
 {
     if (Verbose) g_Ext->Dml("    Function prolog signature @ <link cmd=\"u 0x%I64X\">0x%X</link>\n", Base + Offset, Offset);
 }
@@ -183,6 +251,23 @@ api_hashing_signature_callback(
     ULONG64 Base,
     ULONG Offset
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Verbose - 
+    Base -
+    Offset -
+
+Return Value:
+
+    None.
+
+--*/
 {
     if (Verbose) g_Ext->Dml("    API-Hashing signature @ <link cmd=\"u 0x%I64X\">0x%X</link>\n", Base + Offset, Offset);
 }
@@ -194,6 +279,23 @@ peb2_access_signature_callback(
     ULONG64 Base,
     ULONG Offset
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Verbose - 
+    Base -
+    Offset -
+
+Return Value:
+
+    None.
+
+--*/
 {
     if (Verbose) g_Ext->Dml("    FS:[00h] signature @ <link cmd=\"u 0x%I64X\">0x%X</link>\n", Base + Offset, Offset);
 }
@@ -205,6 +307,23 @@ peb_access_signature_callback(
     ULONG64 Base,
     ULONG Offset
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Verbose - 
+    Base -
+    Offset -
+
+Return Value:
+
+    None.
+
+--*/
 {
     if (Verbose) g_Ext->Dml("    FS:[30h] signature @ <link cmd=\"u 0x%I64X\">0x%X</link>\n", Base + Offset, Offset);
 }
@@ -277,7 +396,23 @@ PATTERN_ENTRY g_PatternTable[] = {
 };
 
 ULONG
-GetMaxPatternLen()
+GetMaxPatternLen(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    -
+
+Return Value:
+
+    ULONG.
+
+--*/
 {
     ULONG MaxLen = 0;
 
@@ -290,7 +425,23 @@ GetMaxPatternLen()
 }
 
 ULONG
-GetMaxBlacklistedLen()
+GetMaxBlacklistedLen(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    -
+
+Return Value:
+
+    ULONG.
+
+--*/
 {
     ULONG MaxLen = 0;
 
@@ -305,8 +456,23 @@ GetMaxBlacklistedLen()
 
 BOOLEAN
 InitPatternTable(
-PPATTERN_ENTRY PatternTable
+    _Inout_ PPATTERN_ENTRY PatternTable
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+   PatternTable -
+
+Return Value:
+
+    BOOLEAN.
+
+--*/
 {
     BOOLEAN Matched = FALSE;
 
@@ -343,12 +509,31 @@ PPATTERN_ENTRY PatternTable
 
 BOOLEAN
 MatchPattern(
-    BOOLEAN Verbose,
-    PUCHAR Input,
-    ULONG64 VirtualAddress,
-    ULONG Offset,
-    PPATTERN_ENTRY PatternTable
+    _In_ BOOLEAN Verbose,
+    _In_ PUCHAR Input,
+    _In_ ULONG64 VirtualAddress,
+    _In_ ULONG Offset,
+    _In_ PPATTERN_ENTRY PatternTable
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Verbose -
+    Input - 
+    VirtualAddress -
+    Offset -
+    PatternTable - 
+
+Return Value:
+
+    BOOLEAN.
+
+--*/
 {
     BOOLEAN Matched = FALSE;
 
@@ -403,6 +588,24 @@ GetMalScore(
     LPBYTE Buffer,
     ULONG BufferLen
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Verbose - 
+    VirtualAddress -
+    Buffer -
+    BufferLen - 
+
+Return Value:
+
+    ULONG.
+
+--*/
 {
     ULONG i;
     ULONG val = 0, val2 = 0, val3 = 0, addr = 0;
@@ -592,6 +795,24 @@ GetMalScoreEx(
     ULONG64 BaseAddress,
     ULONG Length
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Verbose -
+    ProcObj -
+    BaseAddress -
+    Length -
+
+Return Value:
+
+    ULONG.
+
+--*/
 {
     LPBYTE Buffer = NULL;
     ULONG MalScore = 0;

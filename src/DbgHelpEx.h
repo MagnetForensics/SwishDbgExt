@@ -136,8 +136,8 @@ public:
 
     PVOID
     RtlGetRessourceData(
-        IN ULONG Name,
-        IN ULONG Type
+       _In_ ULONG Name,
+       _In_ ULONG Type
     );
 
     BOOLEAN

@@ -68,9 +68,23 @@ BYTE InitializationVector[16];
 
 NTSTATUS kuhl_m_sekurlsa_nt6_KeyInit = STATUS_NOT_FOUND;
 
-BOOL kull_m_string_getDbgUnicodeString(
-    IN PUNICODE_STRING string
+BOOLEAN
+kull_m_string_getDbgUnicodeString(
+    _In_ PUNICODE_STRING string
 )
+/*++
+
+Routine Description:
+    Description.
+
+Arguments:
+    string - 
+
+Return Value:
+
+    BOOLEAN
+
+--*/
 {
     BOOL status = FALSE;
     ULONG_PTR buffer = (ULONG_PTR)string->Buffer;
@@ -89,7 +103,26 @@ BOOL kull_m_string_getDbgUnicodeString(
     return status;
 }
 
-VOID WINAPI kuhl_m_sekurlsa_nt6_LsaUnprotectMemory(IN PVOID Buffer, IN ULONG BufferSize)
+VOID
+WINAPI
+kuhl_m_sekurlsa_nt6_LsaUnprotectMemory(
+    _In_ PVOID Buffer,
+    _In_ ULONG BufferSize
+)
+/*++
+
+Routine Description:
+    Description.
+
+Arguments:
+    Buffer - 
+    BufferSize - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     BCRYPT_KEY_HANDLE *hKey;
     BYTE LocalInitializationVector[16];
@@ -111,13 +144,32 @@ VOID WINAPI kuhl_m_sekurlsa_nt6_LsaUnprotectMemory(IN PVOID Buffer, IN ULONG Buf
 }
 
 void kuhl_m_sekurlsa_utils_NlpMakeRelativeOrAbsoluteString(
-    PVOID BaseAddress,
-    PLSA_UNICODE_STRING String,
-    BOOL relative
+    _In_ PVOID BaseAddress,
+    _In_ PLSA_UNICODE_STRING String,
+    _In_ BOOLEAN relative
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    BaseAddress - 
+    String - 
+    relative - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     if (String->Buffer)
+    {
         String->Buffer = (PWSTR)((ULONG_PTR)(String->Buffer) + ((relative ? -1 : 1) * (ULONG_PTR)(BaseAddress)));
+    }
 }
 
 const char * PRINTF_TYPES[] =
@@ -128,21 +180,83 @@ const char * PRINTF_TYPES[] =
     "\\x%02x", // WPRINTF_HEX_PYTHON
 };
 
-void kull_m_string_dprintf_hex(LPCVOID lpData, DWORD cbData, DWORD flags)
+void
+kull_m_string_dprintf_hex(
+    _In_ LPCVOID lpData,
+    _In_ DWORD cbData,
+    _In_ DWORD flags
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    lpData - 
+    cbData - 
+    flags - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     DWORD i;
     const char * pType = PRINTF_TYPES[flags & 0x0000000f];
     for (i = 0; i < cbData; i++)
+    {
         g_Ext->Dml(pType, ((LPCBYTE)lpData)[i]);
+    }
 }
 
-BOOL kull_m_string_suspectUnicodeString(IN PUNICODE_STRING pUnicodeString)
+BOOLEAN
+kull_m_string_suspectUnicodeString(
+    _In_ PUNICODE_STRING pUnicodeString
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    pUnicodeString - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     int unicodeTestFlags = IS_TEXT_UNICODE_ODD_LENGTH | IS_TEXT_UNICODE_STATISTICS;
     return IsTextUnicode(pUnicodeString->Buffer, pUnicodeString->Length, &unicodeTestFlags);
 }
 
-VOID kuhl_m_sekurlsa_genericKeyOutput(PMARSHALL_KEY key, PVOID * dirtyBase)
+VOID
+kuhl_m_sekurlsa_genericKeyOutput(
+    _In_ PMARSHALL_KEY key,
+    _Inout_ PVOID * dirtyBase
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    key - 
+    dirtyBase - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     switch (key->unkId)
     {
@@ -169,10 +283,28 @@ VOID kuhl_m_sekurlsa_genericKeyOutput(PMARSHALL_KEY key, PVOID * dirtyBase)
     *dirtyBase = (PBYTE)*dirtyBase + sizeof(ULONG)+*(PULONG)*dirtyBase;
 }
 
-void CALLBACK kuhl_m_sekurlsa_enum_logon_callback_msv(
-    IN ULONG64 reserved,
-    IN PKIWI_BASIC_SECURITY_LOGON_SESSION_DATA pData
+void
+CALLBACK
+kuhl_m_sekurlsa_enum_logon_callback_msv(
+    _In_ ULONG64 reserved,
+    _In_ PKIWI_BASIC_SECURITY_LOGON_SESSION_DATA pData
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    reserved - 
+    pData - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     // KIWI_MSV1_0_PRIMARY_CREDENTIALS_X64 primaryCredentials;
 
@@ -249,10 +381,27 @@ CleanUp:
 
 ULONG64
 kuhl_m_sekurlsa_utils_pFromAVLByLuidRec(
-    ULONG64 pTable,
-    ULONG LUIDoffset,
-    PLUID luidToFind
+    _Inout_ ULONG64 pTable,
+    _In_ ULONG LUIDoffset,
+    _In_ PLUID luidToFind
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    pTable - 
+    LUIDoffset - 
+    luidToFind - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     ULONG64 Result = 0;
 
@@ -280,10 +429,27 @@ CleanUp:
 
 ULONG64
 kuhl_m_sekurlsa_utils_pFromAVLByLuid(
-        ULONG64 pTable,
-        ULONG LUIDoffset,
-        PLUID luidToFind
+    _Inout_ ULONG64 pTable,
+    _In_ ULONG LUIDoffset,
+    _In_ PLUID luidToFind
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    pTable - 
+    LUIDoffset - 
+    luidToFind - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     ULONG64 Result = 0;
 
@@ -296,10 +462,28 @@ kuhl_m_sekurlsa_utils_pFromAVLByLuid(
     return Result;
 }
 
-void CALLBACK kuhl_m_sekurlsa_enum_logon_callback_tspkg(
-    IN ULONG64 pTSGlobalCredTable,
-    IN PKIWI_BASIC_SECURITY_LOGON_SESSION_DATA pData
+void
+CALLBACK
+kuhl_m_sekurlsa_enum_logon_callback_tspkg(
+    _In_ ULONG64 pTSGlobalCredTable,
+    _In_ PKIWI_BASIC_SECURITY_LOGON_SESSION_DATA pData
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    pTSGlobalCredTable - 
+    pData - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     ULONG64 Pointer;
 
@@ -411,7 +595,28 @@ const CREDMAN_INFOS credhelper[] = {
     },
 };
 
-void CALLBACK kuhl_m_sekurlsa_enum_logon_callback_credman(IN ULONG64 reserved, IN PKIWI_BASIC_SECURITY_LOGON_SESSION_DATA pData)
+void
+CALLBACK
+kuhl_m_sekurlsa_enum_logon_callback_credman(
+    _In_ ULONG64 reserved,
+    _In_ PKIWI_BASIC_SECURITY_LOGON_SESSION_DATA pData
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    reserved - 
+    pData - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     //KIWI_CREDMAN_SET_LIST_ENTRY setList;
     //KIWI_CREDMAN_LIST_STARTER listStarter;
@@ -511,7 +716,7 @@ CleanUp :
 
 
 #if 0
-void CALLBACK kuhl_m_sekurlsa_enum_logon_callback_kerberos(IN ULONG_PTR pKerbGlobalLogonSessionTable, IN PKIWI_BASIC_SECURITY_LOGON_SESSION_DATA pData)
+void CALLBACK kuhl_m_sekurlsa_enum_logon_callback_kerberos(_In_ ULONG_PTR pKerbGlobalLogonSessionTable, _In_ PKIWI_BASIC_SECURITY_LOGON_SESSION_DATA pData)
 {
     KIWI_KERBEROS_LOGON_SESSION session;
     UNICODE_STRING pinCode;
@@ -529,7 +734,7 @@ void CALLBACK kuhl_m_sekurlsa_enum_logon_callback_kerberos(IN ULONG_PTR pKerbGlo
     else g_Ext->Dml("KO");
 }
 
-void CALLBACK kuhl_m_sekurlsa_enum_logon_callback_livessp(IN ULONG_PTR pLiveGlobalLogonSessionList, IN PKIWI_BASIC_SECURITY_LOGON_SESSION_DATA pData)
+void CALLBACK kuhl_m_sekurlsa_enum_logon_callback_livessp(_In_ ULONG_PTR pLiveGlobalLogonSessionList, _In_ PKIWI_BASIC_SECURITY_LOGON_SESSION_DATA pData)
 {
     KIWI_LIVESSP_LIST_ENTRY credentials;
     KIWI_LIVESSP_PRIMARY_CREDENTIAL primaryCredential;
@@ -544,7 +749,7 @@ void CALLBACK kuhl_m_sekurlsa_enum_logon_callback_livessp(IN ULONG_PTR pLiveGlob
     else g_Ext->Dml("KO");
 }
 
-void CALLBACK kuhl_m_sekurlsa_enum_logon_callback_wdigest(IN ULONG_PTR pl_LogSessList, IN PKIWI_BASIC_SECURITY_LOGON_SESSION_DATA pData)
+void CALLBACK kuhl_m_sekurlsa_enum_logon_callback_wdigest(_In_ ULONG_PTR pl_LogSessList, _In_ PKIWI_BASIC_SECURITY_LOGON_SESSION_DATA pData)
 {
     ULONG_PTR ptr;
     BYTE buffer[offsetWDigestPrimary + sizeof(KIWI_GENERIC_PRIMARY_CREDENTIAL)];
@@ -556,7 +761,7 @@ void CALLBACK kuhl_m_sekurlsa_enum_logon_callback_wdigest(IN ULONG_PTR pl_LogSes
     else g_Ext->Dml("KO");
 }
 
-void CALLBACK kuhl_m_sekurlsa_enum_logon_callback_ssp(IN ULONG_PTR pSspCredentialList, IN PKIWI_BASIC_SECURITY_LOGON_SESSION_DATA pData)
+void CALLBACK kuhl_m_sekurlsa_enum_logon_callback_ssp(_In_ ULONG_PTR pSspCredentialList, _In_ PKIWI_BASIC_SECURITY_LOGON_SESSION_DATA pData)
 {
     KIWI_SSP_CREDENTIAL_LIST_ENTRY mesCredentials;
     ULONG_PTR ptr;
@@ -581,7 +786,7 @@ void CALLBACK kuhl_m_sekurlsa_enum_logon_callback_ssp(IN ULONG_PTR pSspCredentia
     else g_Ext->Dml("KO");
 }
 
-void CALLBACK kuhl_m_sekurlsa_enum_logon_callback_masterkeys(IN ULONG_PTR pMasterKeyCacheList, IN PKIWI_BASIC_SECURITY_LOGON_SESSION_DATA pData)
+void CALLBACK kuhl_m_sekurlsa_enum_logon_callback_masterkeys(_In_ ULONG_PTR pMasterKeyCacheList, _In_ PKIWI_BASIC_SECURITY_LOGON_SESSION_DATA pData)
 {
     KIWI_MASTERKEY_CACHE_ENTRY mesCredentials;
     ULONG_PTR ptr;
@@ -635,9 +840,25 @@ KUHL_M_SEKURLSA_PACKAGE packages[] = {
 
 NTSTATUS
 kuhl_m_sekurlsa_nt6_acquireKey(
-    ULONG64 phKey,
-    PBCRYPT_GEN_KEY pGenKey
+    _In_ ULONG64 phKey,
+    _In_ PBCRYPT_GEN_KEY pGenKey
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    phKey - 
+    pGenKey - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     NTSTATUS NtStatus = STATUS_UNSUCCESSFUL;
     ULONG64 hKey;
@@ -734,10 +955,27 @@ CleanUp:
 
 NTSTATUS
 kuhl_m_sekurlsa_nt6_acquireKeys(
-    ULONG64 pInitializationVector,
-    ULONG64 phAesKey,
-    ULONG64 ph3DesKey
+    _In_ ULONG64 pInitializationVector,
+    _In_ ULONG64 phAesKey,
+    _In_ ULONG64 ph3DesKey
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    pInitializationVector - 
+    phAesKey - 
+    ph3DesKey - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     NTSTATUS NtStatus = STATUS_NOT_FOUND;
 
@@ -759,7 +997,24 @@ CleanUp:
     return NtStatus;
 }
 
-NTSTATUS kuhl_m_sekurlsa_nt6_LsaInitializeProtectedMemory()
+NTSTATUS
+kuhl_m_sekurlsa_nt6_LsaInitializeProtectedMemory(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    - 
+
+Return Value:
+
+    NTSTATUS.
+
+--*/
 {
     NTSTATUS NtStatus;
     ULONG dwSizeNeeded;
@@ -791,7 +1046,23 @@ CleanUp:
 }
 
 NTSTATUS
-kuhl_m_sekurlsa_nt6_init()
+kuhl_m_sekurlsa_nt6_init(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    - 
+
+Return Value:
+
+    NTSTATUS.
+
+--*/
 {
     if (NT_SUCCESS(kuhl_m_sekurlsa_nt6_KeyInit)) goto CleanUp;
 
@@ -844,7 +1115,23 @@ const char * KUHL_M_SEKURLSA_LOGON_TYPE[] = {
 };
 
 void
-Mimikatz()
+Mimikatz(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     ULONG64 pInitializationVector, phAesKey, ph3DesKey, pLogonSessionList, pLogonSessionListCount;
     PULONG64 LogonSessionList = NULL;

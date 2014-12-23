@@ -39,9 +39,25 @@ Revision History:
 
 ULONG64
 RegGetCellPaged(
-    ExtRemoteTyped KeyHive,
-    ULONG CellIndex
+    _In_ ExtRemoteTyped KeyHive,
+    _In_ ULONG CellIndex
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     KeyHive - 
+     CellIndex - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     ULONG Type, Table, Block, Offset;
     ULONG64 CellAddr;
@@ -67,9 +83,25 @@ RegGetCellPaged(
 
 VOID
 RegReadKeyNode(
-    ExtRemoteTyped KeyHive,
-    ExtRemoteTyped KeyNode
+    _In_ ExtRemoteTyped KeyHive,
+    _In_ ExtRemoteTyped KeyNode
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     KeyHive - 
+     KeyNode -
+
+Return Value:
+
+    None.
+
+--*/
 {
     CHAR Name[512] = { 0 };
 
@@ -195,8 +227,23 @@ CleanUp:
 
 LPWSTR
 RegGetKeyName(
-    ExtRemoteTyped KeyControlBlock
+    _In_ ExtRemoteTyped KeyControlBlock
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     KeyControlBlock - 
+
+Return Value:
+
+    LPWSTR.
+
+--*/
 {
     CHAR Children[64] = { 0 };
     LPWSTR FullNameA = NULL, TmpName = NULL;
@@ -253,6 +300,22 @@ RegReadKeyValue(
     ExtRemoteTyped KeyHive,
     ExtRemoteTyped KeyValue
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    KeyHive - 
+    KeyValue - 
+
+Return Value:
+
+    None.
+
+--*/
 {
     PUCHAR Buffer = NULL;
 
@@ -340,7 +403,23 @@ CleanUp:
 }
 
 vector<HIVE_OBJECT>
-GetHives()
+GetHives(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+     - 
+
+Return Value:
+
+    vector<HIVE_OBJECT>.
+
+--*/
 {
     ULONG64 CmpHiveListHead;
     vector<HIVE_OBJECT> Hives;

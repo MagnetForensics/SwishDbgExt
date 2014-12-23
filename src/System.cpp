@@ -1,6 +1,21 @@
 /*++
     MoonSols Incident Response & Digital Forensics Debugging Extension
-    Copyright (C) 2014 MoonSols Ltd. All rights reserved.
+
+    Copyright (C) 2014 MoonSols Ltd.
+    Copyright (C) 2014 Matthieu Suiche (@msuiche)
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 Module Name:
 
@@ -36,6 +51,21 @@ Revision History:
 vector<SSDT_ENTRY>
 GetServiceDescriptorTable(
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    -
+
+Return Value:
+
+    vector<SSDT_ENTRY>.
+
+--*/
 {
     vector<SSDT_ENTRY> SDT;
 
@@ -104,6 +134,21 @@ Exit:
 vector<SERVICE_ENTRY>
 GetServices(
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    -
+
+Return Value:
+
+    vector<SERVICE_ENTRY>.
+
+--*/
 {
     MsProcessObject ProcessObject = FindProcessByName("services.exe");
     ULONG BufferSize = PAGE_SIZE * 2;
@@ -332,8 +377,23 @@ GetServices(
 
 LPSTR
 GetPartitionType(
-ULONG Type
+    _In_ ULONG Type
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Type -
+
+Return Value:
+
+    LPSTR.
+
+--*/
 {
     switch (Type)
     {
@@ -397,9 +457,25 @@ ULONG Type
 
 ULONG64
 KiDecodePointer(
-    ULONG64 Pointer,
-    ULONG64 Salt
+    _In_ ULONG64 Pointer,
+    _In_ ULONG64 Salt
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Pointer -
+    Salt - 
+
+Return Value:
+
+    ULONG64.
+
+--*/
 {
     ULONG64 Value = (ULONG64)Pointer;
 
@@ -424,7 +500,23 @@ KiDecodePointer(
 }
 
 vector<KTIMER>
-GetTimers()
+GetTimers(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    -
+
+Return Value:
+
+    vector<KTIMER>.
+
+--*/
 {
     vector<KTIMER> Timers;
     ULONG KeNumberProcessors;
@@ -600,7 +692,23 @@ CleanUp:
 }
 
 vector<VACB_OBJECT>
-GetVacbs()
+GetVacbs(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    -
+
+Return Value:
+
+    vector<VACB_OBJECT>.
+
+--*/
 {
     vector<VACB_OBJECT> Vacbs;
 
@@ -670,8 +778,23 @@ CleanUp:
 
 vector<IDT_OBJECT>
 GetInterrupts(
-ULONG64 InIdtBase
+    _In_opt_ ULONG64 InIdtBase
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    InIdtBase -
+
+Return Value:
+
+    vector<IDT_OBJECT>.
+
+--*/
 {
     vector<IDT_OBJECT> Idts;
     ULONG KeNumberProcessors;
@@ -775,8 +898,23 @@ CleanUp:
 
 vector<GDT_OBJECT>
 GetDescriptors(
-    OPTIONAL IN ULONG64 InGdtBase
+    _In_opt_ ULONG64 InGdtBase
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    InGdtBase
+
+Return Value:
+
+    vector<GDT_OBJECT>.
+
+--*/
 {
     vector<GDT_OBJECT> Gdts;
     ULONG KeNumberProcessors;
@@ -923,7 +1061,23 @@ LPSTR WorkQueueType[] = {
 };
 
 void
-GetExQueue()
+GetExQueue(
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    -
+
+Return Value:
+
+    None.
+
+--*/
 {
     // KeNodeBlock[i < KeNumberNodes] ENODE/KNODE
     // ExWorkerQueue = &ExGetNodeByNumber(i)->ExWorkerQueues[EXQUEUEINDEX_MAX];

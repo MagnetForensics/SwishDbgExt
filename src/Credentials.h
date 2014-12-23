@@ -17,22 +17,22 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-    Module Name:
+Module Name:
 
     - Credentials.h
 
-    Abstract:
+Abstract:
 
     - http://msdn.microsoft.com/en-us/windows/ff553536(v=vs.71).aspx
 
     Thanks to Benjamin Delpy (@mimikatz) for open sourcing his project.
 
 
-    Environment:
+Environment:
 
     - User mode
 
-    Revision History:
+Revision History:
 
     - Matthieu Suiche
 
@@ -195,7 +195,7 @@ typedef struct _KIWI_BASIC_SECURITY_LOGON_SESSION_DATA {
     ULONG64 pSid;
     ULONG64 pCredentialManager;
 } KIWI_BASIC_SECURITY_LOGON_SESSION_DATA, *PKIWI_BASIC_SECURITY_LOGON_SESSION_DATA;
-typedef void (CALLBACK * PKUHL_M_SEKURLSA_PACKAGE_CALLBACK) (IN ULONG64 pKerbGlobalLogonSessionTable, IN PKIWI_BASIC_SECURITY_LOGON_SESSION_DATA pData);
+typedef void (CALLBACK * PKUHL_M_SEKURLSA_PACKAGE_CALLBACK) (_In_ ULONG64 pKerbGlobalLogonSessionTable,_In_ PKIWI_BASIC_SECURITY_LOGON_SESSION_DATA pData);
 
 typedef struct _KUHL_M_SEKURLSA_PACKAGE {
     const char * name;
@@ -254,7 +254,7 @@ struct _KIWI_BCRYPT_KEY8_T {
     ULONG unk1;
     ULONG unk2;
     ULONG unk3;
-    T unk4; // before, align in x64
+    T unk4; // before, align_In_x64
     KIWI_HARD_KEY hardkey;
 };
 
@@ -268,7 +268,7 @@ struct _KIWI_BCRYPT_KEY81_T {
     ULONG unk2;
     ULONG unk3;
     ULONG unk4;
-    T unk5; // before, align in x64
+    T unk5; // before, align_In_x64
     ULONG unk6;
     ULONG unk7;
     ULONG unk8;

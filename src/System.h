@@ -370,7 +370,7 @@ ULONG64 InIdtBase
 
 vector<GDT_OBJECT>
 GetDescriptors(
-OPTIONAL IN ULONG64 InGdtBase
+_In_opt_ ULONG64 InGdtBase
 );
 
 void

@@ -109,9 +109,25 @@ UCHAR PADDING[64] = {
 */
 VOID
 Transform(
-    ULONG *Buffer,
-    ULONG *In
+    _Inout_ ULONG *Buffer,
+    _Inout_ ULONG *In
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Buffer - 
+    In -
+
+Return Value:
+
+    VOID.
+
+--*/
 {
     ULONG a = Buffer[0], b = Buffer[1], c = Buffer[2], d = Buffer[3];
 
@@ -211,8 +227,23 @@ Transform(
 
 VOID
 MD5Init(
-    PMD5_CONTEXT Md5Context
+    _Inout_ PMD5_CONTEXT Md5Context
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Md5Context - 
+
+Return Value:
+
+    VOID.
+
+--*/
 {
     Md5Context->i[0] = Md5Context->i[1] = (UINT32)0;
 
@@ -225,10 +256,28 @@ MD5Init(
 }
 
 VOID
-MD5Update(PMD5_CONTEXT Md5Context,
-          PUCHAR InBuf,
-          ULONG InLen
+MD5Update(
+    _Inout_ PMD5_CONTEXT Md5Context,
+    _In_ PUCHAR InBuf,
+    _In_ ULONG InLen
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Md5Context - 
+    InBuf - 
+    InLen - 
+
+Return Value:
+
+    ULONG64.
+
+--*/
 {
     ULONG In[16];
     int Mdi;
@@ -264,8 +313,23 @@ MD5Update(PMD5_CONTEXT Md5Context,
 
 VOID
 MD5Final(
-    MD5_CONTEXT *Md5Context
+    _Inout_ MD5_CONTEXT *Md5Context
 )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    Md5Context - 
+
+Return Value:
+
+    VOID.
+
+--*/
 {
     ULONG In[16];
     int Mdi;
