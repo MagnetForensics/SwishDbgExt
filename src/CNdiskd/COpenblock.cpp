@@ -53,25 +53,18 @@ COpenblock::COpenblock(ULONG64 OpenBlockAddr)
 	m_ptrReceiveNetBufferLists = 0;
 
 	// Initialize heap to store protocol's information
-	m_bindingname = (PWSTR)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY|HEAP_NO_SERIALIZE , MAX_BINDING_NAME*sizeof(WCHAR));
-	m_protocolname = (PWSTR)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY|HEAP_NO_SERIALIZE , MAX_PROTOCOL_NAME*sizeof(WCHAR));
-	m_adaptername = (PWSTR)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY|HEAP_NO_SERIALIZE , MAX_ADAPTER_NAME*sizeof(WCHAR));
-#if DBG
-	//g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "[DEBUG:%s] Allocate heap: %p\n", __FUNCTION__, m_bindingname);
-#endif
-
+	m_bindingname = (PWSTR)malloc(MAX_BINDING_NAME*sizeof(WCHAR));
+	m_protocolname = (PWSTR)malloc(MAX_PROTOCOL_NAME*sizeof(WCHAR));
+	m_adaptername = (PWSTR)malloc(MAX_ADAPTER_NAME*sizeof(WCHAR));
 }
 
 // COpenblock destructor
 COpenblock::~COpenblock()
 {
 	// Cleanup
-#if DBG
-	//g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "[DEBUG:%s] Freeing protocol: %ls (%p)\n", __FUNCTION__, m_bindingname, m_bindingname);
-#endif
-	HeapFree(GetProcessHeap(), HEAP_NO_SERIALIZE, m_bindingname);
-	HeapFree(GetProcessHeap(), HEAP_NO_SERIALIZE, m_protocolname);
-	HeapFree(GetProcessHeap(), HEAP_NO_SERIALIZE, m_adaptername);
+	free(m_bindingname);
+	free(m_protocolname);
+	free(m_adaptername);
 
 }
 
@@ -152,7 +145,7 @@ ULONG64 WINAPI COpenblock::GetMiniDriverEndAddr()
 
 VOID WINAPI COpenblock::SetBinderName(PWSTR AdatperName)
 {
-	StringCchCopyExW(m_bindingname, MAX_BINDING_NAME, AdatperName, NULL, NULL, STRSAFE_FILL_BEHIND_NULL);
+	wcscpy_s(m_bindingname, MAX_BINDING_NAME, AdatperName);
 }
 
 PWSTR WINAPI COpenblock::GetBinderName()

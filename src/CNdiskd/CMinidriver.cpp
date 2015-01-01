@@ -52,14 +52,14 @@ CMinidriver::CMinidriver(ULONG64 MinidriverAddr)
 	m_drvendaddr = 0;
 
 	// Initialize heap to store minidriver's name
-	m_drivername = (PWSTR)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY|HEAP_NO_SERIALIZE , MAX_MINIDRV_NAME*sizeof(WCHAR));
+	m_drivername = (PWSTR)malloc(MAX_MINIDRV_NAME*sizeof(WCHAR));
 
 }
 
 // CMinidriver destructor
 CMinidriver::~CMinidriver()
 {
-	HeapFree(GetProcessHeap(), HEAP_NO_SERIALIZE, m_drivername);
+	free(m_drivername);
 }
 
 PWSTR WINAPI CMinidriver::GetMDriverName()
@@ -91,11 +91,11 @@ PWSTR WINAPI CMinidriver::GetMDriverName()
 
 		if (drvName != NULL)
 		{
-			StringCchCopyExW(m_drivername, MAX_MINIDRV_NAME, drvName+1, NULL, NULL, STRSAFE_FILL_BEHIND_NULL);
+			wcscpy_s(m_drivername, MAX_MINIDRV_NAME, drvName+1);
 		}
 		else
 		{
-			StringCchCopyExW(m_drivername, MAX_MINIDRV_NAME, wDriverName, NULL, NULL, STRSAFE_FILL_BEHIND_NULL);
+			wcscpy_s(m_drivername, MAX_MINIDRV_NAME, wDriverName);
 		}
 	}
 	// NDIS5.X
@@ -113,11 +113,11 @@ PWSTR WINAPI CMinidriver::GetMDriverName()
 
 		if (drvName != NULL)
 		{
-			StringCchCopyExW(m_drivername, MAX_MINIDRV_NAME, drvName+1, NULL, NULL, STRSAFE_FILL_BEHIND_NULL);
+			wcscpy_s(m_drivername, MAX_MINIDRV_NAME, drvName+1);
 		}
 		else
 		{
-			StringCchCopyExW(m_drivername, MAX_MINIDRV_NAME, wRegPath, NULL, NULL, STRSAFE_FILL_BEHIND_NULL);
+			wcscpy_s(m_drivername, MAX_MINIDRV_NAME, wRegPath);
 		}
 
 	}

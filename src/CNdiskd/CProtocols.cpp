@@ -43,29 +43,21 @@ CProtocols::CProtocols()
 	m_ptrStatusHandlerEx = 0;
 	m_ptrRequestCompleteHandler = 0;
 	// Initialize heap to store protocol's information
-	m_protocolname = (PWSTR)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY|HEAP_NO_SERIALIZE , MAX_PROTOCOL_NAME*sizeof(WCHAR));
-	m_ModuleName = (PSTR)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY|HEAP_NO_SERIALIZE , MAX_MODULE_NAME);
-#if DBG
-	//g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "[DEBUG:%s] Allocate heap: %p\n", __FUNCTION__, m_protocolname);
-#endif
-
+	m_protocolname = (PWSTR)malloc(MAX_PROTOCOL_NAME*sizeof(WCHAR));
+	m_ModuleName = (PSTR)malloc(MAX_MODULE_NAME);
 }
 
 // CProtocols destructor
 CProtocols::~CProtocols()
 {
 	// Cleanup
-#if DBG
-	//g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "[DEBUG:%s] Freeing protocol: %ls (%p)\n", __FUNCTION__, m_protocolname, m_protocolname);
-#endif
-	HeapFree(GetProcessHeap(), HEAP_NO_SERIALIZE, m_protocolname);
-	HeapFree(GetProcessHeap(), HEAP_NO_SERIALIZE, m_ModuleName);
-
+	free(m_protocolname);
+	free(m_ModuleName);
 }
 
 VOID WINAPI CProtocols::SetProtocolName(PWSTR ProtocolName)
 {
-	StringCchCopyExW(m_protocolname, MAX_PROTOCOL_NAME, ProtocolName, NULL, NULL, STRSAFE_FILL_BEHIND_NULL);
+	wcscpy_s(m_protocolname, MAX_PROTOCOL_NAME, ProtocolName);
 }
 
 PWSTR WINAPI CProtocols::GetProtocolName()

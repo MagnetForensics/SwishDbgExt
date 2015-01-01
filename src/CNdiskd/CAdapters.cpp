@@ -38,10 +38,7 @@ CAdapters::CAdapters()
 	m_minidrvStartAddr = 0;
 	m_minidrvEndAddr = 0;
 	// Initialize heap to store protocol's information
-	m_adaptername = (PWSTR)HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY|HEAP_NO_SERIALIZE , MAX_ADAPTER_NAME*sizeof(WCHAR));
-#if DBG
-	//g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "[DEBUG:%s] Allocate heap: %p\n", __FUNCTION__, m_adaptername);
-#endif
+	m_adaptername = (PWSTR)malloc(MAX_ADAPTER_NAME*sizeof(WCHAR));
 
 }
 
@@ -49,16 +46,13 @@ CAdapters::CAdapters()
 CAdapters::~CAdapters()
 {
 	// Cleanup
-#if DBG
-	//g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "[DEBUG:%s] Freeing protocol: %ls (%p)\n", __FUNCTION__, m_adaptername, m_adaptername);
-#endif
-	HeapFree(GetProcessHeap(), HEAP_NO_SERIALIZE, m_adaptername);
+	free(m_adaptername);
 
 }
 
 VOID WINAPI CAdapters::SetAdapterName(PWSTR AdatperName)
 {
-	StringCchCopyExW(m_adaptername, MAX_ADAPTER_NAME, AdatperName, NULL, NULL, STRSAFE_FILL_BEHIND_NULL);
+	wcscpy_s(m_adaptername, MAX_ADAPTER_NAME, AdatperName);
 }
 
 PWSTR WINAPI CAdapters::GetAdapterName()
