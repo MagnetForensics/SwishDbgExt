@@ -3,6 +3,7 @@
 
     Copyright (C) 2014 MoonSols Ltd.
     Copyright (C) 2014 Matthieu Suiche (@msuiche)
+	Copyright (C) 2014 wLcY (@x9090)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -37,6 +38,7 @@ Revision History:
 --*/
 
 #define VERBOSE_MODE FALSE
+#define VVERBOSE_MODE FALSE
 #define JSON_SUPPORT FALSE
 
 #include <stdio.h>
@@ -91,6 +93,8 @@ using namespace web::http::client;
 
 #include "Output.h"
 
+#include "CNdiskd\CNdiskd.h"
+
 #pragma comment(lib, "version.lib")
 #if JSON_SUPPORT
 #pragma comment(lib, "cpprest120_1_4.lib")
@@ -109,13 +113,13 @@ using namespace web::http::client;
 #endif
 
 #define GetPtrSize() (g_Ext->m_PtrSize)
-#define DbgPrint(x) if (VERBOSE_MODE) g_Ext->Dml(x);
+#define DbgPrint(fmt,...) if (VERBOSE_MODE) g_Ext->Dml(fmt, __VA_ARGS__);
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-//
+//		
 // Definition
 //
 

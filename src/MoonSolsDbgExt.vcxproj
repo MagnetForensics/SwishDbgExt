@@ -39,7 +39,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120</PlatformToolset>
+    <PlatformToolset>v110</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -77,10 +77,11 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>C:\Program Files (x86)\Windows Kits\8.0\Debuggers\inc;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);</IncludePath>
     <LibraryPath>C:\Program Files (x86)\Windows Kits\8.0\Debuggers\lib;$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;$(WindowsSDK_LibraryPath_x86);</LibraryPath>
+    <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>C:\Program Files (x86)\Microsoft Cpp REST SDK for VS 2013 v1.4\SDK\include;C:\Program Files (x86)\Windows Kits\8.0\Debuggers\inc;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>C:\Program Files (x86)\Microsoft Cpp REST SDK for VS 2013 v1.4\SDK\lib\x64\Release;C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\lib\amd64;C:\Program Files (x86)\Windows Kits\8.0\Debuggers\lib\x64;$(WindowsSDK_LibraryPath_x64);$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib\;</LibraryPath>
+    <IncludePath>C:\Program Files (x86)\Windows Kits\8.0\Debuggers\inc;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\lib\amd64;C:\Program Files (x86)\Windows Kits\8.0\Debuggers\lib\x64;$(WindowsSDK_LibraryPath_x64);$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib\;</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -144,6 +145,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Azure.cpp" />
+    <ClCompile Include="CNdiskd\CAdapters.cpp" />
+    <ClCompile Include="CNdiskd\CMinidriver.cpp" />
+    <ClCompile Include="CNdiskd\CNdiskd.cpp" />
+    <ClCompile Include="CNdiskd\COpenblock.cpp" />
+    <ClCompile Include="CNdiskd\CProtocols.cpp" />
+    <ClCompile Include="CNdiskd\CReport.cpp" />
+    <ClCompile Include="CNdiskd\utils.cpp" />
     <ClCompile Include="Drivers.cpp" />
     <ClCompile Include="engextcpp.cpp" />
     <ClCompile Include="Credentials.cpp" />
@@ -164,6 +172,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Azure.h" />
+    <ClInclude Include="CNdiskd\CAdapters.h" />
+    <ClInclude Include="CNdiskd\CMinidriver.h" />
+    <ClInclude Include="CNdiskd\CNdiskd.h" />
+    <ClInclude Include="CNdiskd\COpenblock.h" />
+    <ClInclude Include="CNdiskd\CProtocols.h" />
+    <ClInclude Include="CNdiskd\CReport.h" />
+    <ClInclude Include="CNdiskd\utils.h" />
     <ClInclude Include="Credentials.h" />
     <ClInclude Include="DbgHelpEx.h" />
     <ClInclude Include="Drivers.h" />
