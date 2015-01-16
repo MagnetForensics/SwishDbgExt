@@ -1,7 +1,7 @@
 /*++
     A NDIS hook scan extension to existing MoonSols Incident Response & Digital Forensics Debugging Extension
 
-	Copyright (C) 2014 wLcY (@x9090)
+    Copyright (C) 2014 wLcY (@x9090)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --*/
+
 #ifndef _CREPORT_H_
 #define _CREPORT_H_
 #pragma once
@@ -24,10 +25,10 @@
 class CReport
 {
 public:
-	CReport(ExtCheckedPointer<ExtExtension>);
-	~CReport();
-	VOID WINAPI ReportHooks(PCSTR, ...);
+    CReport(ExtCheckedPointer<ExtExtension>);
+    ~CReport();
+    VOID WINAPI ReportHooks(PCSTR, ...);
 private:
-	ExtCheckedPointer<ExtExtension> m_gExt;
+    ExtCheckedPointer<ExtExtension> m_gExt;
 };
 #endif // _CREPORT_H_

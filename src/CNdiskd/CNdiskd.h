@@ -1,7 +1,7 @@
 /*++
     A NDIS hook scan extension to existing MoonSols Incident Response & Digital Forensics Debugging Extension
 
-	Copyright (C) 2014 wLcY (@x9090)
+    Copyright (C) 2014 wLcY (@x9090)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,6 +16,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --*/
+
 #ifndef _CNDISKD_H_
 #define _CNDISKD_H_
 
@@ -49,23 +50,23 @@
 class CNdiskd
 {
 public:
-	CNdiskd();
-	~CNdiskd();
-	BOOL WINAPI IsNdisHook(ULONG64);
-	BOOL WINAPI HeuristicHookCheck(ULONG64, int&);
-	CHAR* WINAPI GetHookType(int);
-	ULONG64 m_ndisBaseAddress;
-	ULONG64 m_ndisEndAddress;
-	ULONG m_ndiskdChecked;
-	PWSTR m_ndiskdBuildDate;
-	PWSTR m_ndiskdBuildTime;
-	PWSTR m_ndiskdBuiltBy;
-	std::list<CProtocols*>* WINAPI GetProtocolList(std::list<CProtocols*> *protocolList);
-	std::list<CAdapters*>* WINAPI GetAdapterList(std::list<CAdapters*> *adapterList);
-	std::list<COpenblock*>* WINAPI GetOpenblockList(std::list<COpenblock*> *openblockList);
-	std::list<CMinidriver*>* WINAPI GetMDriverList(std::list<CMinidriver*> *mDrvList);
+    CNdiskd();
+    ~CNdiskd();
+    BOOL WINAPI IsNdisHook(ULONG64);
+    BOOL WINAPI HeuristicHookCheck(ULONG64, int&);
+    CHAR* WINAPI GetHookType(int);
+    ULONG64 m_ndisBaseAddress;
+    ULONG64 m_ndisEndAddress;
+    ULONG m_ndiskdChecked;
+    PWSTR m_ndiskdBuildDate;
+    PWSTR m_ndiskdBuildTime;
+    PWSTR m_ndiskdBuiltBy;
+    std::list<CProtocols*>* WINAPI GetProtocolList(std::list<CProtocols*> *protocolList);
+    std::list<CAdapters*>* WINAPI GetAdapterList(std::list<CAdapters*> *adapterList);
+    std::list<COpenblock*>* WINAPI GetOpenblockList(std::list<COpenblock*> *openblockList);
+    std::list<CMinidriver*>* WINAPI GetMDriverList(std::list<CMinidriver*> *mDrvList);
 private:
-	BOOL WINAPI IsWhitelistedNdisModule(CHAR*);
+    BOOL WINAPI IsWhitelistedNdisModule(CHAR*);
 };
 
 #endif

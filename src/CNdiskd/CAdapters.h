@@ -1,7 +1,7 @@
 /*++
     A NDIS hook scan extension to existing MoonSols Incident Response & Digital Forensics Debugging Extension
 
-	Copyright (C) 2014 wLcY (@x9090)
+    Copyright (C) 2014 wLcY (@x9090)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,37 +15,37 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
---*/
+    --*/
 #ifndef _CADAPTERS_H_
 #define _CADAPTERS_H_
 
 #define MAX_ADAPTER_NAME 500
 
-class CAdapters 
+class CAdapters
 {
 public:
-	CAdapters();
-	~CAdapters();
-	BOOL WINAPI IsNdisFuncHandlerHooked(ULONG64);
-	VOID WINAPI SetAdapterName(PWSTR);
-	PWSTR WINAPI GetAdapterName();
-	std::map<PCSTR, ULONG64>* WINAPI GetFunctionHandlers(std::map<PCSTR,ULONG64>*);
-	ULONG64 m_ndisStartAddr;
-	ULONG64 m_ndisEndAddr;
-	ULONG64 m_minidrvStartAddr;
-	ULONG64 m_minidrvEndAddr;
-	// Only partial handler functions that are known to be targeted on NDIS library
-	ULONG64 m_ptrPacketIndicateHandler;
-	ULONG64 m_ptrSendCompleteHandler;
-	ULONG64 m_ptrResetCompleteHandler;
-	ULONG64 m_ptrStatusHandler;
-	ULONG64 m_ptrStatusCompleteHandler;
-	ULONG64 m_ptrWanSendCompleteHandler;
-	ULONG64 m_ptrWanRcvHandler;
-	ULONG64 m_ptrWanRcvCompleteHandler;
-	ULONG64 m_ptrSendNetBufferListsCompleteHandler;
+    CAdapters();
+    ~CAdapters();
+    BOOL WINAPI IsNdisFuncHandlerHooked(ULONG64);
+    VOID WINAPI SetAdapterName(PWSTR);
+    PWSTR WINAPI GetAdapterName();
+    std::map<PCSTR, ULONG64>* WINAPI GetFunctionHandlers(std::map<PCSTR, ULONG64>*);
+    ULONG64 m_ndisStartAddr;
+    ULONG64 m_ndisEndAddr;
+    ULONG64 m_minidrvStartAddr;
+    ULONG64 m_minidrvEndAddr;
+    // Only partial handler functions that are known to be targeted on NDIS library
+    ULONG64 m_ptrPacketIndicateHandler;
+    ULONG64 m_ptrSendCompleteHandler;
+    ULONG64 m_ptrResetCompleteHandler;
+    ULONG64 m_ptrStatusHandler;
+    ULONG64 m_ptrStatusCompleteHandler;
+    ULONG64 m_ptrWanSendCompleteHandler;
+    ULONG64 m_ptrWanRcvHandler;
+    ULONG64 m_ptrWanRcvCompleteHandler;
+    ULONG64 m_ptrSendNetBufferListsCompleteHandler;
 private:
-	PWSTR m_adaptername;
+    PWSTR m_adaptername;
 };
 
 #endif // _CADAPTERS_H_

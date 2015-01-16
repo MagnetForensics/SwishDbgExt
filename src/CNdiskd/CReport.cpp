@@ -1,7 +1,7 @@
 /*++
     A NDIS hook scan extension to existing MoonSols Incident Response & Digital Forensics Debugging Extension
 
-	Copyright (C) 2014 wLcY (@x9090)
+    Copyright (C) 2014 wLcY (@x9090)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,11 +16,12 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --*/
+
 #include "CNdiskd.h"
 
 CReport::CReport(ExtCheckedPointer<ExtExtension> gExt) : m_gExt(gExt)
 {
-	// Constructor
+    // Constructor
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -30,15 +31,15 @@ CReport::CReport(ExtCheckedPointer<ExtExtension> gExt) : m_gExt(gExt)
 //////////////////////////////////////////////////////////////////////////
 VOID WINAPI CReport::ReportHooks(PCSTR Format, ...)
 {
-	
-	CHAR Buffer[1024] = {0};
-	va_list Args;
 
-	va_start(Args, Format);
+    CHAR Buffer[1024] = { 0 };
+    va_list Args;
 
-	vsnprintf_s(Buffer, sizeof(Buffer), _TRUNCATE, Format, Args);
+    va_start(Args, Format);
 
-	m_gExt->Dml(Buffer);
+    vsnprintf_s(Buffer, sizeof(Buffer), _TRUNCATE, Format, Args);
 
-	va_end(Args);
+    m_gExt->Dml(Buffer);
+
+    va_end(Args);
 }
