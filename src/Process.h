@@ -276,7 +276,7 @@ public:
     VOID Release() throw(...);
 
     BOOLEAN GetDlls();
-    BOOLEAN GetHandles();
+    BOOLEAN GetHandles(ULONG64 InTableCode);
 
     BOOLEAN SwitchContext(VOID);
     BOOLEAN RestoreContext(VOID);

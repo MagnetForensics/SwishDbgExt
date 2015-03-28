@@ -94,6 +94,7 @@ public:
     EXT_COMMAND_METHOD(ms_store);
 
 	EXT_COMMAND_METHOD(ms_scanndishook);
+
     // EXT_COMMAND_METHOD(ms_strings);
 
     // EXT_COMMAND_METHOD(ms_virustotal);
@@ -108,7 +109,8 @@ EXT_COMMAND(ms_process,
     "Display list of processes",
     "{;e,o;;}"
     "{pid;ed,o;pid;Display process information for a given Process Id}"
-    "{handles;s,o;handles;Display handles belonging to process\ntype (optional) - Object type to filter (e.g. Mutant or Key)}"
+    "{handletype;s,o;handletype;Display handles belonging to process\ntype (optional) - Object type to filter (e.g. Mutant or Key)}"
+    "{handletable;ed,d=0;handletable;Handle table \ntype (optional)}"
     "{dlls;b,o;dlls;Display dlls belonging to process}"
     // "{dlls_exports;b,o;dlls exports;Display exports belonging to each dlls}"
     "{threads;b,o;threads;Display threads belonging to process}"
@@ -123,8 +125,9 @@ EXT_COMMAND(ms_process,
     BOOLEAN bScan;
 
     Pid = GetArgU64("pid", FALSE);
-    LPCSTR HandlesArg = GetArgStr("handles", FALSE);
-    if (HandlesArg) Flags |= PROCESS_HANDLES_FLAG;
+    LPCSTR HandlesArg = GetArgStr("handletype", FALSE);
+    ULONG64 HandleTable = GetArgU64("handletable", FALSE);
+    if (HandlesArg || HandleTable) Flags |= PROCESS_HANDLES_FLAG;
 
     if (HasArg("vars")) Flags |= PROCESS_ENVVAR_FLAG;
     if (HasArg("threads")) Flags |= PROCESS_THREADS_FLAG;
@@ -280,7 +283,7 @@ EXT_COMMAND(ms_process,
 
         if (Flags & PROCESS_HANDLES_FLAG)
         {
-            ProcObj.GetHandles();
+            ProcObj.GetHandles(HandleTable);
 
             Dml("\n"
                 "    |------|----------------------|--------------------|---------------------------------------------------------------------------|\n"

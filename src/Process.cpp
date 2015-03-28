@@ -538,6 +538,7 @@ CleanUp:
 
 BOOLEAN
 MsProcessObject::GetHandles(
+    ULONG64 InTableCode
 )
 /*++
 
@@ -555,7 +556,11 @@ Return Value:
 
 --*/
 {
-    ULONG64 TableCode = m_TypedObject.Field("ObjectTable").Field("TableCode").GetPtr();
+    ULONG64 TableCode = 0;
+    
+    if (InTableCode) TableCode = InTableCode;
+    else TableCode = m_TypedObject.Field("ObjectTable").Field("TableCode").GetPtr();
+
     ULONG Level = (ULONG)(TableCode & 7);
     ULONG64 Table = TableCode & ~7;
 

@@ -72,7 +72,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <IncludePath>C:\Program Files (x86)\Microsoft Cpp REST SDK for VS 2013 v1.4\SDK\include\cpprest;C:\Program Files (x86)\Windows Kits\8.0\Debuggers\inc;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\lib\amd64;C:\Program Files (x86)\Windows Kits\8.0\Debuggers\lib\x64;$(WindowsSDK_LibraryPath_x64);$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;</LibraryPath>
+    <LibraryPath>C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\lib\amd64;C:\Program Files (x86)\Windows Kits\8.0\Debuggers\lib\x64;$(WindowsSDK_LibraryPath_x64);$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib;</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <IncludePath>C:\Program Files (x86)\Windows Kits\8.0\Debuggers\inc;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);</IncludePath>
@@ -81,7 +81,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>C:\Program Files (x86)\Windows Kits\8.0\Debuggers\inc;$(VCInstallDir)include;$(VCInstallDir)atlmfc\include;$(WindowsSDK_IncludePath);</IncludePath>
-    <LibraryPath>C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\lib\amd64;C:\Program Files (x86)\Windows Kits\8.0\Debuggers\lib\x64;$(WindowsSDK_LibraryPath_x64);$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib\;</LibraryPath>
+    <LibraryPath>C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\lib\amd64;C:\Program Files (x86)\Windows Kits\8.0\Debuggers\lib\x64;$(WindowsSDK_LibraryPath_x64);$(VCInstallDir)lib;$(VCInstallDir)atlmfc\lib\;</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

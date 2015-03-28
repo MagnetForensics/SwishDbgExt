@@ -634,7 +634,7 @@ Return Value:
 
     if (GetField(Field)) Result = TRUE;
 
-    Result;
+    return Result;
 }
 
 ULONG
