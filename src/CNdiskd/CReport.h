@@ -20,7 +20,7 @@
 #ifndef _CREPORT_H_
 #define _CREPORT_H_
 #pragma once
-#include "engextcpp.hpp"
+#include "../engextcpp.hpp"
 
 class CReport
 {
