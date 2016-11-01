@@ -84,6 +84,7 @@ using namespace web::http::client;
 #include "System.h"
 #include "Storage.h"
 #include "VirusTotal.h"
+#include "Checks\Codecave.h"
 
 #include "Security.h"
 

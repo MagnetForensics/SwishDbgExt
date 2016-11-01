@@ -41,6 +41,8 @@ Revision History:
 
 #include "MoonSolsDbgExt.h"
 
+#define VERBOSE FALSE
+
 class EXT_CLASS : public ExtExtension
 {
 public:
@@ -100,6 +102,9 @@ public:
     // EXT_COMMAND_METHOD(ms_virustotal);
 
     // EXT_COMMAND_METHOD(ms_analyze); // !ms_analyze -v
+
+    EXT_COMMAND_METHOD(ms_checkcodecave);
+    EXT_COMMAND_METHOD(ms_proctype);
 
 };
 
@@ -1718,286 +1723,361 @@ EXT_COMMAND(ms_store,
 }
 
 EXT_COMMAND(ms_scanndishook,
-			"Scan and display suspicious NDIS hooks",
-			"")
+    "Scan and display suspicious NDIS hooks",
+    "")
 {
-	ULONG64 Address;
-	ULONG ulNdisChecked;
-	ULONG Status;
-	ULONG cbBytesReturned;
+    ULONG64 Address;
+    ULONG ulNdisChecked;
+    ULONG Status;
+    ULONG cbBytesReturned;
 
-	// Create instance of our NDISKD class object
-	CNdiskd *myNdiskd = new CNdiskd;
+    // Create instance of our NDISKD class object
+    CNdiskd *myNdiskd = new CNdiskd;
 
-	// Get the WinDBG-style extension APIS.   
-	ExtensionApis.nSize = sizeof (ExtensionApis);
+    // Get the WinDBG-style extension APIS.   
+    ExtensionApis.nSize = sizeof(ExtensionApis);
 
-	// Initialize ExtensionsApis
-	g_Ext->m_Control->GetWindbgExtensionApis64(&ExtensionApis);
+    // Initialize ExtensionsApis
+    g_Ext->m_Control->GetWindbgExtensionApis64(&ExtensionApis);
 
-	// Get NDIS module base address
-	ULONG moduleIdx = 0;
-	ULONG64 Base = 0;
-	Status = g_Ext->m_Symbols->GetModuleByModuleName(NDIS_NAME, 0 , &moduleIdx, &Base);
+    // Get NDIS module base address
+    ULONG moduleIdx = 0;
+    ULONG64 Base = 0;
+    Status = g_Ext->m_Symbols->GetModuleByModuleName(NDIS_NAME, 0, &moduleIdx, &Base);
 
-	// If not loaded then execute ".reload" command to reload ndis.sys symbol
-	if (Status == E_INVALIDARG)
-	{
-		CHAR szCommand[256] = {0};
+    // If not loaded then execute ".reload" command to reload ndis.sys symbol
+    if (Status == E_INVALIDARG)
+    {
+        CHAR szCommand[256] = { 0 };
 
-		g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "%s symbol not found. Reloading (.reload) %s\n", NDIS_NAME, NDIS_DRV_NAME);
+        g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "%s symbol not found. Reloading (.reload) %s\n", NDIS_NAME, NDIS_DRV_NAME);
 
-		sprintf_s(szCommand, sizeof(szCommand), ".reload /f %s", NDIS_DRV_NAME);
+        sprintf_s(szCommand, sizeof(szCommand), ".reload /f %s", NDIS_DRV_NAME);
 
-		// Execute reload command
-		g_Ext->m_Control->Execute(DEBUG_OUTCTL_IGNORE | DEBUG_OUTCTL_NOT_LOGGED, szCommand, DEBUG_EXECUTE_NOT_LOGGED);
+        // Execute reload command
+        g_Ext->m_Control->Execute(DEBUG_OUTCTL_IGNORE | DEBUG_OUTCTL_NOT_LOGGED, szCommand, DEBUG_EXECUTE_NOT_LOGGED);
 
-		// Make sure the NDIS symbol has been loaded
-		Status = g_Ext->m_Symbols->GetModuleByModuleName(NDIS_NAME, 0 , &moduleIdx, &Base);
+        // Make sure the NDIS symbol has been loaded
+        Status = g_Ext->m_Symbols->GetModuleByModuleName(NDIS_NAME, 0, &moduleIdx, &Base);
 
-		// NDIS symbol reload failed again?
-		if (Status == E_INVALIDARG)
-		{
-			g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "%s symbol loaded failed!\n", NDIS_NAME);
-		}
-	}
+        // NDIS symbol reload failed again?
+        if (Status == E_INVALIDARG)
+        {
+            g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "%s symbol loaded failed!\n", NDIS_NAME);
+        }
+    }
 
-	if (Base > 0)
-	{
-		// Save NDIS address range
-		myNdiskd->m_ndisBaseAddress = Base;
-		myNdiskd->m_ndisEndAddress = Base + utils::getModuleSize(Base);
-		g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "%s image: %I64x-%I64x\n", NDIS_NAME, myNdiskd->m_ndisBaseAddress, myNdiskd->m_ndisEndAddress);
-	}
+    if (Base > 0)
+    {
+        // Save NDIS address range
+        myNdiskd->m_ndisBaseAddress = Base;
+        myNdiskd->m_ndisEndAddress = Base + utils::getModuleSize(Base);
+        g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "%s image: %I64x-%I64x\n", NDIS_NAME, myNdiskd->m_ndisBaseAddress, myNdiskd->m_ndisEndAddress);
+    }
 
-	// Read address of ndis!ndisChecked
-	Address = GetExpression("ndis!ndisChecked");
+    // Read address of ndis!ndisChecked
+    Address = GetExpression("ndis!ndisChecked");
 
-	// Got ndisChecked address
-	if (Address)
-	{
-		cbBytesReturned = 0;
-		ulNdisChecked = utils::getUlongFromAddress(Address, &cbBytesReturned);
+    // Got ndisChecked address
+    if (Address)
+    {
+        cbBytesReturned = 0;
+        ulNdisChecked = utils::getUlongFromAddress(Address, &cbBytesReturned);
 
-		if(cbBytesReturned == sizeof(ULONG))
-		{
-			if(ulNdisChecked == 1)
-			{
-				g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "Ndis build: Checked\n");
-			}
-			else if(ulNdisChecked == 0)
-			{
-				g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "Ndis build: Free\n");
-			}
+        if (cbBytesReturned == sizeof(ULONG))
+        {
+            if (ulNdisChecked == 1)
+            {
+                g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "Ndis build: Checked\n");
+            }
+            else if (ulNdisChecked == 0)
+            {
+                g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "Ndis build: Free\n");
+            }
 
-			// Store ndisChecked value
-			myNdiskd->m_ndiskdChecked = ulNdisChecked;
-		}
-	}
+            // Store ndisChecked value
+            myNdiskd->m_ndiskdChecked = ulNdisChecked;
+        }
+    }
 
-	// Read ndis!ndisBuildDate
-	Address = GetExpression("ndis!ndisBuildDate");
+    // Read ndis!ndisBuildDate
+    Address = GetExpression("ndis!ndisBuildDate");
 
-	// Got ndisBuildDate address
-	if (Address)
-	{
-		ExtRemoteTyped ndisBuildDate("(nt!_UNICODE_STRING*)@$extin", Address);
+    // Got ndisBuildDate address
+    if (Address)
+    {
+        ExtRemoteTyped ndisBuildDate("(nt!_UNICODE_STRING*)@$extin", Address);
 
-		// Get the build date in wide character
-		utils::getUnicodeString(ndisBuildDate, myNdiskd->m_ndiskdBuildDate, MAX_PROTOCOL_NAME*sizeof(WCHAR));
+        // Get the build date in wide character
+        utils::getUnicodeString(ndisBuildDate, myNdiskd->m_ndiskdBuildDate, MAX_PROTOCOL_NAME*sizeof(WCHAR));
 
-	}
+    }
 
-	// Read ndis!ndisBuildTime
-	Address = GetExpression("ndis!ndisBuildTime");
+    // Read ndis!ndisBuildTime
+    Address = GetExpression("ndis!ndisBuildTime");
 
-	// Got ndisBuildTime address
-	if (Address)
-	{
-		ExtRemoteTyped ndisBuildTime("(nt!_UNICODE_STRING*)@$extin", Address);
+    // Got ndisBuildTime address
+    if (Address)
+    {
+        ExtRemoteTyped ndisBuildTime("(nt!_UNICODE_STRING*)@$extin", Address);
 
-		// Get the build time in wide character
-		utils::getUnicodeString(ndisBuildTime, myNdiskd->m_ndiskdBuildTime, MAX_PROTOCOL_NAME*sizeof(WCHAR));
-	}
+        // Get the build time in wide character
+        utils::getUnicodeString(ndisBuildTime, myNdiskd->m_ndiskdBuildTime, MAX_PROTOCOL_NAME*sizeof(WCHAR));
+    }
 
-	// Read ndis!ndisBuiltBy
-	Address = GetExpression("ndis!ndisBuiltBy");
+    // Read ndis!ndisBuiltBy
+    Address = GetExpression("ndis!ndisBuiltBy");
 
-	// Got ndisBuiltBy address
-	if (Address)
-	{
-		ExtRemoteTyped ndisBuitBy("(nt!_UNICODE_STRING*)@$extin", Address);
+    // Got ndisBuiltBy address
+    if (Address)
+    {
+        ExtRemoteTyped ndisBuitBy("(nt!_UNICODE_STRING*)@$extin", Address);
 
-		// Get Ndis's author in wide character
-		utils::getUnicodeString(ndisBuitBy, myNdiskd->m_ndiskdBuiltBy, MAX_PROTOCOL_NAME*sizeof(WCHAR));
-	}
+        // Get Ndis's author in wide character
+        utils::getUnicodeString(ndisBuitBy, myNdiskd->m_ndiskdBuiltBy, MAX_PROTOCOL_NAME*sizeof(WCHAR));
+    }
 
-	if(wcslen(myNdiskd->m_ndiskdBuildDate) > 0)
-	{
-		g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "Ndis build date: %ls\n", myNdiskd->m_ndiskdBuildDate);
-	}
+    if (wcslen(myNdiskd->m_ndiskdBuildDate) > 0)
+    {
+        g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "Ndis build date: %ls\n", myNdiskd->m_ndiskdBuildDate);
+    }
 
-	if(wcslen(myNdiskd->m_ndiskdBuildTime) > 0)
-	{
-		g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "Ndis build time: %ls\n", myNdiskd->m_ndiskdBuildTime);
-	}
+    if (wcslen(myNdiskd->m_ndiskdBuildTime) > 0)
+    {
+        g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "Ndis build time: %ls\n", myNdiskd->m_ndiskdBuildTime);
+    }
 
-	if(wcslen(myNdiskd->m_ndiskdBuiltBy) > 0)
-	{
-		g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "Ndis built by: %ls\n", myNdiskd->m_ndiskdBuiltBy);
-	}
+    if (wcslen(myNdiskd->m_ndiskdBuiltBy) > 0)
+    {
+        g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "Ndis built by: %ls\n", myNdiskd->m_ndiskdBuiltBy);
+    }
 
-	// Instantiate report object
-	CReport *reporter = new CReport(g_Ext);
+    // Instantiate report object
+    CReport *reporter = new CReport(g_Ext);
 
-	// Get protocol list
-	std::list<CProtocols*> protocolList;
-	Dml("<col fg=\"srccmnt\">Scanning network protocol list...</col>\n");
-	myNdiskd->GetProtocolList(&protocolList);
+    // Get protocol list
+    std::list<CProtocols*> protocolList;
+    Dml("<col fg=\"srccmnt\">Scanning network protocol list...</col>\n");
+    myNdiskd->GetProtocolList(&protocolList);
 
-	// Walk through protocol list and check the function handlers
-	for(std::list<CProtocols*>::iterator it = protocolList.begin(); it != protocolList.end(); ++it)
-	{
-		std::map<PCSTR, ULONG64> listHandlers;
+    // Walk through protocol list and check the function handlers
+    for (std::list<CProtocols*>::iterator it = protocolList.begin(); it != protocolList.end(); ++it)
+    {
+        std::map<PCSTR, ULONG64> listHandlers;
 
-		(*it)->GetFunctionHandlers(&listHandlers);
+        (*it)->GetFunctionHandlers(&listHandlers);
 
-		//g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "Protocol: %ls\n", (*it)->GetProtocolName());
+        //g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "Protocol: %ls\n", (*it)->GetProtocolName());
 
-		// Walk through each function handlers
-		for (std::map<PCSTR, ULONG64>::iterator it2=listHandlers.begin(); it2 != listHandlers.end(); ++it2)
-		{
-			if(it2->second != NULL )
-			{
-				DbgPrint("DEBUG: %s:%d:%s Function handler: %s (%I64x)\n", __FILE__, __LINE__, __FUNCTION__, it2->first, it2->second);
+        // Walk through each function handlers
+        for (std::map<PCSTR, ULONG64>::iterator it2 = listHandlers.begin(); it2 != listHandlers.end(); ++it2)
+        {
+            if (it2->second != NULL)
+            {
+                DbgPrint("DEBUG: %s:%d:%s Function handler: %s (%I64x)\n", __FILE__, __LINE__, __FUNCTION__, it2->first, it2->second);
 
-				int rule = 0;
+                int rule = 0;
 
-				if (/*myNdiskd->IsNdisHook(it2->second) ||*/ myNdiskd->HeuristicHookCheck(it2->second, rule))
-				{
-					reporter->ReportHooks("<col fg=\"emphfg\">   Hooked handler:</col> %s (<link cmd=\"u %I64x\">0x%I64X</link>) from protocol <b>%ls</b> (Rule #%d - %s)\n", it2->first, it2->second, it2->second, (*it)->GetProtocolName(), rule, myNdiskd->GetHookType(rule));
-				}
-			}
-		}
-	}
+                if (/*myNdiskd->IsNdisHook(it2->second) ||*/ myNdiskd->HeuristicHookCheck(it2->second, rule))
+                {
+                    reporter->ReportHooks("<col fg=\"emphfg\">   Hooked handler:</col> %s (<link cmd=\"u %I64x\">0x%I64X</link>) from protocol <b>%ls</b> (Rule #%d - %s)\n", it2->first, it2->second, it2->second, (*it)->GetProtocolName(), rule, myNdiskd->GetHookType(rule));
+                }
+            }
+        }
+    }
 
-	// Get miniport list
-	std::list<CAdapters*> miniportlist;
-	Dml("<col fg=\"srccmnt\">Scanning network adapter list...\n</col>");
-	myNdiskd->GetAdapterList(&miniportlist);
+    // Get miniport list
+    std::list<CAdapters*> miniportlist;
+    Dml("<col fg=\"srccmnt\">Scanning network adapter list...\n</col>");
+    myNdiskd->GetAdapterList(&miniportlist);
 
-	// Walk through all the adapters and look for hook handlers
-	for(std::list<CAdapters*>::iterator it = miniportlist.begin(); it != miniportlist.end(); ++it)
-	{
-		std::map<PCSTR, ULONG64> listHandlers;
+    // Walk through all the adapters and look for hook handlers
+    for (std::list<CAdapters*>::iterator it = miniportlist.begin(); it != miniportlist.end(); ++it)
+    {
+        std::map<PCSTR, ULONG64> listHandlers;
 
-		(*it)->GetFunctionHandlers(&listHandlers);
-		//g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "Adapter: %ls\n", (*it)->GetAdapterName());
+        (*it)->GetFunctionHandlers(&listHandlers);
+        //g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "Adapter: %ls\n", (*it)->GetAdapterName());
 
-		// Walk through each function handlers
-		for (std::map<PCSTR, ULONG64>::iterator it2=listHandlers.begin(); it2 != listHandlers.end(); ++it2)
-		{
-			if (it2->second != NULL)
-			{
-				DbgPrint("DEBUG: %s:%d:%s Function handler: %s (%I64x)\n", __FILE__, __LINE__, __FUNCTION__, it2->first, it2->second);
+        // Walk through each function handlers
+        for (std::map<PCSTR, ULONG64>::iterator it2 = listHandlers.begin(); it2 != listHandlers.end(); ++it2)
+        {
+            if (it2->second != NULL)
+            {
+                DbgPrint("DEBUG: %s:%d:%s Function handler: %s (%I64x)\n", __FILE__, __LINE__, __FUNCTION__, it2->first, it2->second);
 
-				int rule = 0;
+                int rule = 0;
 
-				if (myNdiskd->IsNdisHook(it2->second) /*|| myNdiskd->HeuristicHookCheck(it2->second, rule)*/)
-				{
-					reporter->ReportHooks("<col fg=\"emphfg\">   Hooked handler:</col> %s (<link cmd=\"u %I64x\">0x%I64X</link>) from adapter <b>%ls</b> (Rule #%d - %s)\n", it2->first, it2->second, it2->second, (*it)->GetAdapterName(), rule, myNdiskd->GetHookType(rule));
-				}
-			}
-		}
-	}
+                if (myNdiskd->IsNdisHook(it2->second) /*|| myNdiskd->HeuristicHookCheck(it2->second, rule)*/)
+                {
+                    reporter->ReportHooks("<col fg=\"emphfg\">   Hooked handler:</col> %s (<link cmd=\"u %I64x\">0x%I64X</link>) from adapter <b>%ls</b> (Rule #%d - %s)\n", it2->first, it2->second, it2->second, (*it)->GetAdapterName(), rule, myNdiskd->GetHookType(rule));
+                }
+            }
+        }
+    }
 
-	// Get open bindings between protocol (eg: TCPIP) and miniport (eg: NIC adapter Intel(R) Gigabit Network Connection)
-	std::list<COpenblock*> openblocklist;
-	Dml("<col fg=\"srccmnt\">Scanning network binder list...\n</col>");
-	myNdiskd->GetOpenblockList(&openblocklist);
+    // Get open bindings between protocol (eg: TCPIP) and miniport (eg: NIC adapter Intel(R) Gigabit Network Connection)
+    std::list<COpenblock*> openblocklist;
+    Dml("<col fg=\"srccmnt\">Scanning network binder list...\n</col>");
+    myNdiskd->GetOpenblockList(&openblocklist);
 
-	// Walk through all the binders and look for hook handlers
-	for(std::list<COpenblock*>::iterator it = openblocklist.begin(); it != openblocklist.end(); ++it)
-	{
-		std::map<PCSTR, ULONG64> listHandlers;
+    // Walk through all the binders and look for hook handlers
+    for (std::list<COpenblock*>::iterator it = openblocklist.begin(); it != openblocklist.end(); ++it)
+    {
+        std::map<PCSTR, ULONG64> listHandlers;
 
-		(*it)->GetFunctionHandlers(&listHandlers);
+        (*it)->GetFunctionHandlers(&listHandlers);
 
-		//g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "Binder: %ls\n", (*it)->GetBinderName());
+        //g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "Binder: %ls\n", (*it)->GetBinderName());
 
-		// Walk through each function handlers
-		for (std::map<PCSTR, ULONG64>::iterator it2=listHandlers.begin(); it2 != listHandlers.end(); ++it2)
-		{
-			if (it2->second != NULL)
-			{
-				int rule = 0;
+        // Walk through each function handlers
+        for (std::map<PCSTR, ULONG64>::iterator it2 = listHandlers.begin(); it2 != listHandlers.end(); ++it2)
+        {
+            if (it2->second != NULL)
+            {
+                int rule = 0;
 
-				DbgPrint("DEBUG: %s:%d:%s Function handler: %s (%I64x)\n", __FILE__, __LINE__, __FUNCTION__, it2->first, it2->second);
+                DbgPrint("DEBUG: %s:%d:%s Function handler: %s (%I64x)\n", __FILE__, __LINE__, __FUNCTION__, it2->first, it2->second);
 
-				if ((*it)->IsHandlerHooked(it2->second) || myNdiskd->HeuristicHookCheck(it2->second, rule))
-				{
-					reporter->ReportHooks("<col fg=\"emphfg\">   Hooked handler:</col> %s (<link cmd=\"u %I64x\">0x%I64X</link>) from binder <b>%ls</b> (Rule #%d - %s)\n", it2->first, it2->second, it2->second, (*it)->GetBinderName(), rule, myNdiskd->GetHookType(rule));
-				}
-			}
-		}
-	}
+                if ((*it)->IsHandlerHooked(it2->second) || myNdiskd->HeuristicHookCheck(it2->second, rule))
+                {
+                    reporter->ReportHooks("<col fg=\"emphfg\">   Hooked handler:</col> %s (<link cmd=\"u %I64x\">0x%I64X</link>) from binder <b>%ls</b> (Rule #%d - %s)\n", it2->first, it2->second, it2->second, (*it)->GetBinderName(), rule, myNdiskd->GetHookType(rule));
+                }
+            }
+        }
+    }
 
-	// Get minidriver list
-	std::list<CMinidriver*> miniDrvList;
-	Dml("<col fg=\"srccmnt\">Scanning network mini-driver list...</col>\n");
-	myNdiskd->GetMDriverList(&miniDrvList);
+    // Get minidriver list
+    std::list<CMinidriver*> miniDrvList;
+    Dml("<col fg=\"srccmnt\">Scanning network mini-driver list...</col>\n");
+    myNdiskd->GetMDriverList(&miniDrvList);
 
-	// Walk through all the mini-drivers and look for hook handlers
-	for(std::list<CMinidriver*>::iterator it = miniDrvList.begin(); it != miniDrvList.end(); ++it)
-	{
-		std::map<PCSTR, ULONG64> listHandlers;
+    // Walk through all the mini-drivers and look for hook handlers
+    for (std::list<CMinidriver*>::iterator it = miniDrvList.begin(); it != miniDrvList.end(); ++it)
+    {
+        std::map<PCSTR, ULONG64> listHandlers;
 
-		(*it)->GetFunctionHandlers(&listHandlers);
+        (*it)->GetFunctionHandlers(&listHandlers);
 
-		//g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "Mini-driver: %ls\n", (*it)->GetMDriverName());
+        //g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "Mini-driver: %ls\n", (*it)->GetMDriverName());
 
-		// Walk through each function handlers
-		for (std::map<PCSTR, ULONG64>::iterator it2=listHandlers.begin(); it2 != listHandlers.end(); ++it2)
-		{
-			if (it2->second != NULL)
-			{
-				int rule = 0;
+        // Walk through each function handlers
+        for (std::map<PCSTR, ULONG64>::iterator it2 = listHandlers.begin(); it2 != listHandlers.end(); ++it2)
+        {
+            if (it2->second != NULL)
+            {
+                int rule = 0;
 
-				DbgPrint("DEBUG: %s:%d:%s Function handler: %s (%I64x)\n", __FILE__, __LINE__, __FUNCTION__, it2->first, it2->second);
+                DbgPrint("DEBUG: %s:%d:%s Function handler: %s (%I64x)\n", __FILE__, __LINE__, __FUNCTION__, it2->first, it2->second);
 
-				if ((*it)->IsHandlerHooked(it2->second) || myNdiskd->HeuristicHookCheck(it2->second, rule))
-				{
-					reporter->ReportHooks("<col fg=\"emphfg\">   Hooked handler:</col> %s (<link cmd=\"u %I64x\">0x%I64X</link>) from adapter <b>%ls</b> (Rule #%d - %s)\n", it2->first, it2->second, it2->second, (*it)->GetMDriverName(), rule, myNdiskd->GetHookType(rule));
-				}
-			}
-		}
-	}
+                if ((*it)->IsHandlerHooked(it2->second) || myNdiskd->HeuristicHookCheck(it2->second, rule))
+                {
+                    reporter->ReportHooks("<col fg=\"emphfg\">   Hooked handler:</col> %s (<link cmd=\"u %I64x\">0x%I64X</link>) from adapter <b>%ls</b> (Rule #%d - %s)\n", it2->first, it2->second, it2->second, (*it)->GetMDriverName(), rule, myNdiskd->GetHookType(rule));
+                }
+            }
+        }
+    }
 
-	// Object instances cleanup here
-	// Cleanup Ndiskd object.
-	delete myNdiskd;
+    // Object instances cleanup here
+    // Cleanup Ndiskd object.
+    delete myNdiskd;
 
-	// Cleanup protocols object
-	for(std::list<CProtocols*>::iterator it = protocolList.begin(); it != protocolList.end(); ++it)
-	{
-		delete *it;
-	}
+    // Cleanup protocols object
+    for (std::list<CProtocols*>::iterator it = protocolList.begin(); it != protocolList.end(); ++it)
+    {
+        delete *it;
+    }
 
-	// Cleanup adapters object
-	for(std::list<CAdapters*>::iterator it = miniportlist.begin(); it != miniportlist.end(); ++it)
-	{
-		delete *it;
-	}
+    // Cleanup adapters object
+    for (std::list<CAdapters*>::iterator it = miniportlist.begin(); it != miniportlist.end(); ++it)
+    {
+        delete *it;
+    }
 
-	// Cleanup binder object
-	for(std::list<COpenblock*>::iterator it = openblocklist.begin(); it != openblocklist.end(); ++it)
-	{
-		delete *it;
-	}
+    // Cleanup binder object
+    for (std::list<COpenblock*>::iterator it = openblocklist.begin(); it != openblocklist.end(); ++it)
+    {
+        delete *it;
+    }
 
-	// Cleanup mini-driver object
-	for(std::list<CMinidriver*>::iterator it = miniDrvList.begin(); it != miniDrvList.end(); ++it)
-	{
-		delete *it;
-	}
+    // Cleanup mini-driver object
+    for (std::list<CMinidriver*>::iterator it = miniDrvList.begin(); it != miniDrvList.end(); ++it)
+    {
+        delete *it;
+    }
+}
+
+EXT_COMMAND(ms_proctype,
+    "Force processor type",
+    "{;e,o;;}")
+{
+    ULONG Type;
+
+    m_Control4->GetEffectiveProcessorType(&Type);
+    Dml("Processor Type = %d [IMAGE_FILE_MACHINE_I386 = %d, IMAGE_FILE_MACHINE_AMD64 = %d]\n", Type, IMAGE_FILE_MACHINE_I386, IMAGE_FILE_MACHINE_AMD64);
+    m_Control4->SetEffectiveProcessorType(IMAGE_FILE_MACHINE_I386);
+}
+
+EXT_COMMAND(ms_checkcodecave,
+            "Look for used code cave",
+            "{;e,o;;}"
+            "{pid;ed,d=0;pid;Process Id}")
+{
+    ULONG64 ProcessId = GetArgU64("pid", FALSE);
+    ProcessArray CachedProcessList = GetProcesses(ProcessId, PROCESS_DLLS_FLAG | PROCESS_DLL_EXPORTS_FLAG);
+
+    if (ProcessId) {
+        Dml(" [-] Checking process id: 0x%llX\n", ProcessId);
+    }
+    else {
+        Dml(" [-] Checking all available processes.\n");
+    }
+
+    if (VERBOSE) Dml("Head: 0x%llX\n", ExtNtOsInformation::GetKernelProcessListHead());
+
+    for each (MsProcessObject ProcObject in CachedProcessList)
+    {
+        if (ProcessId) {
+            if (ProcessId != ProcObject.m_CcProcessObject.ProcessId) continue;
+        }
+
+        if (!ProcObject.SwitchContext()) {
+            if (VERBOSE) Dml(" [-] Can't switch context.\n");
+            continue;
+        }
+
+        if (VERBOSE) Dml("Looking inside the executable sections...\n");
+        for each (PEFile::CACHED_SECTION_INFO SectionHeader in ProcObject.m_CcSections) {
+            if (VERBOSE)  Dml(" [!] Section: %s\n", SectionHeader.Name);
+            if (ULONG Offset = HasUsedCodeCave(ProcObject.m_ImageBase, &SectionHeader)) {
+                Dml(" [!] (Pid=0x%llX, Name=%s) code detected at 0x%llX (0x%x) inside \"%s\" section.\n",
+                    ProcObject.m_CcProcessObject.ProcessId,
+                    ProcObject.m_CcProcessObject.ImageFileName,
+                    ProcObject.m_ImageBase + Offset,
+                    Offset,
+                    SectionHeader.Name);
+            }
+        }
+
+        if (VERBOSE) Dml("Looking inside the dlls sections...\n");
+        for each (MsDllObject DllObj in ProcObject.m_DllList) {
+            if (VERBOSE)  Dml("   [!] Dll: %s\n", DllObj.mm_CcDllObject.DllName);
+            for each (PEFile::CACHED_SECTION_INFO SectionHeader in DllObj.m_CcSections) {
+                if (VERBOSE)  Dml("   [!] Dll: %S\n", DllObj.mm_CcDllObject.DllName);
+                if (VERBOSE)  Dml("   [!] Section: %s\n", SectionHeader.Name);
+                if (ULONG Offset = HasUsedCodeCave(DllObj.m_ImageBase, &SectionHeader)) {
+                    Dml(" [!] (Pid=0x%llX, Name=%s, Dll=%S) code detected at <link cmd=\"db %I64x\">0x%I64X</link> (0x%x) inside \"%s\" section.\n",
+                        ProcObject.m_CcProcessObject.ProcessId,
+                        ProcObject.m_CcProcessObject.ImageFileName,
+                        DllObj.mm_CcDllObject.DllName,
+                        DllObj.m_ImageBase + Offset,
+                        DllObj.m_ImageBase + Offset,
+                        Offset,
+                        SectionHeader.Name);
+                }
+            }
+        }
+
+        ProcObject.RestoreContext();
+    }
 }

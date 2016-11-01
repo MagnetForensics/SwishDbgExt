@@ -38,6 +38,8 @@ Revision History:
 #include "MoonSolsDbgExt.h"
 #include "Process.h"
 
+#define VERBOSE TRUE
+
 map<PVOID, ULONG> g_References;
 
 //
@@ -152,14 +154,19 @@ Return Value:
 
 --*/
 {
-    BOOLEAN bIsDone = FALSE;
+    BOOLEAN bIsDone = TRUE;                                                                   
 
-    ULONG SizeOfImage = Current().Field("SizeOfImage").GetUlong();
+    if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Current().GetPtr() = 0x%llX\n", __FILE__, __FUNCTIONW__, __LINE__, Current().GetPtr());
 
-    bIsDone = !m_ModuleList.HasNode() ||
-              !Current().Field("DllBase").GetPtr() ||
-              !SizeOfImage ||
-              (SizeOfImage >= 0x1000000);
+    ULONG64 CurrentPtr = Current().GetPtr();
+    if (CurrentPtr && IsValid(CurrentPtr)) {
+        ULONG SizeOfImage = Current().Field("SizeOfImage").GetUlong();
+
+        bIsDone = !m_ModuleList.HasNode() ||
+                  !Current().Field("DllBase").GetPtr() ||
+                  !SizeOfImage ||
+                  (SizeOfImage >= 0x1000000);
+    }
 
     return bIsDone;
 }
@@ -185,16 +192,18 @@ Return Value:
 {
     RtlZeroMemory(&mm_CcDllObject, sizeof(mm_CcDllObject));
 
-    m_ImageBase = m_TypedObject.Field("DllBase").GetPtr();
-    m_ImageSize = m_TypedObject.Field("SizeOfImage").GetUlong();
+    if (m_TypedObject.GetPtr()) {
+        m_ImageBase = m_TypedObject.Field("DllBase").GetPtr();
+        m_ImageSize = m_TypedObject.Field("SizeOfImage").GetUlong();
 
-    ExtRemoteTypedEx::GetUnicodeString(m_TypedObject.Field("FullDllName"),
-        (PWSTR)&mm_CcDllObject.FullDllName,
-        sizeof(mm_CcDllObject.FullDllName));
+        ExtRemoteTypedEx::GetUnicodeString(m_TypedObject.Field("FullDllName"),
+            (PWSTR)&mm_CcDllObject.FullDllName,
+            sizeof(mm_CcDllObject.FullDllName));
 
-    ExtRemoteTypedEx::GetUnicodeString(m_TypedObject.Field("BaseDllName"),
-        (PWSTR)&mm_CcDllObject.DllName,
-        sizeof(mm_CcDllObject.DllName));
+        ExtRemoteTypedEx::GetUnicodeString(m_TypedObject.Field("BaseDllName"),
+            (PWSTR)&mm_CcDllObject.DllName,
+            sizeof(mm_CcDllObject.DllName));
+    }
 }
 
 //
@@ -226,6 +235,9 @@ Return Value:
     m_LinksType = ProcessLinksType;
 
     m_ProcessList.StartHead();
+
+    if (VERBOSE) g_Ext->Dml("[%s!%S!%d] m_ProcessHead = 0x%llX\n", __FILE__, __FUNCTIONW__, __LINE__, m_ProcessHead);
+    if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Process List Node = 0x%llX\n", __FILE__, __FUNCTIONW__, __LINE__, m_ProcessList.GetNodeOffset());
 
     if (ProcessLinksType == ProcessLinksMmType)
     {
@@ -381,11 +393,23 @@ Return Value:
 
 --*/
 {
-    BOOLEAN bIsDone = FALSE;
+    BOOLEAN bIsDone = TRUE;
 
     // Pcb.Header.Type == 3 (Process)
 
-    bIsDone = (Current().Field("Pcb").Field("Header").Field("Type").GetChar() != 3) || (Current().Field("UniqueProcessId").GetPtr() == 0) || !m_ProcessList.HasNode();
+    // if (VERBOSE) g_Ext->Dml("Current().m_Offset = 0x%llX\n", Current().m_Offset);
+    // if (VERBOSE) g_Ext->Dml("Get Node Offset = 0x%llX\n", m_ProcessList.GetNodeOffset());
+    // if (VERBOSE) g_Ext->Dml("Get Node Offset = 0x%llX\n", Current().GetPtr());
+
+    if (Current().GetPtr()) {
+        // if (VERBOSE) g_Ext->Dml("Current().Field(Pcb).Field(Header).Field(Type) = 0x%d\n", Current().Field("Pcb").Field("Header").Field("Type").GetChar());
+        // if (VERBOSE) g_Ext->Dml("Current().Field(UniqueProcessId).GetPtr() = 0x%llX\n", Current().Field("UniqueProcessId").GetPtr());
+        // if (VERBOSE) g_Ext->Dml("m_ProcessList.HasNode() %d\n", m_ProcessList.HasNode());
+
+        bIsDone = (Current().Field("Pcb").Field("Header").Field("Type").GetChar() != 3) || (Current().Field("UniqueProcessId").GetPtr() == 0) || !m_ProcessList.HasNode();
+    }
+
+    if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Leaving... (Return value = %d)\n", __FILE__, __FUNCTIONW__, __LINE__, bIsDone);
 
     return bIsDone;
 }
@@ -479,12 +503,15 @@ Return Value:
 
     if ((Peb != 0) && (IsValid(Peb)))
     {
-        ModuleIterator Dlls(m_TypedObject.Field("Peb").Field("Ldr").Field("InLoadOrderModuleList").Field("Flink").GetPtr());
+        ULONG64 Head = m_TypedObject.Field("Peb").Field("Ldr").Field("InLoadOrderModuleList").Field("Flink").GetPtr();
+        if (IsValid(Head)) {
+            ModuleIterator Dlls(Head);
 
-        for (Dlls.First(); !Dlls.IsDone(); Dlls.Next())
-        {
-            MsDllObject Object = Dlls.Current();
-            m_DllList.push_back(Object);
+            for (Dlls.First(); !Dlls.IsDone(); Dlls.Next())
+            {
+                MsDllObject Object = Dlls.Current();
+                m_DllList.push_back(Object);
+            }
         }
     }
 
@@ -971,11 +998,13 @@ Return Value:
 
     ProcessIterator Processes;
 
+    if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Entering...\n", __FILE__, __FUNCTIONW__, __LINE__);
+
     for (Processes.First(); !Processes.IsDone(); Processes.Next())
     {
         MsProcessObject ProcObject = Processes.Current();
 
-        // g_Ext->Dml("    -> Name: %s\n", ProcObject.m_CcProcessObject.ImageFileName);
+        if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Current process %s\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObject.m_CcProcessObject.ImageFileName);
 
         if (!Pid || (Pid == ProcObject.m_CcProcessObject.ProcessId))
         {
@@ -1040,7 +1069,10 @@ Return Value:
 
         Initialized = ProcObj.GetInfoFull();
 
-        if (Flags & PROCESS_DLLS_FLAG) ProcObj.GetDlls();
+        if (Flags & PROCESS_DLLS_FLAG) {
+            if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Get DLL list for %s\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObj.m_CcProcessObject.ImageFileName);
+            ProcObj.GetDlls();
+        }
 
         if (Initialized && (Flags & PROCESS_EXPORTS_FLAG)) ProcObj.RtlGetExports();
 
@@ -1052,6 +1084,7 @@ Return Value:
 
                 if (Flags & PROCESS_DLL_EXPORTS_FLAG)
                 {
+                    if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Get DLL information for %s!%S\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObj.m_CcProcessObject.ImageFileName, DllObj.mm_CcDllObject.DllName);
                     DllObj.GetInfoFull();
 
                     DllObj.RtlGetExports();
@@ -1181,11 +1214,17 @@ MsProcessObject::MmGetFirstVad(
     if (m_TypedObject.Field("VadRoot").GetTypeSize() > GetPtrSize())
     {
         First = m_TypedObject.Field("VadRoot.BalancedRoot.RightChild").GetPtr();
+        if (VERBOSE) g_Ext->Dml("[%s!%S!%d] VadRoot.BalancedRoot.RightChild = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
         if (!First) return FALSE;
     }
     else
     {
-        First = m_TypedObject.Field("VadRoot").GetPtr();
+        if (m_TypedObject.Field("VadRoot").HasField("Root")) {
+            First = m_TypedObject.Field("VadRoot").Field("Root").GetPtr();
+        } else {
+            First = m_TypedObject.Field("VadRoot").GetPtr();
+        }
+        if (VERBOSE) g_Ext->Dml("[%s!%S!%d] VadRoot = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
         if (!First) return FALSE;
     }
 
@@ -1193,17 +1232,29 @@ MsProcessObject::MmGetFirstVad(
     {
         LeftChild = First;
 
-        MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", LeftChild);
-        First = MmVad.Field("LeftChild").GetPtr();
+        MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", SIGN_EXTEND(LeftChild));
+        if (MmVad.HasField("Core")) {
+            if (VERBOSE) g_Ext->Dml("[Left] LeftChild = 0x%llx\n", SIGN_EXTEND(LeftChild));
+            First = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+        } else {
+            First = MmVad.Field("LeftChild").GetPtr();
+        }
+        if (VERBOSE) g_Ext->Dml("[%s!%S!%d] VadRoot.First = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
     }
 
     First = LeftChild;
     VadInfo->FirstNode = First;
     VadInfo->CurrentNode = VadInfo->FirstNode;
 
-    MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
-    VadInfo->StartingVpn = MmVad.Field("StartingVpn").GetPtr();
-    VadInfo->EndingVpn = MmVad.Field("EndingVpn").GetPtr();
+    MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", SIGN_EXTEND(VadInfo->CurrentNode));
+    if (MmVad.HasField("Core")) {
+        VadInfo->StartingVpn = MmVad.Field("Core").Field("StartingVpn").GetPtr();
+        VadInfo->EndingVpn = MmVad.Field("Core").Field("EndingVpn").GetPtr();
+    }
+    else {
+        VadInfo->StartingVpn = MmVad.Field("StartingVpn").GetPtr();
+        VadInfo->EndingVpn = MmVad.Field("EndingVpn").GetPtr();
+    }
     VadInfo->EndingVpn += 1;
 
     return TRUE;
@@ -1234,18 +1285,29 @@ Return Value:
 
     ExtRemoteTyped MmVad;
 
+     if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Entering...\n", __FILE__, __FUNCTIONW__, __LINE__);
+
     VadInfo->StartingVpn = 0;
     VadInfo->EndingVpn = 0;
     VadInfo->FileObject = 0;
-    if (!VadInfo->CurrentNode) return FALSE;
+    if (!VadInfo->CurrentNode) {
+        if (VERBOSE) g_Ext->Dml("[%s!%S!%d] CurrentNode is null. Exiting.\n", __FILE__, __FUNCTIONW__, __LINE__);
+        return FALSE;
+    }
 
     Next = VadInfo->CurrentNode;
 
-    MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
+    MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", SIGN_EXTEND(VadInfo->CurrentNode));
+    if (MmVad.HasField("Core")) {
+        RightChild = MmVad.Field("Core").Field("VadNode").Field("Right").GetPtr();
+    }
+    else {
+        RightChild = MmVad.Field("RightChild").GetPtr();
+    }
 
-    RightChild = MmVad.Field("RightChild").GetPtr();
     if (!RightChild)
     {
+        if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Looking for parent node.\n", __FILE__, __FUNCTIONW__, __LINE__);
         while (TRUE)
         {
             if (MmVad.HasField("u1.Parent"))
@@ -1255,6 +1317,9 @@ Return Value:
             else if (MmVad.HasField("Parent"))
             {
                 Parent = MmVad.Field("Parent").GetPtr();
+            }
+            else if (MmVad.HasField("Core.VadNode.ParentValue")) {
+                Parent = MmVad.Field("Core").Field("VadNode.ParentValue").GetPtr();
             }
             else return FALSE;
 
@@ -1270,8 +1335,16 @@ Return Value:
                 return FALSE;
             }
 
+            if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Trying to access VadInfo->CurrentNode = 0x%llx\n",
+                __FILE__, __FUNCTIONW__, __LINE__, VadInfo->CurrentNode);
+
             MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", Parent);
-            LeftChild = MmVad.Field("LeftChild").GetPtr();
+            if (MmVad.HasField("Core")) {
+                LeftChild = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+            }
+            else {
+                LeftChild = MmVad.Field("LeftChild").GetPtr();
+            }
 
             if (LeftChild == Next)
             {
@@ -1289,26 +1362,56 @@ Return Value:
         while (Next)
         {
             LeftChild = Next;
+            if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Trying to access [0x%llX] Node\n",
+                __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
 
-            MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", LeftChild);
-            Next = MmVad.Field("LeftChild").GetPtr();
+            if (!IsValid(LeftChild)) {
+                g_Ext->Dml("[%s!%S!%d] Unable to get LeftChild of nt!_MMVAD_SHORT at 0x%llX\n", __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
+                return FALSE;
+            }
+
+            MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", SIGN_EXTEND(LeftChild));
+            if (MmVad.HasField("Core")) {
+                if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Trying to access [0x%llX].Core.VadNode.Left\n",
+                                        __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
+                Next = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+            }
+            else {
+                Next = MmVad.Field("LeftChild").GetPtr();
+            }
         }
 
         VadInfo->CurrentNode = LeftChild;
+
+        if (!LeftChild) return FALSE;
     }
 
-    MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
-    VadInfo->StartingVpn = MmVad.Field("StartingVpn").GetPtr();
-    VadInfo->EndingVpn = MmVad.Field("EndingVpn").GetPtr();
+    if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Current Node [0x%llX]\n",
+        __FILE__, __FUNCTIONW__, __LINE__, SIGN_EXTEND(VadInfo->CurrentNode));
+
+    MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", SIGN_EXTEND(VadInfo->CurrentNode));
+    if (MmVad.HasField("Core")) {
+        VadInfo->StartingVpn = MmVad.Field("Core").Field("StartingVpn").GetPtr();
+        VadInfo->EndingVpn = MmVad.Field("Core").Field("EndingVpn").GetPtr();
+
+        VadInfo->VadType = (ULONG)MmVad.Field("Core").Field("u.VadFlags.VadType").GetPtr();
+        VadInfo->Protection = (ULONG)MmVad.Field("Core").Field("u.VadFlags.Protection").GetPtr();
+        VadInfo->PrivateMemory = (ULONG)MmVad.Field("Core").Field("u.VadFlags.PrivateMemory").GetPtr();
+        VadInfo->MemCommit = (ULONG)MmVad.Field("Core").Field("u1.VadFlags1.MemCommit").GetPtr();
+    }
+    else {
+        VadInfo->StartingVpn = MmVad.Field("StartingVpn").GetPtr();
+        VadInfo->EndingVpn = MmVad.Field("EndingVpn").GetPtr();
+
+        if (MmVad.HasField("u.VadFlags.VadType"))
+        {
+            VadInfo->VadType = (ULONG)MmVad.Field("u.VadFlags.VadType").GetPtr();
+        }
+        VadInfo->Protection = (ULONG)MmVad.Field("u.VadFlags.Protection").GetPtr();
+        VadInfo->PrivateMemory = (ULONG)MmVad.Field("u.VadFlags.PrivateMemory").GetPtr();
+        VadInfo->MemCommit = (ULONG)MmVad.Field("u.VadFlags.MemCommit").GetPtr();
+    }
     VadInfo->EndingVpn += 1;
-
-    if (MmVad.HasField("u.VadFlags.VadType"))
-    {
-        VadInfo->VadType = (ULONG)MmVad.Field("u.VadFlags.VadType").GetPtr();
-    }
-    VadInfo->Protection = (ULONG)MmVad.Field("u.VadFlags.Protection").GetPtr();
-    VadInfo->MemCommit = (ULONG)MmVad.Field("u.VadFlags.MemCommit").GetPtr();
-    VadInfo->PrivateMemory = (ULONG)MmVad.Field("u.VadFlags.PrivateMemory").GetPtr();
 
     if (MmVad.HasField("ControlArea"))
     {
@@ -1337,6 +1440,8 @@ Return Value:
 
     if (GetPtrSize() == sizeof(ULONG64))  VadInfo->FileObject &= ~0xF;
     else if (GetPtrSize() == sizeof(ULONG32)) VadInfo->FileObject &= ~0x7;
+
+    if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Leaving.\n", __FILE__, __FUNCTIONW__, __LINE__);
 
     return TRUE;
 }

@@ -157,7 +157,8 @@ Return Value:
 
 --*/
 {
-    if (Verbose) g_Ext->Dml("    CALL next/POP signature @ <link cmd=\"u 0x%I64X\">0x%X</link>\n", Base + Offset, Offset);
+    ULONG64 Va = SIGN_EXTEND(Base + Offset);
+    if (Verbose) g_Ext->Dml("    CALL next/POP signature @ <link cmd=\"u 0x%I64X\">0x%llX</link> [offset = 0x%x]\n", Va, Va, Offset);
 }
 
 VOID
@@ -185,7 +186,8 @@ Return Value:
 
 --*/
 {
-    if (Verbose) g_Ext->Dml("    FLDZ/FSTENV [esp-12] signature @ <link cmd=\"u 0x%I64X\">0x%X</link>\n", Base + Offset, Offset);
+    ULONG64 Va = SIGN_EXTEND(Base + Offset);
+    if (Verbose) g_Ext->Dml("    FLDZ/FSTENV [esp-12] signature @ <link cmd=\"u 0x%I64X\">0x%llX</link> [offset = 0x%x]\n", Va, Va, Offset);
 }
 
 VOID
@@ -213,7 +215,8 @@ Return Value:
 
 --*/
 {
-    if (Verbose) g_Ext->Dml("    PUSH DWORD[]/CALL[] signature @ <link cmd=\"u 0x%I64X\">0x%X</link>\n", Base + Offset, Offset);
+    ULONG64 Va = SIGN_EXTEND(Base + Offset);
+    if (Verbose) g_Ext->Dml("    PUSH DWORD[]/CALL[] signature @ <link cmd=\"u 0x%I64X\">0x%llX</link> [offset = 0x%x]\n", Va, Va, Offset);
 }
 
 VOID
@@ -241,7 +244,8 @@ Return Value:
 
 --*/
 {
-    if (Verbose) g_Ext->Dml("    Function prolog signature @ <link cmd=\"u 0x%I64X\">0x%X</link>\n", Base + Offset, Offset);
+    ULONG64 Va = SIGN_EXTEND(Base + Offset);
+    if (Verbose) g_Ext->Dml("    Function prolog signature @ <link cmd=\"u 0x%I64X\">0x%llX</link> [offset = 0x%x]\n", Va, Va, Offset);
 }
 
 VOID
@@ -269,7 +273,8 @@ Return Value:
 
 --*/
 {
-    if (Verbose) g_Ext->Dml("    API-Hashing signature @ <link cmd=\"u 0x%I64X\">0x%X</link>\n", Base + Offset, Offset);
+    ULONG64 Va = SIGN_EXTEND(Base + Offset);
+    if (Verbose) g_Ext->Dml("    API-Hashing signature @ <link cmd=\"u 0x%I64X\">0x%llX</link> [offset = 0x%x]\n", Va, Va, Offset);
 }
 
 VOID
@@ -297,7 +302,8 @@ Return Value:
 
 --*/
 {
-    if (Verbose) g_Ext->Dml("    FS:[00h] signature @ <link cmd=\"u 0x%I64X\">0x%X</link>\n", Base + Offset, Offset);
+    ULONG64 Va = SIGN_EXTEND(Base + Offset);
+    if (Verbose) g_Ext->Dml("    FS:[00h] signature @ <link cmd=\"u 0x%I64X\">0x%llX</link> [offset = 0x%x]\n", Va, Va, Offset);
 }
 
 VOID
@@ -325,7 +331,8 @@ Return Value:
 
 --*/
 {
-    if (Verbose) g_Ext->Dml("    FS:[30h] signature @ <link cmd=\"u 0x%I64X\">0x%X</link>\n", Base + Offset, Offset);
+    ULONG64 Va = SIGN_EXTEND(Base + Offset);
+    if (Verbose) g_Ext->Dml("    FS:[30h] signature @ <link cmd=\"u 0x%I64X\">0x%llX</link> [offset = 0x%x]\n", Va, Va, Offset);
 }
 
 PATTERN_ENTRY g_PatternTable[] = {

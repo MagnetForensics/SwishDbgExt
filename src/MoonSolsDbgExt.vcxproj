@@ -145,6 +145,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Azure.cpp" />
+    <ClCompile Include="Checks\Codecave.cpp" />
     <ClCompile Include="CNdiskd\CAdapters.cpp" />
     <ClCompile Include="CNdiskd\CMinidriver.cpp" />
     <ClCompile Include="CNdiskd\CNdiskd.cpp" />
@@ -172,6 +173,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Azure.h" />
+    <ClInclude Include="Checks\Codecave.h" />
     <ClInclude Include="CNdiskd\CAdapters.h" />
     <ClInclude Include="CNdiskd\CMinidriver.h" />
     <ClInclude Include="CNdiskd\CNdiskd.h" />
