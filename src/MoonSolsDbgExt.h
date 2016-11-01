@@ -120,9 +120,11 @@ using namespace web::http::client;
 extern "C" {
 #endif
 
-//		
+//
 // Definition
 //
+
+extern BOOLEAN g_Verbose;
 
 #ifdef __cplusplus
 }

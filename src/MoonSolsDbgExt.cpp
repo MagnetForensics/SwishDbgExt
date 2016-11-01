@@ -2,8 +2,8 @@
     MoonSols Incident Response & Digital Forensics Debugging Extension
 
     Copyright (C) 2014 MoonSols Ltd.
-    Copyright (C) 2014 Matthieu Suiche (@msuiche)
-	Copyright (C) 2014 wLcY (@x9090)
+    Copyright (C) 2016 Comae Technologies FZE
+    Copyright (C) 2014-2016 Matthieu Suiche (@msuiche)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 Module Name:
 
     - MoonSolsDbgExt.cpp
-    - Codename: Socotra
+    - Codename: SOCOTRA
 
 Abstract:
 
@@ -41,7 +41,13 @@ Revision History:
 
 #include "MoonSolsDbgExt.h"
 
+#ifdef _DEBUG
+#define VERBOSE TRUE
+#else
 #define VERBOSE FALSE
+#endif
+
+BOOLEAN g_Verbose = VERBOSE;
 
 class EXT_CLASS : public ExtExtension
 {
@@ -95,7 +101,7 @@ public:
 
     EXT_COMMAND_METHOD(ms_store);
 
-	EXT_COMMAND_METHOD(ms_scanndishook);
+    EXT_COMMAND_METHOD(ms_scanndishook);
 
     // EXT_COMMAND_METHOD(ms_strings);
 
@@ -104,7 +110,8 @@ public:
     // EXT_COMMAND_METHOD(ms_analyze); // !ms_analyze -v
 
     EXT_COMMAND_METHOD(ms_checkcodecave);
-    EXT_COMMAND_METHOD(ms_proctype);
+    EXT_COMMAND_METHOD(ms_verbose);
+    EXT_COMMAND_METHOD(ms_fixit);
 
 };
 
@@ -2007,15 +2014,18 @@ EXT_COMMAND(ms_scanndishook,
     }
 }
 
-EXT_COMMAND(ms_proctype,
-    "Force processor type",
+EXT_COMMAND(ms_fixit,
+    "Reset segmentation in WinDbg (Fix \"16.kd>\")",
     "{;e,o;;}")
 {
-    ULONG Type;
+    Execute(".segmentation -X");
+}
 
-    m_Control4->GetEffectiveProcessorType(&Type);
-    Dml("Processor Type = %d [IMAGE_FILE_MACHINE_I386 = %d, IMAGE_FILE_MACHINE_AMD64 = %d]\n", Type, IMAGE_FILE_MACHINE_I386, IMAGE_FILE_MACHINE_AMD64);
-    m_Control4->SetEffectiveProcessorType(IMAGE_FILE_MACHINE_I386);
+EXT_COMMAND(ms_verbose,
+    "Turn verbose mode on/off",
+    "{;e,o;;}")
+{
+    g_Verbose = !g_Verbose;
 }
 
 EXT_COMMAND(ms_checkcodecave,
@@ -2033,7 +2043,7 @@ EXT_COMMAND(ms_checkcodecave,
         Dml(" [-] Checking all available processes.\n");
     }
 
-    if (VERBOSE) Dml("Head: 0x%llX\n", ExtNtOsInformation::GetKernelProcessListHead());
+    if (g_Verbose) Dml("Head: 0x%llX\n", ExtNtOsInformation::GetKernelProcessListHead());
 
     for each (MsProcessObject ProcObject in CachedProcessList)
     {
@@ -2042,13 +2052,13 @@ EXT_COMMAND(ms_checkcodecave,
         }
 
         if (!ProcObject.SwitchContext()) {
-            if (VERBOSE) Dml(" [-] Can't switch context.\n");
+            if (g_Verbose) Dml(" [-] Can't switch context.\n");
             continue;
         }
 
-        if (VERBOSE) Dml("Looking inside the executable sections...\n");
+        if (g_Verbose) Dml("Looking inside the executable sections...\n");
         for each (PEFile::CACHED_SECTION_INFO SectionHeader in ProcObject.m_CcSections) {
-            if (VERBOSE)  Dml(" [!] Section: %s\n", SectionHeader.Name);
+            if (g_Verbose)  Dml(" [!] Section: %s\n", SectionHeader.Name);
             if (ULONG Offset = HasUsedCodeCave(ProcObject.m_ImageBase, &SectionHeader)) {
                 Dml(" [!] (Pid=0x%llX, Name=%s) code detected at 0x%llX (0x%x) inside \"%s\" section.\n",
                     ProcObject.m_CcProcessObject.ProcessId,
@@ -2059,12 +2069,12 @@ EXT_COMMAND(ms_checkcodecave,
             }
         }
 
-        if (VERBOSE) Dml("Looking inside the dlls sections...\n");
+        if (g_Verbose) Dml("Looking inside the dlls sections...\n");
         for each (MsDllObject DllObj in ProcObject.m_DllList) {
-            if (VERBOSE)  Dml("   [!] Dll: %s\n", DllObj.mm_CcDllObject.DllName);
+            if (g_Verbose)  Dml("   [!] Dll: %s\n", DllObj.mm_CcDllObject.DllName);
             for each (PEFile::CACHED_SECTION_INFO SectionHeader in DllObj.m_CcSections) {
-                if (VERBOSE)  Dml("   [!] Dll: %S\n", DllObj.mm_CcDllObject.DllName);
-                if (VERBOSE)  Dml("   [!] Section: %s\n", SectionHeader.Name);
+                if (g_Verbose)  Dml("   [!] Dll: %S\n", DllObj.mm_CcDllObject.DllName);
+                if (g_Verbose)  Dml("   [!] Section: %s\n", SectionHeader.Name);
                 if (ULONG Offset = HasUsedCodeCave(DllObj.m_ImageBase, &SectionHeader)) {
                     Dml(" [!] (Pid=0x%llX, Name=%s, Dll=%S) code detected at <link cmd=\"db %I64x\">0x%I64X</link> (0x%x) inside \"%s\" section.\n",
                         ProcObject.m_CcProcessObject.ProcessId,

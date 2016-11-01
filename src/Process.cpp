@@ -38,8 +38,6 @@ Revision History:
 #include "MoonSolsDbgExt.h"
 #include "Process.h"
 
-#define VERBOSE TRUE
-
 map<PVOID, ULONG> g_References;
 
 //
@@ -156,7 +154,7 @@ Return Value:
 {
     BOOLEAN bIsDone = TRUE;                                                                   
 
-    if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Current().GetPtr() = 0x%llX\n", __FILE__, __FUNCTIONW__, __LINE__, Current().GetPtr());
+    if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Current().GetPtr() = 0x%llX\n", __FILE__, __FUNCTIONW__, __LINE__, Current().GetPtr());
 
     ULONG64 CurrentPtr = Current().GetPtr();
     if (CurrentPtr && IsValid(CurrentPtr)) {
@@ -236,8 +234,8 @@ Return Value:
 
     m_ProcessList.StartHead();
 
-    if (VERBOSE) g_Ext->Dml("[%s!%S!%d] m_ProcessHead = 0x%llX\n", __FILE__, __FUNCTIONW__, __LINE__, m_ProcessHead);
-    if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Process List Node = 0x%llX\n", __FILE__, __FUNCTIONW__, __LINE__, m_ProcessList.GetNodeOffset());
+    if (g_Verbose) g_Ext->Dml("[%s!%S!%d] m_ProcessHead = 0x%llX\n", __FILE__, __FUNCTIONW__, __LINE__, m_ProcessHead);
+    if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Process List Node = 0x%llX\n", __FILE__, __FUNCTIONW__, __LINE__, m_ProcessList.GetNodeOffset());
 
     if (ProcessLinksType == ProcessLinksMmType)
     {
@@ -397,19 +395,19 @@ Return Value:
 
     // Pcb.Header.Type == 3 (Process)
 
-    // if (VERBOSE) g_Ext->Dml("Current().m_Offset = 0x%llX\n", Current().m_Offset);
-    // if (VERBOSE) g_Ext->Dml("Get Node Offset = 0x%llX\n", m_ProcessList.GetNodeOffset());
-    // if (VERBOSE) g_Ext->Dml("Get Node Offset = 0x%llX\n", Current().GetPtr());
+    // if (g_Verbose) g_Ext->Dml("Current().m_Offset = 0x%llX\n", Current().m_Offset);
+    // if (g_Verbose) g_Ext->Dml("Get Node Offset = 0x%llX\n", m_ProcessList.GetNodeOffset());
+    // if (g_Verbose) g_Ext->Dml("Get Node Offset = 0x%llX\n", Current().GetPtr());
 
     if (Current().GetPtr()) {
-        // if (VERBOSE) g_Ext->Dml("Current().Field(Pcb).Field(Header).Field(Type) = 0x%d\n", Current().Field("Pcb").Field("Header").Field("Type").GetChar());
-        // if (VERBOSE) g_Ext->Dml("Current().Field(UniqueProcessId).GetPtr() = 0x%llX\n", Current().Field("UniqueProcessId").GetPtr());
-        // if (VERBOSE) g_Ext->Dml("m_ProcessList.HasNode() %d\n", m_ProcessList.HasNode());
+        // if (g_Verbose) g_Ext->Dml("Current().Field(Pcb).Field(Header).Field(Type) = 0x%d\n", Current().Field("Pcb").Field("Header").Field("Type").GetChar());
+        // if (g_Verbose) g_Ext->Dml("Current().Field(UniqueProcessId).GetPtr() = 0x%llX\n", Current().Field("UniqueProcessId").GetPtr());
+        // if (g_Verbose) g_Ext->Dml("m_ProcessList.HasNode() %d\n", m_ProcessList.HasNode());
 
         bIsDone = (Current().Field("Pcb").Field("Header").Field("Type").GetChar() != 3) || (Current().Field("UniqueProcessId").GetPtr() == 0) || !m_ProcessList.HasNode();
     }
 
-    if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Leaving... (Return value = %d)\n", __FILE__, __FUNCTIONW__, __LINE__, bIsDone);
+    if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Leaving... (Return value = %d)\n", __FILE__, __FUNCTIONW__, __LINE__, bIsDone);
 
     return bIsDone;
 }
@@ -998,13 +996,13 @@ Return Value:
 
     ProcessIterator Processes;
 
-    if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Entering...\n", __FILE__, __FUNCTIONW__, __LINE__);
+    if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Entering...\n", __FILE__, __FUNCTIONW__, __LINE__);
 
     for (Processes.First(); !Processes.IsDone(); Processes.Next())
     {
         MsProcessObject ProcObject = Processes.Current();
 
-        if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Current process %s\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObject.m_CcProcessObject.ImageFileName);
+        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Current process %s\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObject.m_CcProcessObject.ImageFileName);
 
         if (!Pid || (Pid == ProcObject.m_CcProcessObject.ProcessId))
         {
@@ -1070,7 +1068,7 @@ Return Value:
         Initialized = ProcObj.GetInfoFull();
 
         if (Flags & PROCESS_DLLS_FLAG) {
-            if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Get DLL list for %s\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObj.m_CcProcessObject.ImageFileName);
+            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Get DLL list for %s\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObj.m_CcProcessObject.ImageFileName);
             ProcObj.GetDlls();
         }
 
@@ -1084,7 +1082,7 @@ Return Value:
 
                 if (Flags & PROCESS_DLL_EXPORTS_FLAG)
                 {
-                    if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Get DLL information for %s!%S\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObj.m_CcProcessObject.ImageFileName, DllObj.mm_CcDllObject.DllName);
+                    if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Get DLL information for %s!%S\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObj.m_CcProcessObject.ImageFileName, DllObj.mm_CcDllObject.DllName);
                     DllObj.GetInfoFull();
 
                     DllObj.RtlGetExports();
@@ -1214,7 +1212,7 @@ MsProcessObject::MmGetFirstVad(
     if (m_TypedObject.Field("VadRoot").GetTypeSize() > GetPtrSize())
     {
         First = m_TypedObject.Field("VadRoot.BalancedRoot.RightChild").GetPtr();
-        if (VERBOSE) g_Ext->Dml("[%s!%S!%d] VadRoot.BalancedRoot.RightChild = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
+        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] VadRoot.BalancedRoot.RightChild = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
         if (!First) return FALSE;
     }
     else
@@ -1224,7 +1222,7 @@ MsProcessObject::MmGetFirstVad(
         } else {
             First = m_TypedObject.Field("VadRoot").GetPtr();
         }
-        if (VERBOSE) g_Ext->Dml("[%s!%S!%d] VadRoot = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
+        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] VadRoot = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
         if (!First) return FALSE;
     }
 
@@ -1234,12 +1232,12 @@ MsProcessObject::MmGetFirstVad(
 
         MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", SIGN_EXTEND(LeftChild));
         if (MmVad.HasField("Core")) {
-            if (VERBOSE) g_Ext->Dml("[Left] LeftChild = 0x%llx\n", SIGN_EXTEND(LeftChild));
+            if (g_Verbose) g_Ext->Dml("[Left] LeftChild = 0x%llx\n", SIGN_EXTEND(LeftChild));
             First = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
         } else {
             First = MmVad.Field("LeftChild").GetPtr();
         }
-        if (VERBOSE) g_Ext->Dml("[%s!%S!%d] VadRoot.First = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
+        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] VadRoot.First = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
     }
 
     First = LeftChild;
@@ -1285,13 +1283,13 @@ Return Value:
 
     ExtRemoteTyped MmVad;
 
-     if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Entering...\n", __FILE__, __FUNCTIONW__, __LINE__);
+     if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Entering...\n", __FILE__, __FUNCTIONW__, __LINE__);
 
     VadInfo->StartingVpn = 0;
     VadInfo->EndingVpn = 0;
     VadInfo->FileObject = 0;
     if (!VadInfo->CurrentNode) {
-        if (VERBOSE) g_Ext->Dml("[%s!%S!%d] CurrentNode is null. Exiting.\n", __FILE__, __FUNCTIONW__, __LINE__);
+        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] CurrentNode is null. Exiting.\n", __FILE__, __FUNCTIONW__, __LINE__);
         return FALSE;
     }
 
@@ -1307,7 +1305,7 @@ Return Value:
 
     if (!RightChild)
     {
-        if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Looking for parent node.\n", __FILE__, __FUNCTIONW__, __LINE__);
+        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Looking for parent node.\n", __FILE__, __FUNCTIONW__, __LINE__);
         while (TRUE)
         {
             if (MmVad.HasField("u1.Parent"))
@@ -1335,7 +1333,7 @@ Return Value:
                 return FALSE;
             }
 
-            if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Trying to access VadInfo->CurrentNode = 0x%llx\n",
+            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access VadInfo->CurrentNode = 0x%llx\n",
                 __FILE__, __FUNCTIONW__, __LINE__, VadInfo->CurrentNode);
 
             MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", Parent);
@@ -1362,17 +1360,17 @@ Return Value:
         while (Next)
         {
             LeftChild = Next;
-            if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Trying to access [0x%llX] Node\n",
+            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access [0x%llX] Node\n",
                 __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
 
             if (!IsValid(LeftChild)) {
-                g_Ext->Dml("[%s!%S!%d] Unable to get LeftChild of nt!_MMVAD_SHORT at 0x%llX\n", __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
+                g_Ext->Err("[%s!%S!%d] Unable to get LeftChild of nt!_MMVAD_SHORT at 0x%llX\n", __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
                 return FALSE;
             }
 
             MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", SIGN_EXTEND(LeftChild));
             if (MmVad.HasField("Core")) {
-                if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Trying to access [0x%llX].Core.VadNode.Left\n",
+                if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access [0x%llX].Core.VadNode.Left\n",
                                         __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
                 Next = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
             }
@@ -1386,7 +1384,7 @@ Return Value:
         if (!LeftChild) return FALSE;
     }
 
-    if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Current Node [0x%llX]\n",
+    if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Current Node [0x%llX]\n",
         __FILE__, __FUNCTIONW__, __LINE__, SIGN_EXTEND(VadInfo->CurrentNode));
 
     MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", SIGN_EXTEND(VadInfo->CurrentNode));
@@ -1441,7 +1439,7 @@ Return Value:
     if (GetPtrSize() == sizeof(ULONG64))  VadInfo->FileObject &= ~0xF;
     else if (GetPtrSize() == sizeof(ULONG32)) VadInfo->FileObject &= ~0x7;
 
-    if (VERBOSE) g_Ext->Dml("[%s!%S!%d] Leaving.\n", __FILE__, __FUNCTIONW__, __LINE__);
+    if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Leaving.\n", __FILE__, __FUNCTIONW__, __LINE__);
 
     return TRUE;
 }

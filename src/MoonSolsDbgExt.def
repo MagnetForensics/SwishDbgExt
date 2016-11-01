@@ -46,9 +46,10 @@ EXPORTS
 
     ms_store
 
-	ms_scanndishook
+    ms_scanndishook
 
-	ms_checkcodecave
-	ms_proctype
+    ms_checkcodecave
+    ms_verbose
+    ms_fixit
 
     help
