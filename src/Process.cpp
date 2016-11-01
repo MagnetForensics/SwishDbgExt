@@ -1232,7 +1232,7 @@ MsProcessObject::MmGetFirstVad(
 
         MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", SIGN_EXTEND(LeftChild));
         if (MmVad.HasField("Core")) {
-            if (g_Verbose) g_Ext->Dml("[Left] LeftChild = 0x%llx\n", SIGN_EXTEND(LeftChild));
+            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] [Left] LeftChild = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, SIGN_EXTEND(LeftChild));
             First = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
         } else {
             First = MmVad.Field("LeftChild").GetPtr();
