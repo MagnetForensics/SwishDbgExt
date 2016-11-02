@@ -499,9 +499,10 @@ Return Value:
 
     ULONG64 Peb = m_TypedObject.Field("Peb").GetPtr();
 
-    if ((Peb != 0) && (IsValid(Peb)))
-    {
+    if (Peb && IsValid(Peb) && IsValid(m_TypedObject.Field("Peb").Field("Ldr").GetPtr())) {
+
         ULONG64 Head = m_TypedObject.Field("Peb").Field("Ldr").Field("InLoadOrderModuleList").Field("Flink").GetPtr();
+        Head = SIGN_EXTEND(Head);
         if (IsValid(Head)) {
             ModuleIterator Dlls(Head);
 
@@ -1068,7 +1069,7 @@ Return Value:
         Initialized = ProcObj.GetInfoFull();
 
         if (Flags & PROCESS_DLLS_FLAG) {
-            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Get DLL list for %s\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObj.m_CcProcessObject.ImageFileName);
+            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Get DLL list for %s (Pid=0x%llx)\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObj.m_CcProcessObject.ImageFileName, ProcObj.m_CcProcessObject.ProcessId);
             ProcObj.GetDlls();
         }
 

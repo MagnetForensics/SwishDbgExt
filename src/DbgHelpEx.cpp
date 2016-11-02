@@ -416,16 +416,15 @@ Return Value:
         memcpy_s(SectionInfo.Name, sizeof(SectionInfo.Name),
             m_Image.Sections[Index].Name, sizeof(m_Image.Sections[Index].Name));
         SectionInfo.VaBase = m_Image.Sections[Index].VirtualAddress;
-        SectionInfo.VaSize = m_Image.Sections[Index].SizeOfRawData;
+        SectionInfo.VaSize = m_Image.Sections[Index].Misc.VirtualSize;
+        SectionInfo.RawSize = m_Image.Sections[Index].SizeOfRawData;
 
         if (SectionInfo.VaSize > m_ImageSize) continue;
 
-#if VERBOSE_MODE
-        g_Ext->Dml("[%d] Base = 0x%I64X Size = 0x%x\n", Index, SectionInfo.VaBase, SectionInfo.VaSize);
-#endif
+        if (g_Verbose) g_Ext->Dml("[%d][%s] Base = 0x%I64X Size = 0x%x RawSize = 0x%x\n", Index, SectionInfo.Name, SectionInfo.VaBase, SectionInfo.VaSize, SectionInfo.RawSize);
 
         MD5Init(&Md5Context);
-        MD5Update(&Md5Context, (PUCHAR)m_Image.Image + SectionInfo.VaBase, SectionInfo.VaSize);
+        MD5Update(&Md5Context, (PUCHAR)m_Image.Image + SectionInfo.VaBase, SectionInfo.RawSize);
         MD5Final(&Md5Context);
 
         memcpy_s(SectionInfo.VaMd5Hash, sizeof(SectionInfo.VaMd5Hash), Md5Context.Digest, sizeof(Md5Context.Digest));

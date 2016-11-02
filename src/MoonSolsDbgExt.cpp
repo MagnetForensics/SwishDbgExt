@@ -2059,8 +2059,10 @@ EXT_COMMAND(ms_checkcodecave,
         if (g_Verbose) Dml("Looking inside the executable sections...\n");
         for each (PEFile::CACHED_SECTION_INFO SectionHeader in ProcObject.m_CcSections) {
             if (g_Verbose)  Dml(" [!] Section: %s\n", SectionHeader.Name);
-            if (ULONG Offset = HasUsedCodeCave(ProcObject.m_ImageBase, &SectionHeader)) {
-                Dml(" [!] (Pid=0x%llX, Name=%s) code detected at 0x%llX (0x%x) inside \"%s\" section.\n",
+            ULONG CorruptionScore = 0;
+            if (ULONG Offset = HasUsedCodeCave(ProcObject.m_ImageBase, &ProcObject.m_CcSections, &SectionHeader, &CorruptionScore)) {
+                Dml(" [!][Score = %5d] (Pid=0x%llX, Name=%s) corruptioned detected at 0x%llX (0x%x) inside \"%s\" section.\n",
+                    CorruptionScore,
                     ProcObject.m_CcProcessObject.ProcessId,
                     ProcObject.m_CcProcessObject.ImageFileName,
                     ProcObject.m_ImageBase + Offset,
@@ -2071,19 +2073,22 @@ EXT_COMMAND(ms_checkcodecave,
 
         if (g_Verbose) Dml("Looking inside the dlls sections...\n");
         for each (MsDllObject DllObj in ProcObject.m_DllList) {
-            if (g_Verbose)  Dml("   [!] Dll: %s\n", DllObj.mm_CcDllObject.DllName);
+            if (g_Verbose)  Dml("   [!] Dll: %S\n", DllObj.mm_CcDllObject.DllName);
             for each (PEFile::CACHED_SECTION_INFO SectionHeader in DllObj.m_CcSections) {
-                if (g_Verbose)  Dml("   [!] Dll: %S\n", DllObj.mm_CcDllObject.DllName);
-                if (g_Verbose)  Dml("   [!] Section: %s\n", SectionHeader.Name);
-                if (ULONG Offset = HasUsedCodeCave(DllObj.m_ImageBase, &SectionHeader)) {
-                    Dml(" [!] (Pid=0x%llX, Name=%s, Dll=%S) code detected at <link cmd=\"db %I64x\">0x%I64X</link> (0x%x) inside \"%s\" section.\n",
-                        ProcObject.m_CcProcessObject.ProcessId,
-                        ProcObject.m_CcProcessObject.ImageFileName,
-                        DllObj.mm_CcDllObject.DllName,
-                        DllObj.m_ImageBase + Offset,
-                        DllObj.m_ImageBase + Offset,
-                        Offset,
-                        SectionHeader.Name);
+                if (g_Verbose)  Dml("   [!] Dll: %S (section: %s)\n", DllObj.mm_CcDllObject.DllName, SectionHeader.Name);
+                ULONG CorruptionScore = 0;
+                if (ULONG Offset = HasUsedCodeCave(DllObj.m_ImageBase, &DllObj.m_CcSections, &SectionHeader, &CorruptionScore)) {
+                    if (CorruptionScore > 8) {
+                        Dml(" [!][Score = %5d] (Pid=0x%llX, Name=%s, Dll=%S) corruption detected at <link cmd=\"db %I64x\">0x%I64X</link> (0x%x) inside \"%s\" section.\n",
+                            CorruptionScore,
+                            ProcObject.m_CcProcessObject.ProcessId,
+                            ProcObject.m_CcProcessObject.ImageFileName,
+                            DllObj.mm_CcDllObject.DllName,
+                            DllObj.m_ImageBase + Offset,
+                            DllObj.m_ImageBase + Offset,
+                            Offset,
+                            SectionHeader.Name);
+                    }
                 }
             }
         }

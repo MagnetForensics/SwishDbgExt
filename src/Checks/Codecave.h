@@ -41,7 +41,9 @@ Revision History:
 ULONG
 HasUsedCodeCave(
     ULONG64 ImageBase,
-    PEFile::PCACHED_SECTION_INFO SectionHeader
+    vector<PEFile::CACHED_SECTION_INFO> *Sections,
+    PEFile::PCACHED_SECTION_INFO SectionHeader,
+    PULONG Score
 );
 
 #endif

@@ -42,13 +42,26 @@ Revision History:
 ULONG
 HasUsedCodeCave(
     ULONG64 ImageBase,
-    PEFile::PCACHED_SECTION_INFO SectionHeader
+    vector<PEFile::CACHED_SECTION_INFO> *Sections,
+    PEFile::PCACHED_SECTION_INFO SectionHeader,
+    PULONG Score
 )
 {
     ULONG Result = FALSE;
     PUCHAR Buffer = NULL;
+    ULONG CorruptionScore = 0;
 
-    ULONG CodeCaveVirtualOffset = SectionHeader->VaBase + SectionHeader->RawSize;
+    ULONG CodeCaveVirtualOffset = SectionHeader->VaBase + min(SectionHeader->VaSize, SectionHeader->RawSize);
+
+    ULONG DeadSpace = TRUE;
+    for each (PEFile::CACHED_SECTION_INFO current in *Sections) {
+        if (current.VaBase == CodeCaveVirtualOffset) {
+
+            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] '%s' ends right before '%s' .\n", __FILE__, __FUNCTIONW__, __LINE__, SectionHeader->Name, current.Name);
+            DeadSpace = FALSE;
+            goto CleanUp;
+        }
+    }
 
     ULONG BytesLeft = PAGE_SIZE - (CodeCaveVirtualOffset & (PAGE_SIZE - 1));
     if (!BytesLeft) goto CleanUp;
@@ -65,16 +78,25 @@ HasUsedCodeCave(
     //
     // Simple check, to know if the code space null or did someone wrote something into it ?
     //
-    if (Buffer[0] != '\0') {
-        if (TRUE) {
+    for (ULONG i = 0; i < min(BytesLeft, 0x10); i += 1) {
+        if ((Buffer[i] != '\xff') && (Buffer[i] != '\0')) {
+            CorruptionScore += 1;
+        }
+    }
+
+    if (CorruptionScore) {
+        if (g_Verbose) {
+            g_Ext->Dml("            0x%llx + 0x%x + 0x%x = 0x%llx\n", ImageBase, SectionHeader->VaBase, SectionHeader->RawSize, ImageBase + SectionHeader->VaBase + SectionHeader->RawSize);
             g_Ext->Dml("            Data[0] = 0x%02X, Data[1] = 0x%02X, Data[2] = 0x%02X, Data[3] = 0x%02X, \n", Buffer[0], Buffer[1], Buffer[2], Buffer[3]);
             g_Ext->Execute("u 0x%I64X", TargetVa);
         }
+
         Result = CodeCaveVirtualOffset;
         goto CleanUp;
     }
 
 CleanUp:
+    *Score = CorruptionScore;
     if (Buffer) free(Buffer);
 
     return Result;
