@@ -965,8 +965,8 @@ ExtExtension::Initialize(void)
     DebugControl->GetWindbgExtensionApis64(&ExtensionApis);
 
     dprintf("       SwishDbgExt v0.7.0 (%s) - Incident Response & Digital Forensics Debugging Extension\n"
-            "       SwishDbgExt Copyright (C) 2014 MoonSols Ltd\n"
-            "       SwishDbgExt Copyright (C) 2014 Matthieu Suiche (@msuiche) - http://msuiche.net\n\n"
+            "       SwishDbgExt Copyright (C) 2016 Comae Technologies FZE\n"
+            "       SwishDbgExt Copyright (C) 2014-2016 Matthieu Suiche (@msuiche) - http://msuiche.net\n\n"
             "       This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.\n"
             "       This is free software, and you are welcome to redistribute it\n"
             "       under certain conditions; type `show c' for details.\n",
