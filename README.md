@@ -11,8 +11,9 @@ Because SwishDbgExt is a WinDbg debugging extension, it means it can be used on 
 You can either copy the WinDbg extension in the corresponding (x86 or x64) WinDbg folder or load it manually using the !load command such as below. Please note you can’t have spaces or quotes in the full path to the target dll to be loaded.
 `!load X:\FullPath\SwishDbgExt.dll`
 
-*Example:*
-```kd> !load E:\projects\labs\SwishDbgExt\bin\x64\SwishDbgExt.dll;
+###Example:
+```
+kd> !load E:\projects\labs\SwishDbgExt\bin\x64\SwishDbgExt.dll;
        SwishDbgExt v0.7.0 (Nov  2 2016) - Incident Response & Digital Forensics Debugging Extension
        SwishDbgExt Copyright (C) 2016 Comae Technologies FZE - http://www.comae.io
        SwishDbgExt Copyright (C) 2014-2016 Matthieu Suiche (@msuiche)
