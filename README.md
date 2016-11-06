@@ -20,7 +20,8 @@ kd> !load E:\projects\labs\SwishDbgExt\bin\x64\SwishDbgExt.dll;
 
        This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
        This is free software, and you are welcome to redistribute it
-       under certain conditions; type `show c' for details.```
+       under certain conditions; type `show c' for details.
+```
 	   
 If you wish to update your WinDbg template with a more DML-friendly template, you can directly import windbg_template.reg file joined to the package.
 
