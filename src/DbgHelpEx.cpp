@@ -42,7 +42,7 @@ Revision History:
 //
 
 PVOID
-PEFile::RtlGetRessourceData(
+MsPEImageFile::RtlGetRessourceData(
     ULONG Name,
     ULONG Type
 )
@@ -129,7 +129,7 @@ CleanUp:
 }
 
 BOOLEAN
-PEFile::RtlGetPdbInfo(
+MsPEImageFile::RtlGetPdbInfo(
 )
 /*++
 
@@ -175,7 +175,7 @@ CleanUp:
 }
 
 BOOLEAN
-PEFile::RtlGetExports(
+MsPEImageFile::RtlGetExports(
 )
 /*++
 
@@ -273,7 +273,7 @@ CleanUp:
 }
 
 BOOLEAN
-PEFile::RtlGetFileVersion(
+MsPEImageFile::RtlGetFileVersion(
 )
 /*++
 
@@ -388,7 +388,7 @@ CleanUp:
 }
 
 BOOLEAN
-PEFile::RtlGetSections(
+MsPEImageFile::RtlGetSections(
 )
 /*++
 
@@ -445,7 +445,7 @@ Return Value:
 }
 
 BOOLEAN
-PEFile::InitImage(
+MsPEImageFile::InitImage(
 )
 /*++
 
@@ -581,7 +581,7 @@ CleanUp:
 }
 
 BOOLEAN
-PEFile::GetInfoFull(
+MsPEImageFile::GetInfoFull(
 )
 /*++
 

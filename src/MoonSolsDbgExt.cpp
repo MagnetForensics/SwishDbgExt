@@ -201,7 +201,7 @@ EXT_COMMAND(ms_process,
             ProcObj.m_CcProcessObject.CommandLine, ProcObj.m_CcProcessObject.CommandLine);
 
         Dml("    <col fg=\"emphfg\">Sections:</col>      ");
-        for each (PEFile::CACHED_SECTION_INFO Section in ProcObj.m_CcSections)
+        for each (MsPEImageFile::CACHED_SECTION_INFO Section in ProcObj.m_CcSections)
         {
             Dml("%s, ", Section.Name);
         }
@@ -233,7 +233,7 @@ EXT_COMMAND(ms_process,
                 "    |------|------|--------------------|----------------------------------------------------|---------|\n",
                 "Indx", "Ord", "Addr", "Name", "Patched", "Hooked");
 
-            for each (PEFile::EXPORT_INFO ExportInfo in ProcObj.m_Exports)
+            for each (MsPEImageFile::EXPORT_INFO ExportInfo in ProcObj.m_Exports)
             {
                 ULONG64 Ptr = ProcObj.m_ImageBase + ExportInfo.Address;
 
@@ -269,7 +269,7 @@ EXT_COMMAND(ms_process,
                     "    |------|------|--------------------|----------------------------------------------------|---------|\n",
                     "Indx", "Ord", "Addr", "Name", "Patched", "Hooked");
 
-                for each (PEFile::EXPORT_INFO ExportInfo in DllObj.m_Exports)
+                for each (MsPEImageFile::EXPORT_INFO ExportInfo in DllObj.m_Exports)
                 {
                     ULONG64 Ptr = DllObj.m_ImageBase + ExportInfo.Address;
 
@@ -2057,7 +2057,7 @@ EXT_COMMAND(ms_checkcodecave,
         }
 
         if (g_Verbose) Dml("Looking inside the executable sections...\n");
-        for each (PEFile::CACHED_SECTION_INFO SectionHeader in ProcObject.m_CcSections) {
+        for each (MsPEImageFile::CACHED_SECTION_INFO SectionHeader in ProcObject.m_CcSections) {
             if (g_Verbose)  Dml(" [!] Section: %s\n", SectionHeader.Name);
             ULONG CorruptionScore = 0;
             if (ULONG Offset = HasUsedCodeCave(ProcObject.m_ImageBase, &ProcObject.m_CcSections, &SectionHeader, &CorruptionScore)) {
@@ -2074,7 +2074,7 @@ EXT_COMMAND(ms_checkcodecave,
         if (g_Verbose) Dml("Looking inside the dlls sections...\n");
         for each (MsDllObject DllObj in ProcObject.m_DllList) {
             if (g_Verbose)  Dml("   [!] Dll: %S\n", DllObj.mm_CcDllObject.DllName);
-            for each (PEFile::CACHED_SECTION_INFO SectionHeader in DllObj.m_CcSections) {
+            for each (MsPEImageFile::CACHED_SECTION_INFO SectionHeader in DllObj.m_CcSections) {
                 if (g_Verbose)  Dml("   [!] Dll: %S (section: %s)\n", DllObj.mm_CcDllObject.DllName, SectionHeader.Name);
                 ULONG CorruptionScore = 0;
                 if (ULONG Offset = HasUsedCodeCave(DllObj.m_ImageBase, &DllObj.m_CcSections, &SectionHeader, &CorruptionScore)) {

@@ -944,7 +944,7 @@ Return Value:
 }
 
 VOID
-PEFile::Free(
+MsPEImageFile::Free(
     VOID
 )
 /*++

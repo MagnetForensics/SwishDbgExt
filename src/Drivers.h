@@ -40,7 +40,7 @@ Revision History:
 #ifndef __DRIVERS_H__
 #define __DRIVERS_H__
 
-class MsDriverObject : public PEFile {
+class MsDriverObject : public MsPEImageFile {
 public:
     typedef struct _FAST_IO_DISPATCH
     {
@@ -95,7 +95,6 @@ public:
         WCHAR DllName[MAX_PATH + 1];
         WCHAR FullDllName[MAX_PATH + 1];
 
-        FILE_VERSION FileVersion;
     } DRIVER_INFO, *PDRIVER_INFO;
 
     MsDriverObject()

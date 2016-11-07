@@ -169,7 +169,7 @@ private:
     ExtRemoteTypedList m_ProcessList;
 };
 
-class MsDllObject : public PEFile {
+class MsDllObject : public MsPEImageFile {
 public:
     typedef struct DLL_INFO {
         IMAGE_TYPE ImageType; // Always in first position.
@@ -183,8 +183,6 @@ public:
         ULONG64 LoadTime;
         WCHAR DllName[MAX_PATH + 1];
         WCHAR FullDllName[MAX_PATH + 1];
-
-        FILE_VERSION FileVersion;
     } DLL_INFO, *PDLL_INFO;
 
     MsDllObject()
@@ -211,7 +209,7 @@ public:
     ExtRemoteTyped m_TypedObject;
 };
 
-class MsProcessObject : public PEFile {
+class MsProcessObject : public MsPEImageFile {
 public:
     typedef struct _ENV_VAR_OBJECT {
         LPWSTR Variable;

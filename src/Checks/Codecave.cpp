@@ -42,8 +42,8 @@ Revision History:
 ULONG
 HasUsedCodeCave(
     ULONG64 ImageBase,
-    vector<PEFile::CACHED_SECTION_INFO> *Sections,
-    PEFile::PCACHED_SECTION_INFO SectionHeader,
+    vector<MsPEImageFile::CACHED_SECTION_INFO> *Sections,
+    MsPEImageFile::PCACHED_SECTION_INFO SectionHeader,
     PULONG Score
 )
 {
@@ -54,7 +54,7 @@ HasUsedCodeCave(
     ULONG CodeCaveVirtualOffset = SectionHeader->VaBase + min(SectionHeader->VaSize, SectionHeader->RawSize);
 
     ULONG DeadSpace = TRUE;
-    for each (PEFile::CACHED_SECTION_INFO current in *Sections) {
+    for each (MsPEImageFile::CACHED_SECTION_INFO current in *Sections) {
         if (current.VaBase == CodeCaveVirtualOffset) {
 
             if (g_Verbose) g_Ext->Dml("[%s!%S!%d] '%s' ends right before '%s' .\n", __FILE__, __FUNCTIONW__, __LINE__, SectionHeader->Name, current.Name);

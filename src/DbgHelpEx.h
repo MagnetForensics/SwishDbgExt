@@ -51,7 +51,7 @@ typedef struct _CV_INFO_PDB70
     CHAR PdbFileName[1]; // zero terminated string with the name of the PDB file 
 } CV_INFO_PDB70, *PCV_INFO_PDB70;
 
-class PEFile {
+class MsPEImageFile {
 public:
     typedef enum _IMAGE_TYPE {
         ImageInvalidType = 0,
