@@ -19,7 +19,7 @@ Create a neat and useful command to add to SwishDbgExt WinDbg extension. C++ and
 ###Deadline
 31 December 2016 — and results will be published within 30 days.
 ### Submission
-Fork the github repository, and provide the link to your branch over email at support@comae.io
+Fork the github repository, and provide the link to your branch over email at support@comae.io - More information on https://blog.comae.io/comae-2016-contest-swishdbgext-features-3c9a63c62209#.tnt1b9usx
 
 ## Installation
 You can either copy the WinDbg extension in the corresponding (x86 or x64) WinDbg folder or load it manually using the !load command such as below. Please note you can’t have spaces or quotes in the full path to the target dll to be loaded.
