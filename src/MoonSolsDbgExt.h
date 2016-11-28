@@ -126,6 +126,11 @@ extern "C" {
 
 extern BOOLEAN g_Verbose;
 
+VOID
+ReleaseObjectTypeTable(
+    VOID
+    );
+
 #ifdef __cplusplus
 }
 #endif

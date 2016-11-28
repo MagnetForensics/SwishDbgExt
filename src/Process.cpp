@@ -1231,7 +1231,8 @@ MsProcessObject::MmGetFirstVad(
     {
         LeftChild = First;
 
-        MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", SIGN_EXTEND(LeftChild));
+        MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", LeftChild);
+
         if (MmVad.HasField("Core")) {
             if (g_Verbose) g_Ext->Dml("[%s!%S!%d] [Left] LeftChild = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, SIGN_EXTEND(LeftChild));
             First = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
@@ -1245,10 +1246,12 @@ MsProcessObject::MmGetFirstVad(
     VadInfo->FirstNode = First;
     VadInfo->CurrentNode = VadInfo->FirstNode;
 
-    MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", SIGN_EXTEND(VadInfo->CurrentNode));
+    MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
+
     if (MmVad.HasField("Core")) {
-        VadInfo->StartingVpn = MmVad.Field("Core").Field("StartingVpn").GetPtr();
-        VadInfo->EndingVpn = MmVad.Field("Core").Field("EndingVpn").GetPtr();
+
+        VadInfo->StartingVpn = MmVad.Field("Core").Field("StartingVpn").GetUlong();
+        VadInfo->EndingVpn = MmVad.Field("Core").Field("EndingVpn").GetUlong();
     }
     else {
         VadInfo->StartingVpn = MmVad.Field("StartingVpn").GetPtr();
@@ -1296,7 +1299,8 @@ Return Value:
 
     Next = VadInfo->CurrentNode;
 
-    MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", SIGN_EXTEND(VadInfo->CurrentNode));
+    MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
+
     if (MmVad.HasField("Core")) {
         RightChild = MmVad.Field("Core").Field("VadNode").Field("Right").GetPtr();
     }
@@ -1369,7 +1373,8 @@ Return Value:
                 return FALSE;
             }
 
-            MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", SIGN_EXTEND(LeftChild));
+            MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", LeftChild);
+
             if (MmVad.HasField("Core")) {
                 if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access [0x%llX].Core.VadNode.Left\n",
                                         __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
@@ -1388,15 +1393,29 @@ Return Value:
     if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Current Node [0x%llX]\n",
         __FILE__, __FUNCTIONW__, __LINE__, SIGN_EXTEND(VadInfo->CurrentNode));
 
-    MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", SIGN_EXTEND(VadInfo->CurrentNode));
-    if (MmVad.HasField("Core")) {
-        VadInfo->StartingVpn = MmVad.Field("Core").Field("StartingVpn").GetPtr();
-        VadInfo->EndingVpn = MmVad.Field("Core").Field("EndingVpn").GetPtr();
+    MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
 
-        VadInfo->VadType = (ULONG)MmVad.Field("Core").Field("u.VadFlags.VadType").GetPtr();
-        VadInfo->Protection = (ULONG)MmVad.Field("Core").Field("u.VadFlags.Protection").GetPtr();
-        VadInfo->PrivateMemory = (ULONG)MmVad.Field("Core").Field("u.VadFlags.PrivateMemory").GetPtr();
-        VadInfo->MemCommit = (ULONG)MmVad.Field("Core").Field("u1.VadFlags1.MemCommit").GetPtr();
+    if (MmVad.HasField("Core")) {
+
+        VadInfo->StartingVpn = MmVad.Field("Core").Field("StartingVpn").GetUlong();
+        VadInfo->EndingVpn = MmVad.Field("Core").Field("EndingVpn").GetUlong();
+
+        VadInfo->VadType = (ULONG)MmVad.Field("Core").Field("u.VadFlags.VadType").GetUlong();
+        VadInfo->Protection = (ULONG)MmVad.Field("Core").Field("u.VadFlags.Protection").GetUlong();
+        VadInfo->PrivateMemory = (ULONG)MmVad.Field("Core").Field("u.VadFlags.PrivateMemory").GetUlong();
+        VadInfo->MemCommit = (ULONG)MmVad.Field("Core").Field("u1.VadFlags1.MemCommit").GetUlong();
+
+        if (MmVad.HasField("Core.StartingVpnHigh") && MmVad.HasField("Core.EndingVpnHigh")) {
+
+            ULONG64 StartingVpnHigh;
+            ULONG64 EndingVpnHigh;
+
+            StartingVpnHigh = MmVad.Field("Core").Field("StartingVpnHigh").GetUchar();
+            EndingVpnHigh = MmVad.Field("Core").Field("EndingVpnHigh").GetUchar();
+
+            VadInfo->StartingVpn = VadInfo->StartingVpn | (StartingVpnHigh << 32);
+            VadInfo->EndingVpn = VadInfo->EndingVpn | (EndingVpnHigh << 32);
+        }
     }
     else {
         VadInfo->StartingVpn = MmVad.Field("StartingVpn").GetPtr();
@@ -1432,7 +1451,7 @@ Return Value:
 
             if (MmSubSection.Field("ControlArea").GetPtr())
             {
-                VadInfo->FileObject = MmSubSection.Field("ControlArea").Field("FilePointer").GetPtr();
+                VadInfo->FileObject = MmSubSection.Field("ControlArea").Field("FilePointer").Field("Object").GetPtr();
             }
         }
     }

@@ -87,7 +87,15 @@ Return Value:
 
     if (ObjHeader.HasField("TypeIndex"))
     {
-        HandleObj->ObjectTypeIndex = ObjHeader.Field("TypeIndex").GetChar();
+        BYTE HeaderCookie;
+
+        HandleObj->ObjectTypeIndex = ObjHeader.Field("TypeIndex").GetUchar();
+
+        if (g_Ext->m_Data->ReadVirtual(GetExpression("nt!ObHeaderCookie"), &HeaderCookie, sizeof(HeaderCookie), NULL) == S_OK) {
+
+            HandleObj->ObjectTypeIndex = (((ObjHeaderAddr >> 8) & 0xff) ^ HandleObj->ObjectTypeIndex) ^ HeaderCookie;
+        }
+
         if ((HandleObj->ObjectTypeIndex <= 1) || (HandleObj->ObjectTypeIndex >= 45)) return FALSE;
 
         ExtRemoteTypedEx::GetUnicodeString(ObjTypeTable.ArrayElement(HandleObj->ObjectTypeIndex).Field("Name"), TypeStr, sizeof(TypeStr));
@@ -301,4 +309,17 @@ Return Value:
     if (ObOpenChildren(0, L"Driver", &Handle)) Object = Handle.ObjectPtr;
 
     return Object;
+}
+
+VOID
+ReleaseObjectTypeTable(
+    VOID
+    )
+{
+    if (ObTypeInit) {
+
+        ObjTypeTable.Release();
+
+        ObTypeInit = FALSE;
+    }
 }

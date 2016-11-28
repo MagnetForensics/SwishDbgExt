@@ -390,6 +390,8 @@ EXT_COMMAND(ms_process,
                     FoResult ? Handle.Name : L""
                     );
             }
+
+            ReleaseObjectTypeTable();
         }
 
         if (Flags & PROCESS_THREADS_FLAG)

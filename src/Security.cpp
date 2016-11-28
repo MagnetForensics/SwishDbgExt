@@ -824,6 +824,11 @@ Return Value:
     LPBYTE Buffer = NULL;
     ULONG MalScore = 0;
 
+    if (!Length) {
+
+        return 0;
+    }
+
     Buffer = (LPBYTE)malloc(Length);
     RtlZeroMemory(Buffer, Length);
 
