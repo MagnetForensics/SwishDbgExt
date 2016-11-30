@@ -36,7 +36,7 @@ Revision History:
 
 --*/
 
-#include "MoonSolsDbgExt.h"
+#include "SwishDbgExt.h"
 
 #ifndef __DBGHELPEX_H__
 #define __DBGHELPEX_H__

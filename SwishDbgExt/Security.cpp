@@ -35,7 +35,7 @@ Revision History:
 
 --*/
 
-#include "MoonSolsDbgExt.h"
+#include "SwishDbgExt.h"
 
 
 const char *Blacklist_Functions[] = {

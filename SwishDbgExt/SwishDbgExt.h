@@ -20,7 +20,7 @@
 
 Module Name:
 
-    - MoonSolsDbgExt.c
+    - SwishDbgExt.c
 
 Abstract:
 

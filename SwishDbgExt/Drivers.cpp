@@ -34,7 +34,7 @@ Revision History:
     - Matthieu Suiche
 --*/
 
-#include "MoonSolsDbgExt.h"
+#include "SwishDbgExt.h"
 
 VOID
 MsDriverObject::Set(

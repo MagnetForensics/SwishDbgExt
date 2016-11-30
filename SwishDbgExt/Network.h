@@ -36,7 +36,7 @@ Revision History:
 
 --*/
 
-#include "MoonSolsDbgExt.h"
+#include "SwishDbgExt.h"
 
 #ifndef __NETWORK_H__
 #define __NETWORK_H__

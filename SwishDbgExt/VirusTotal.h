@@ -38,7 +38,7 @@ Revision History:
 #ifndef __VIRUSTOTAL_H__
 #define __VIRUSTOTAL_H__
 
-#include "MoonSolsDbgExt.h"
+#include "SwishDbgExt.h"
 
 #if JSON_SUPPORT
 class VirusTotal {

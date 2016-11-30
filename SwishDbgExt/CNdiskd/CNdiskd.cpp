@@ -17,7 +17,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --*/
 
-#include "..\MoonSolsDbgExt.h"
+#include "..\SwishDbgExt.h"
 #include "CNdiskd.h"
 
 // CNdisKd constructor

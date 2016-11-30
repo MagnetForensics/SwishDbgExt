@@ -35,7 +35,7 @@ Revision History:
 
 --*/
 
-#include "../MoonSolsDbgExt.h"
+#include "../SwishDbgExt.h"
 
 #define VERBOSE FALSE
 

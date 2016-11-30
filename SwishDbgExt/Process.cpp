@@ -35,7 +35,7 @@ Revision History:
 
 --*/
 
-#include "MoonSolsDbgExt.h"
+#include "SwishDbgExt.h"
 #include "Process.h"
 
 map<PVOID, ULONG> g_References;

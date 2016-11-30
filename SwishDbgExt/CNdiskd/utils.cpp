@@ -17,7 +17,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --*/
 #include <intsafe.h>
-#include "..\MoonSolsDbgExt.h" // DbgPrint macro
+#include "..\SwishDbgExt.h" // DbgPrint macro
 #include "CNdiskd.h"
 
 #define SIGN_EXTEND(_x_) (ULONG64)(LONG)(_x_)

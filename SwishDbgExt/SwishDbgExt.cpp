@@ -20,7 +20,7 @@
 
 Module Name:
 
-    - MoonSolsDbgExt.cpp
+    - SwishDbgExt.cpp
     - Codename: SOCOTRA
 
 Abstract:
@@ -39,7 +39,7 @@ Revision History:
 
 --*/
 
-#include "MoonSolsDbgExt.h"
+#include "SwishDbgExt.h"
 
 #ifdef _DEBUG
 #define VERBOSE TRUE

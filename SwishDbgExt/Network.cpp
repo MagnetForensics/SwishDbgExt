@@ -44,7 +44,7 @@ Revision History:
 // NETBIOS
 //
 
-#include "MoonSolsDbgExt.h"
+#include "SwishDbgExt.h"
 
 PSTR
 GetProtocolType(

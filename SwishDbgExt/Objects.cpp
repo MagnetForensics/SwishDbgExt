@@ -35,7 +35,7 @@ Revision History:
     - Matthieu Suiche
 --*/
 
-#include "MoonSolsDbgExt.h"
+#include "SwishDbgExt.h"
 
 BOOLEAN ObTypeInit = FALSE;
 ExtRemoteTyped ObjTypeTable;

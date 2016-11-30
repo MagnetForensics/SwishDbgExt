@@ -38,7 +38,7 @@ Revision History:
 
     --*/
 
-#include "MoonSolsDbgExt.h"
+#include "SwishDbgExt.h"
 
 #ifndef __CREDENTIALS_H__
 #define __CREDENTIALS_H__

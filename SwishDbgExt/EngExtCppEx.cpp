@@ -35,7 +35,7 @@ Revision History:
 
 --*/
 
-#include "MoonSolsDbgExt.h"
+#include "SwishDbgExt.h"
 
 LPWSTR
 ExtRemoteTypedEx::GetUnicodeString2(

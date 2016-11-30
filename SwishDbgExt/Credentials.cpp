@@ -37,7 +37,7 @@ Revision History:
 
 --*/
 
-#include "MoonSolsDbgExt.h"
+#include "SwishDbgExt.h"
 
 #include <bcrypt.h>
 // #include <ntstatus.h>
