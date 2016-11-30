@@ -41,17 +41,6 @@ Revision History:
 #define VVERBOSE_MODE FALSE
 #define JSON_SUPPORT FALSE
 
-#include <stdio.h>
-#include <Strsafe.h>
-#include <stdlib.h>
-#include <windows.h>
-#include <winsock.h>
-
-#include <Winver.h>
-
-#include <iostream>
-#include <vector>
-#include <map>
 using namespace std;
 
 #if JSON_SUPPORT
@@ -62,11 +51,6 @@ using namespace web;
 using namespace web::http;
 using namespace web::http::client;
 #endif
-
-#define KDEXT_64BIT
-#include <wdbgexts.h>
-#include <dbghelp.h>
-#include <dbgeng.h>
 
 #pragma once
 #include "engextcpp.hpp"

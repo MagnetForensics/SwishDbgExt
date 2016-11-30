@@ -36,6 +36,7 @@ Revision History:
 
 --*/
 
+#include "stdafx.h"
 #include "SwishDbgExt.h"
 
 #define InitField(a, b, c) {a, b, c}

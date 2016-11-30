@@ -37,10 +37,8 @@ Revision History:
 
 --*/
 
+#include "stdafx.h"
 #include "SwishDbgExt.h"
-
-#include <bcrypt.h>
-// #include <ntstatus.h>
 
 #define SECURITY_WIN32
 #include <ntsecapi.h>
@@ -206,9 +204,10 @@ Return Value:
 {
     DWORD i;
     const char * pType = PRINTF_TYPES[flags & 0x0000000f];
+
     for (i = 0; i < cbData; i++)
     {
-        g_Ext->Dml(pType, ((LPCBYTE)lpData)[i]);
+        g_Ext->Dml(pType, ((const PBYTE)lpData)[i]);
     }
 }
 

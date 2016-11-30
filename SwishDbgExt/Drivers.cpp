@@ -34,6 +34,7 @@ Revision History:
     - Matthieu Suiche
 --*/
 
+#include "stdafx.h"
 #include "SwishDbgExt.h"
 
 VOID

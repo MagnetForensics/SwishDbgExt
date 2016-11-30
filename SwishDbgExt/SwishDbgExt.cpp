@@ -39,6 +39,7 @@ Revision History:
 
 --*/
 
+#include "stdafx.h"
 #include "SwishDbgExt.h"
 
 #ifdef _DEBUG

@@ -6,6 +6,7 @@
 //
 //----------------------------------------------------------------------------
 
+#include "stdafx.h"
 #include "engextcpp.hpp"
 #include <strsafe.h>
 #include <dbghelp.h>

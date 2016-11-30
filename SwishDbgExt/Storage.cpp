@@ -46,6 +46,7 @@ Revision History:
 // MountMgr
 //
 
+#include "stdafx.h"
 #include "SwishDbgExt.h"
 
 StoreManager::StoreManager(

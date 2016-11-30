@@ -17,6 +17,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 --*/
 
+#include "stdafx.h"
 #include "CNdiskd.h"
 
 CReport::CReport(ExtCheckedPointer<ExtExtension> gExt) : m_gExt(gExt)

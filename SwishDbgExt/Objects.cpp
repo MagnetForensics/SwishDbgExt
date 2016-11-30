@@ -35,6 +35,7 @@ Revision History:
     - Matthieu Suiche
 --*/
 
+#include "stdafx.h"
 #include "SwishDbgExt.h"
 
 BOOLEAN ObTypeInit = FALSE;

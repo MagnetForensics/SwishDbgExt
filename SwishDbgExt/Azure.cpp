@@ -38,3 +38,5 @@ Revision History:
 //
 // HYPERV functions from MoonSols LiveCloudKd
 //
+
+#include "stdafx.h"

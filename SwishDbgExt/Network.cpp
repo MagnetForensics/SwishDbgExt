@@ -44,6 +44,7 @@ Revision History:
 // NETBIOS
 //
 
+#include "stdafx.h"
 #include "SwishDbgExt.h"
 
 PSTR

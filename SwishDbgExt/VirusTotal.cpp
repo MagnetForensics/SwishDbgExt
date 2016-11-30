@@ -38,3 +38,5 @@ Revision History:
 //
 // TODO: ? :-)
 //
+
+#include "stdafx.h"
