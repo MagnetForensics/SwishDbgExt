@@ -805,7 +805,9 @@ Return Value:
                     EnvironmentSize = 0x1000;
                 }
 
-                LPWSTR m_EnvVarsBuffer = (LPWSTR)malloc(EnvironmentSize);
+                m_EnvVarsBuffer = (LPWSTR)malloc(EnvironmentSize);
+                REF_POINTER(m_EnvVarsBuffer);
+
                 if (g_Ext->m_Data->ReadVirtual(Environment, m_EnvVarsBuffer, EnvironmentSize, NULL) == S_OK)
                 {
 
@@ -821,7 +823,6 @@ Return Value:
                         m_EnvVars.push_back(EnvVar);
                         Index += Len;
                     }
-
                 }
             }
         }
@@ -1208,7 +1209,7 @@ MsProcessObject::MmGetFirstVad(
     _Inout_ PVAD_OBJECT VadInfo
 )
 {
-    ULONG64 First, LeftChild;
+    ULONG64 First, LeftChild = 0;
     ExtRemoteTyped MmVad;
 
     if (m_TypedObject.Field("VadRoot").GetTypeSize() > GetPtrSize())
@@ -1284,7 +1285,7 @@ Return Value:
 --*/
 {
     ULONG64 Parent, Next;
-    ULONG64 LeftChild, RightChild;
+    ULONG64 LeftChild = 0, RightChild;
 
     ExtRemoteTyped MmVad;
 

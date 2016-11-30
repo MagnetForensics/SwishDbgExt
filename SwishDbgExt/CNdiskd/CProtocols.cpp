@@ -69,7 +69,7 @@ PWSTR WINAPI CProtocols::GetProtocolName()
 
 VOID WINAPI CProtocols::SetPtrHandler(ULONG64 Handler)
 {
-
+    UNREFERENCED_PARAMETER(Handler);
 }
 
 BOOL WINAPI CProtocols::IsProtocolFuncHandlerHooked(ULONG64 PtrHandler)

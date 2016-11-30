@@ -254,7 +254,7 @@ Return Value:
 
 --*/
 {
-    HRESULT Result;
+    HRESULT Result = S_FALSE;
 
     ULONG Index = 0;
 

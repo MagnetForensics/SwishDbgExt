@@ -135,7 +135,7 @@ EXT_COMMAND(ms_process,
 {
     ULONG Flags = 0;
     ULONG64 Pid;
-    BOOLEAN bScan;
+    BOOLEAN bScan = FALSE;
 
     Pid = GetArgU64("pid", FALSE);
     LPCSTR HandlesArg = GetArgStr("handletype", FALSE);
@@ -432,8 +432,7 @@ EXT_COMMAND(ms_object,
            "{;ed,d=0;object;Object directory}")
 {
     ULONG64 Object = GetUnnamedArgU64(0);
-    HANDLE_OBJECT Handle = { 0 };
-    ULONG BodyOffset = 0;
+    HANDLE_OBJECT Handle = {0};
 
     vector<HANDLE_OBJECT> Handles = ObOpenObjectDirectory(Object);
 
@@ -455,7 +454,7 @@ EXT_COMMAND(ms_object,
         "    |------|----------------------|--------------------|---------------------------------------------------------------------------|\n",
         "Hdle", "Object Type", "Addr", "Name");
 
-    for each (HANDLE_OBJECT Handle in Handles)
+    for each (Handle in Handles)
     {
         if (_wcsicmp(Handle.Type, L"Key") == 0)
         {
@@ -488,8 +487,6 @@ EXT_COMMAND(ms_drivers,
     "{object;ed,o;drvobj;Display driver information for a given driven object}"
     "{scan;b,o;scan;Display only malicious artifacts}")
 {
-    ULONG Flags = 0;
-
     ULONG64 DrvObj = GetArgU64("object", FALSE);
     BOOLEAN Scan = HasArg("scan");
 
@@ -780,7 +777,9 @@ EXT_COMMAND(ms_callbacks,
         ULONG64 pCmpCallBackCount;
         ULONG Count = 0;
 
-        if (pCmpCallBackCount = GetExpression("nt!CmpCallBackCount"))
+        pCmpCallBackCount = GetExpression("nt!CmpCallBackCount");
+
+        if (pCmpCallBackCount)
         {
             g_Ext->m_Data->ReadVirtual(pCmpCallBackCount, (PUCHAR)&Count, sizeof(Count), NULL);
 
@@ -1157,7 +1156,8 @@ EXT_COMMAND(ms_dump,
         goto CleanUp;
     }
 
-    BOOLEAN Ret = WriteFile(hOutput, Buffer, Size, &WrittenBytes, NULL);
+    BOOL Ret = WriteFile(hOutput, Buffer, Size, &WrittenBytes, NULL);
+
     if ((Ret == FALSE) && (GetLastError() == ERROR_IO_PENDING))
     {
         DWORD Status;
@@ -1495,7 +1495,6 @@ EXT_COMMAND(ms_hivelist,
 {
     vector<HIVE_OBJECT> Hives = GetHives();
 
-    ULONG64 HiveAddr = GetArgU64("hive", FALSE);
     BOOLEAN Scan = HasArg("scan");
     CHAR Buffer[128] = { 0 };
 

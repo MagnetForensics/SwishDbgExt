@@ -1869,7 +1869,7 @@ ExtExtension::CallDebuggeeBase(_In_ PCSTR CommandString,
 
     ULONG64 RetVal;
     
-    GetExprU64("@$callret", -1, &RetVal);
+    GetExprU64("@$callret", (ULONG64)-1, &RetVal);
     return RetVal;
 }
 

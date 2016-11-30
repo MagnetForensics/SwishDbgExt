@@ -66,7 +66,7 @@ BYTE InitializationVector[16];
 
 NTSTATUS kuhl_m_sekurlsa_nt6_KeyInit = STATUS_NOT_FOUND;
 
-BOOLEAN
+BOOL
 kull_m_string_getDbgUnicodeString(
     _In_ PUNICODE_STRING string
 )
@@ -89,9 +89,13 @@ Return Value:
     string->Buffer = NULL;
     if (buffer && string->MaximumLength)
     {
-        if (string->Buffer = (PWSTR)LocalAlloc(LPTR, string->MaximumLength))
+        string->Buffer = (PWSTR)LocalAlloc(LPTR, string->MaximumLength);
+
+        if (string->Buffer)
         {
-            if (!(status = ReadMemory(buffer, string->Buffer, string->MaximumLength, NULL)))
+            status = ReadMemory(buffer, string->Buffer, string->MaximumLength, NULL);
+
+            if (!status)
             {
                 LocalFree(string->Buffer);
                 string->Buffer = NULL;
@@ -211,7 +215,7 @@ Return Value:
     }
 }
 
-BOOLEAN
+BOOL
 kull_m_string_suspectUnicodeString(
     _In_ PUNICODE_STRING pUnicodeString
 )
@@ -317,6 +321,8 @@ Return Value:
     ULONG Offset_PrimaryCedentials_Credentials;
     ULONG Offset_PrimaryCedentials_Primary;
 
+    UNREFERENCED_PARAMETER(reserved);
+
     if (g_Ext->m_Machine == IMAGE_FILE_MACHINE_I386)
     {
         SizeOfMsv1_0_Credentials = sizeof(KIWI_MSV1_0_CREDENTIALS_X86);
@@ -416,10 +422,19 @@ Return Value:
         if (RtlEqualLuid(luidToFind, &Luid)) Result = OrderedPointer;
     }
 
-    if (!Result && (pTable = AvlTable.Field("BalancedRoot").Field("LeftChild").GetPtr()))
+    pTable = AvlTable.Field("BalancedRoot").Field("LeftChild").GetPtr();
+
+    if (!Result && pTable) {
+
         Result = kuhl_m_sekurlsa_utils_pFromAVLByLuidRec(pTable, LUIDoffset, luidToFind);
-    if (!Result && (pTable = AvlTable.Field("BalancedRoot").Field("RightChild").GetPtr()))
+    }
+
+    pTable = AvlTable.Field("BalancedRoot").Field("RightChild").GetPtr();
+
+    if (!Result && pTable) {
+
         Result = kuhl_m_sekurlsa_utils_pFromAVLByLuidRec(pTable, LUIDoffset, luidToFind);
+    }
 
 CleanUp:
 
@@ -488,7 +503,6 @@ Return Value:
 
     ULONG LuidOffset;
     ULONG TsPrimaryOffset;
-    PVOID PrimaryCredentials = NULL;
     ULONG CredentialsOffset;
 
     LPWSTR UserNameStr = NULL;
@@ -629,6 +643,8 @@ Return Value:
     LPWSTR UserNameStr = NULL;
     LPWSTR DomainStr = NULL;
     LPWSTR PasswordStr = NULL;
+
+    UNREFERENCED_PARAMETER(reserved);
 
     if (g_Ext->m_Machine == IMAGE_FILE_MACHINE_I386)
     {

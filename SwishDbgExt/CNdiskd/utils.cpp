@@ -40,7 +40,6 @@ namespace utils {
 		BOOL bIsWindowsVistaOrLater = false;
 		ULONG PlatformId, Win32Major, Win32Minor;
 		HRESULT hres;
-		ULONG strSize = 0;
 
 		hres = g_Ext->m_Control4->GetSystemVersionValues(&PlatformId, &Win32Major, &Win32Minor, NULL, NULL);
 

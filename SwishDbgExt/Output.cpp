@@ -59,7 +59,7 @@ Return Value:
 
 --*/
 {
-
+    UNREFERENCED_PARAMETER(Thread);
 }
 
 VOID
@@ -82,7 +82,7 @@ Return Value:
 
 --*/
 {
-
+    UNREFERENCED_PARAMETER(Handle);
 }
 
 LPSTR IrpMajor[] = {

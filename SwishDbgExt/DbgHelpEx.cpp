@@ -301,7 +301,7 @@ Return Value:
 
     PLANGANDCODEPAGE Translation;
 
-    BOOLEAN Result = TRUE;
+    BOOL Result = TRUE;
 
     RessourceData = RtlGetRessourceData(VS_VERSION_INFO, (ULONG)((ULONG_PTR)RT_VERSION));
     // ASSERTDBG(RessourceData);
@@ -381,7 +381,7 @@ Return Value:
 CleanUp:
 
     if (RessourceData) free(RessourceData);
-    return Result;
+    return (BOOLEAN)Result;
 }
 
 BOOLEAN
@@ -468,11 +468,9 @@ Return Value:
     PIMAGE_NT_HEADERS32 NtHeader32 = NULL;
     PIMAGE_NT_HEADERS64 NtHeader64 = NULL;
 
-    PIMAGE_DATA_DIRECTORY DataDirectory = NULL;
     ExtRemoteTyped BaseImage;
 
     BOOLEAN Result = FALSE;
-    ULONG64 ProcessDataOffset = 0ULL;
 
     if (m_Image.Initialized)
     {

@@ -482,8 +482,6 @@ Return Value:
 
 --*/
 {
-    BOOLEAN Matched = FALSE;
-
     for (UINT i = 0; PatternTable[i].PatternSize; i += 1)
     {
         if ((PatternTable[i].Type == PatternCustomType) && (PatternTable[i].Data.Initialized == FALSE))
@@ -616,12 +614,12 @@ Return Value:
 --*/
 {
     ULONG i;
-    ULONG val = 0, val2 = 0, val3 = 0, addr = 0;
+    ULONG val = 0, val2 = 0, addr = 0;
 
     InitPatternTable(g_PatternTable);
     ULONG MaxPatternLen = GetMaxPatternLen();
 
-    ULONG MaxBlLen = GetMaxBlacklistedLen();
+    //ULONG MaxBlLen = GetMaxBlacklistedLen();
 
     UINT MalScoreIndex = 0;
 

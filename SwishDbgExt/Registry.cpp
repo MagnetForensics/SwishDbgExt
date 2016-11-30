@@ -178,7 +178,7 @@ Return Value:
     for (UINT i = 0; i < SubKeysStableCount; i += 1)
     {
         PCM_KEY_INDEX CmKeyIndex = (PCM_KEY_INDEX)SubKeysStableTable;
-        ULONG64 Addr;
+        ULONG64 Addr = 0;
 
         if ((CmKeyIndex->Signature == CM_INDEX_ROOT_SIGNATURE) || (CmKeyIndex->Signature == CM_INDEX_LEAF_SIGNATURE))
         {
@@ -190,17 +190,17 @@ Return Value:
             Addr = RegGetCellPaged(KeyHive, CmKeyFastIndex->Index[i].CellIndex);
         }
 
-        ExtRemoteTyped KeyNode("(nt!_CM_KEY_NODE *)@$extin", Addr);
+        ExtRemoteTyped LocalKeyNode("(nt!_CM_KEY_NODE *)@$extin", Addr);
 
         RtlZeroMemory(Name, sizeof(Name));
         g_Ext->Dml("   [%2d] <link cmd=\"!ms_readknode 0x%I64X 0x%I64X\">0x%I64X</link> | <col fg=\"changed\">%-32s</col>\n",
-            i, KeyHive.GetPtr(), Addr, Addr, KeyNode.Field("Name").GetString(Name, KeyNode.Field("NameLength").GetUshort(), sizeof(Name)));
+            i, KeyHive.GetPtr(), Addr, Addr, LocalKeyNode.Field("Name").GetString(Name, LocalKeyNode.Field("NameLength").GetUshort(), sizeof(Name)));
     }
 
     for (UINT i = 0; i < SubKeysVolatileCount; i += 1)
     {
         PCM_KEY_INDEX CmKeyIndex = (PCM_KEY_INDEX)SubKeysVolatileTable;
-        ULONG64 Addr;
+        ULONG64 Addr = 0;
 
         if ((CmKeyIndex->Signature == CM_INDEX_ROOT_SIGNATURE) || (CmKeyIndex->Signature == CM_INDEX_LEAF_SIGNATURE))
         {
@@ -212,12 +212,12 @@ Return Value:
             Addr = RegGetCellPaged(KeyHive, CmKeyFastIndex->Index[i].CellIndex);
         }
 
-        ExtRemoteTyped KeyNode("(nt!_CM_KEY_NODE *)@$extin", Addr);
+        ExtRemoteTyped LocalKeyNode("(nt!_CM_KEY_NODE *)@$extin", Addr);
 
         RtlZeroMemory(Name, sizeof(Name));
         g_Ext->Dml("   [%2d] <link cmd=\"!ms_readknode 0x%I64X 0x%I64X\">0x%I64X</link> | <col fg=\"changed\">%-32s</col>\n",
             i, KeyHive.GetPtr(), Addr, Addr,
-            KeyNode.Field("Name").GetString(Name, KeyNode.Field("NameLength").GetUshort(), sizeof(Name)));
+            LocalKeyNode.Field("Name").GetString(Name, LocalKeyNode.Field("NameLength").GetUshort(), sizeof(Name)));
     }
 
 CleanUp:

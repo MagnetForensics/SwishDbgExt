@@ -84,8 +84,8 @@ PWSTR WINAPI CMinidriver::GetMDriverName()
             ExtRemoteTyped miniDrvObject("(nt!_DRIVER_OBJECT*)@$extin", ptrMiniDrvObject);
 
             // Get minidriver name (eg: "\Driver\NdisWan")
-            ExtRemoteTyped minidrvName("(nt!_UNICODE_STRING*)@$extin", miniDrvObject.Field("DriverName").m_Offset);
-            utils::getUnicodeString(minidrvName, wDriverName, MAX_MINIDRV_NAME*sizeof(WCHAR));
+            ExtRemoteTyped minidrvName2("(nt!_UNICODE_STRING*)@$extin", miniDrvObject.Field("DriverName").m_Offset);
+            utils::getUnicodeString(minidrvName2, wDriverName, MAX_MINIDRV_NAME*sizeof(WCHAR));
         }
 
         // Get minidriver name

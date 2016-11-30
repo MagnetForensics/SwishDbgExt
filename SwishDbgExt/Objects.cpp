@@ -208,7 +208,7 @@ Return Value:
 --*/
 {
     vector<HANDLE_OBJECT> Handles;
-    HANDLE_OBJECT Handle = { 0 };
+    HANDLE_OBJECT Handle = {0};
     ExtRemoteTyped Directory;
 
     ULONG64 ObjectDir = InputObject;
@@ -234,9 +234,8 @@ Return Value:
 
         for (EntryList.StartHead(); EntryList.HasNode(); EntryList.Next())
         {
-            HANDLE_OBJECT Handle = {0};
-
             ULONG64 Object = EntryList.GetTypedNode().Field("Object").GetPtr();
+
             ObReadObject(Object, &Handle);
 
             Handles.push_back(Handle);
