@@ -125,6 +125,10 @@
       <SetChecksum>true</SetChecksum>
       <AdditionalOptions>/PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
     </Link>
+    <PostBuildEvent>
+      <Command>md $(SolutionDir)Binaries\$(TargetName)\$(PlatformTarget)
+copy /Y $(OutDir)$(TargetName)$(TargetExt) $(SolutionDir)Binaries\$(TargetName)\$(PlatformTarget)\$(TargetName)$(TargetExt)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -145,6 +149,10 @@
       <SetChecksum>true</SetChecksum>
       <AdditionalOptions>/PDBALTPATH:%_PDB% %(AdditionalOptions)</AdditionalOptions>
     </Link>
+    <PostBuildEvent>
+      <Command>md $(SolutionDir)Binaries\$(TargetName)\$(PlatformTarget)
+copy /Y $(OutDir)$(TargetName)$(TargetExt) $(SolutionDir)Binaries\$(TargetName)\$(PlatformTarget)\$(TargetName)$(TargetExt)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Azure.cpp" />
