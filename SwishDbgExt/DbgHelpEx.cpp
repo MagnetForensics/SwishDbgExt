@@ -302,7 +302,7 @@ Return Value:
 
     BOOLEAN Result = TRUE;
 
-    RessourceData = RtlGetRessourceData(VS_VERSION_INFO, (ULONG)RT_VERSION);
+    RessourceData = RtlGetRessourceData(VS_VERSION_INFO, (ULONG)((ULONG_PTR)RT_VERSION));
     // ASSERTDBG(RessourceData);
     if (RessourceData == NULL) goto CleanUp;
 
@@ -326,8 +326,7 @@ Return Value:
     VerQueryValueW(RessourceData, MagicLine, &Description, &DescriptionSize);
     if (DescriptionSize)
     {
-        swprintf_s(m_FileVersion.ProductVersion, sizeof(m_FileVersion.ProductVersion),
-            L"%s", Description);
+        swprintf_s(m_FileVersion.ProductVersion, sizeof(m_FileVersion.ProductVersion), L"%s", (PWSTR)Description);
     }
 
     //
@@ -341,8 +340,7 @@ Return Value:
     VerQueryValueW(RessourceData, MagicLine, &Description, &DescriptionSize);
     if (DescriptionSize)
     {
-        swprintf_s(m_FileVersion.FileVersion, sizeof(m_FileVersion.FileVersion),
-            L"%s", Description);
+        swprintf_s(m_FileVersion.FileVersion, sizeof(m_FileVersion.FileVersion), L"%s", (PWSTR)Description);
     }
 
     //
@@ -356,8 +354,7 @@ Return Value:
     VerQueryValueW(RessourceData, MagicLine, &Description, &DescriptionSize);
     if (DescriptionSize)
     {
-        swprintf_s(m_FileVersion.CompanyName, sizeof(m_FileVersion.CompanyName),
-            L"%s", Description);
+        swprintf_s(m_FileVersion.CompanyName, sizeof(m_FileVersion.CompanyName), L"%s", (PWSTR)Description);
     }
 
     //
@@ -371,8 +368,7 @@ Return Value:
     VerQueryValueW(RessourceData, MagicLine, &Description, &DescriptionSize);
     if (DescriptionSize)
     {
-        swprintf_s(m_FileVersion.FileDescription, sizeof(m_FileVersion.FileDescription),
-            L"%s", Description);
+        swprintf_s(m_FileVersion.FileDescription, sizeof(m_FileVersion.FileDescription), L"%s", (PWSTR)Description);
     }
 
 #if VERBOSE_MODE

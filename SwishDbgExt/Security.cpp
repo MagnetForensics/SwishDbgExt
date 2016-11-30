@@ -80,7 +80,7 @@ typedef enum _PATTERN_TYPE {
     PatternNoneType = 0,
     PatternDataType = 1,
     PatternCustomType = 2
-};
+} PATTERN_TYPE;
 
 #define InitPattern(a) {PatternDataType, a, sizeof(a) - 1, NULL, {FALSE, 0, 0}}
 #define InitCustomPattern(a) {PatternCustomType, a, 1, NULL, {FALSE, 0, 0}}
@@ -494,7 +494,7 @@ Return Value:
             {
                 if (memcmp(&PatternTable[i].Pattern[2 * j], "??", 2) != 0)
                 {
-                    sscanf_s(&PatternTable[i].Pattern[2 * j], "%02x", &PatternTable[i].Data.Pattern[j]);
+                    sscanf_s(&PatternTable[i].Pattern[2 * j], "%02x", (PUINT)&PatternTable[i].Data.Pattern[j]);
                     // g_Ext->Dml("PatternTable[i].Data.Pattern[%d] = 0x%x\n", j, PatternTable[i].Data.Pattern[j]);
                     PatternTable[i].Data.PatternBitMask |= (1 << j);
                 }
