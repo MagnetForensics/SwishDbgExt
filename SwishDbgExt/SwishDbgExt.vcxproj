@@ -190,6 +190,7 @@
     <ClInclude Include="EngExpCppEx.h" />
     <ClInclude Include="engextcpp.hpp" />
     <ClInclude Include="Md5.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="SwishDbgExt.h" />
     <ClInclude Include="Network.h" />
     <ClInclude Include="NtDef.h" />
@@ -205,6 +206,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="SwishDbgExt.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="SwishDbgExt.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
