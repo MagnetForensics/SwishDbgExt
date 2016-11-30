@@ -1,0 +1,194 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="Azure.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DbgHelpEx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Drivers.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="engextcpp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="EngExtCppEx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Md5.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Network.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Output.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Objects.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Process.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Registry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Security.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Storage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SwishDbgExt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="System.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="UntypedData.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="VirusTotal.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CNdiskd\CAdapters.cpp">
+      <Filter>Source Files\CNdiskd</Filter>
+    </ClCompile>
+    <ClCompile Include="CNdiskd\CMinidriver.cpp">
+      <Filter>Source Files\CNdiskd</Filter>
+    </ClCompile>
+    <ClCompile Include="CNdiskd\CNdiskd.cpp">
+      <Filter>Source Files\CNdiskd</Filter>
+    </ClCompile>
+    <ClCompile Include="CNdiskd\COpenblock.cpp">
+      <Filter>Source Files\CNdiskd</Filter>
+    </ClCompile>
+    <ClCompile Include="CNdiskd\CProtocols.cpp">
+      <Filter>Source Files\CNdiskd</Filter>
+    </ClCompile>
+    <ClCompile Include="Credentials.cpp">
+      <Filter>Source Files\CNdiskd</Filter>
+    </ClCompile>
+    <ClCompile Include="CNdiskd\CReport.cpp">
+      <Filter>Source Files\CNdiskd</Filter>
+    </ClCompile>
+    <ClCompile Include="CNdiskd\utils.cpp">
+      <Filter>Source Files\CNdiskd</Filter>
+    </ClCompile>
+    <ClCompile Include="Checks\Codecave.cpp">
+      <Filter>Source Files\Checks</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Azure.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Credentials.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DbgHelpEx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Drivers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EngExpCppEx.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="engextcpp.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Md5.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Network.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="NtDef.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Objects.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Output.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Process.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Registry.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Security.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Storage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SwishDbgExt.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="System.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UntypedData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VirusTotal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CNdiskd\CAdapters.h">
+      <Filter>Header Files\CNdiskd</Filter>
+    </ClInclude>
+    <ClInclude Include="CNdiskd\CMinidriver.h">
+      <Filter>Header Files\CNdiskd</Filter>
+    </ClInclude>
+    <ClInclude Include="CNdiskd\CNdiskd.h">
+      <Filter>Header Files\CNdiskd</Filter>
+    </ClInclude>
+    <ClInclude Include="CNdiskd\COpenblock.h">
+      <Filter>Header Files\CNdiskd</Filter>
+    </ClInclude>
+    <ClInclude Include="CNdiskd\CProtocols.h">
+      <Filter>Header Files\CNdiskd</Filter>
+    </ClInclude>
+    <ClInclude Include="CNdiskd\CReport.h">
+      <Filter>Header Files\CNdiskd</Filter>
+    </ClInclude>
+    <ClInclude Include="CNdiskd\utils.h">
+      <Filter>Header Files\CNdiskd</Filter>
+    </ClInclude>
+    <ClInclude Include="Checks\Codecave.h">
+      <Filter>Header Files\Checks</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{0dd35a99-cf9a-4c06-80dc-f9137415e551}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{4bd195dd-04d9-4c34-a26f-c3b74cc24af8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{d9eb326a-f029-4c13-8fc8-d2ca4fa39c7d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\CNdiskd">
+      <UniqueIdentifier>{df22e224-3691-48dc-b5a0-65f333c891b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\CNdiskd">
+      <UniqueIdentifier>{822445e7-508c-4279-bb47-5ee64b8e6109}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Checks">
+      <UniqueIdentifier>{fbea9e81-02e3-4742-abae-834a8d90ed83}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Checks">
+      <UniqueIdentifier>{9bf4bc88-0021-49ec-9470-f45c4cf74534}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="SwishDbgExt.def">
+      <Filter>Resource Files</Filter>
+    </None>
+  </ItemGroup>
+</Project>
