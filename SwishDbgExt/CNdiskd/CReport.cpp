@@ -38,7 +38,7 @@ VOID WINAPI CReport::ReportHooks(PCSTR Format, ...)
 
     va_start(Args, Format);
 
-    vsnprintf_s(Buffer, sizeof(Buffer), _TRUNCATE, Format, Args);
+    vsnprintf_s(Buffer, _countof(Buffer), _TRUNCATE, Format, Args);
 
     m_gExt->Dml(Buffer);
 

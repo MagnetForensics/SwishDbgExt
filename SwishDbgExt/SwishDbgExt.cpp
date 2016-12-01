@@ -306,7 +306,7 @@ EXT_COMMAND(ms_process,
 
             WCHAR ArgType[64] = { 0 };
 
-            swprintf_s(ArgType, sizeof(ArgType), L"%S", HandlesArg);
+            swprintf_s(ArgType, _countof(ArgType), L"%S", HandlesArg);
 
             for each (HANDLE_OBJECT Handle in ProcObj.m_Handles)
             {
@@ -1761,7 +1761,7 @@ EXT_COMMAND(ms_scanndishook,
 
         g_Ext->m_Control->Output(DEBUG_OUTPUT_NORMAL, "%s symbol not found. Reloading (.reload) %s\n", NDIS_NAME, NDIS_DRV_NAME);
 
-        sprintf_s(szCommand, sizeof(szCommand), ".reload /f %s", NDIS_DRV_NAME);
+        sprintf_s(szCommand, _countof(szCommand), ".reload /f %s", NDIS_DRV_NAME);
 
         // Execute reload command
         g_Ext->m_Control->Execute(DEBUG_OUTCTL_IGNORE | DEBUG_OUTCTL_NOT_LOGGED, szCommand, DEBUG_EXECUTE_NOT_LOGGED);

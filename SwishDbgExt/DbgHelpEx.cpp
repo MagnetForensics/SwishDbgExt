@@ -293,83 +293,94 @@ Return Value:
 --*/
 {
     PVOID RessourceData = NULL;
-
-    UINT TranslateSize;
-    WCHAR MagicLine[MAX_PATH + 1];
     PVOID Description;
-    UINT DescriptionSize;
-
     PLANGANDCODEPAGE Translation;
-
+    WCHAR MagicLine[MAX_PATH];
+    UINT TranslateSize;
+    UINT DescriptionSize;
     BOOL Result = TRUE;
 
     RessourceData = RtlGetRessourceData(VS_VERSION_INFO, (ULONG)((ULONG_PTR)RT_VERSION));
-    // ASSERTDBG(RessourceData);
+
     if (RessourceData == NULL) goto CleanUp;
 
+    //
     // Read the list of languages and code pages.
+    //
 
     Result = VerQueryValueW(RessourceData,
-        L"\\VarFileInfo\\Translation",
-        (LPVOID*)&Translation,
-        &TranslateSize);
+                            L"\\VarFileInfo\\Translation",
+                            (LPVOID*)&Translation,
+                            &TranslateSize);
 
     if (!Result || Translation == NULL) goto CleanUp;
 
     //
     // Product Version
     //
-    swprintf_s(MagicLine, sizeof(MagicLine),
-        L"\\StringFileInfo\\%04x%04x\\ProductVersion",
-        Translation[0].wLanguage,
-        Translation[0].wCodePage);
+
+    swprintf_s(MagicLine,
+               _countof(MagicLine),
+               L"\\StringFileInfo\\%04x%04x\\ProductVersion",
+               Translation->wLanguage,
+               Translation->wCodePage);
 
     VerQueryValueW(RessourceData, MagicLine, &Description, &DescriptionSize);
-    if (DescriptionSize)
-    {
-        swprintf_s(m_FileVersion.ProductVersion, sizeof(m_FileVersion.ProductVersion), L"%s", (PWSTR)Description);
+
+    if (DescriptionSize) {
+
+        swprintf_s(m_FileVersion.ProductVersion, _countof(m_FileVersion.ProductVersion), L"%s", (PWSTR)Description);
     }
 
     //
     // File Version
     //
-    swprintf_s(MagicLine, sizeof(MagicLine),
-        L"\\StringFileInfo\\%04x%04x\\FileVersion",
-        Translation[0].wLanguage,
-        Translation[0].wCodePage);
+
+    swprintf_s(MagicLine,
+               _countof(MagicLine),
+               L"\\StringFileInfo\\%04x%04x\\FileVersion",
+               Translation->wLanguage,
+               Translation->wCodePage);
 
     VerQueryValueW(RessourceData, MagicLine, &Description, &DescriptionSize);
-    if (DescriptionSize)
-    {
-        swprintf_s(m_FileVersion.FileVersion, sizeof(m_FileVersion.FileVersion), L"%s", (PWSTR)Description);
+
+    if (DescriptionSize) {
+
+        swprintf_s(m_FileVersion.FileVersion, _countof(m_FileVersion.FileVersion), L"%s", (PWSTR)Description);
     }
 
     //
     // Company Name
     //
-    swprintf_s(MagicLine, sizeof(MagicLine),
-        L"\\StringFileInfo\\%04x%04x\\CompanyName",
-        Translation[0].wLanguage,
-        Translation[0].wCodePage);
+
+    swprintf_s(MagicLine,
+               _countof(MagicLine),
+               L"\\StringFileInfo\\%04x%04x\\CompanyName",
+               Translation->wLanguage,
+               Translation->wCodePage);
 
     VerQueryValueW(RessourceData, MagicLine, &Description, &DescriptionSize);
-    if (DescriptionSize)
-    {
-        swprintf_s(m_FileVersion.CompanyName, sizeof(m_FileVersion.CompanyName), L"%s", (PWSTR)Description);
+
+    if (DescriptionSize) {
+
+        swprintf_s(m_FileVersion.CompanyName, _countof(m_FileVersion.CompanyName), L"%s", (PWSTR)Description);
     }
 
     //
     // File Description
     //
-    swprintf_s(MagicLine, sizeof(MagicLine),
-        L"\\StringFileInfo\\%04x%04x\\FileDescription",
-        Translation[0].wLanguage,
-        Translation[0].wCodePage);
+
+    swprintf_s(MagicLine,
+               _countof(MagicLine),
+               L"\\StringFileInfo\\%04x%04x\\FileDescription",
+               Translation->wLanguage,
+               Translation->wCodePage);
 
     VerQueryValueW(RessourceData, MagicLine, &Description, &DescriptionSize);
-    if (DescriptionSize)
-    {
-        swprintf_s(m_FileVersion.FileDescription, sizeof(m_FileVersion.FileDescription), L"%s", (PWSTR)Description);
+
+    if (DescriptionSize) {
+
+        swprintf_s(m_FileVersion.FileDescription, _countof(m_FileVersion.FileDescription), L"%s", (PWSTR)Description);
     }
 
 #if VERBOSE_MODE
@@ -381,6 +392,7 @@ Return Value:
 CleanUp:
 
     if (RessourceData) free(RessourceData);
+
     return (BOOLEAN)Result;
 }
 
