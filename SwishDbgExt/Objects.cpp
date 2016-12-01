@@ -122,8 +122,16 @@ Return Value:
     }
     else if (_wcsicmp(TypeStr, L"Process") == 0)
     {
+        CHAR Buffer[MAX_PATH] = {0};
+
         ExtRemoteTyped ProcessObj("(nt!_EPROCESS *)@$extin", HandleObj->ObjectPtr);
-        ObjName = ExtRemoteTypedEx::GetUnicodeString2(ProcessObj.Field("ImageFileName"));
+
+        ProcessObj.Field("ImageFileName").GetString(Buffer, ProcessObj.Field("ImageFileName").GetTypeSize());
+
+        if (strlen(Buffer)) {
+
+            StringCchPrintfW(HandleObj->Name, _countof(HandleObj->Name), L"%S", Buffer);
+        }
     }
     else if (_wcsicmp(TypeStr, L"ALPC Port") == 0)
     {
