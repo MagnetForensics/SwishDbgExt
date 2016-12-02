@@ -1235,11 +1235,23 @@ MsProcessObject::MmGetFirstVad(
         MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", LeftChild);
 
         if (MmVad.HasField("Core")) {
-            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] [Left] LeftChild = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, SIGN_EXTEND(LeftChild));
-            First = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
-        } else {
+
+            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] [Left] LeftChild = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
+
+            if (MmVad.Field("Core").Field("VadNode").HasField("LeftChild")) {
+
+                First = MmVad.Field("Core").Field("VadNode").Field("LeftChild").GetPtr();
+            }
+            else {
+
+                First = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+            }
+        }
+        else {
+
             First = MmVad.Field("LeftChild").GetPtr();
         }
+
         if (g_Verbose) g_Ext->Dml("[%s!%S!%d] VadRoot.First = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
     }
 
@@ -1303,9 +1315,18 @@ Return Value:
     MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
 
     if (MmVad.HasField("Core")) {
-        RightChild = MmVad.Field("Core").Field("VadNode").Field("Right").GetPtr();
+
+        if (MmVad.Field("Core").Field("VadNode").HasField("RightChild")) {
+
+            RightChild = MmVad.Field("Core").Field("VadNode").Field("RightChild").GetPtr();
+        }
+        else {
+
+            RightChild = MmVad.Field("Core").Field("VadNode").Field("Right").GetPtr();
+        }
     }
     else {
+
         RightChild = MmVad.Field("RightChild").GetPtr();
     }
 
@@ -1322,7 +1343,12 @@ Return Value:
             {
                 Parent = MmVad.Field("Parent").GetPtr();
             }
+            else if (MmVad.HasField("Core.VadNode.u1.Parent")) {
+
+                Parent = MmVad.Field("Core").Field("VadNode.u1.Parent").GetPtr();
+            }
             else if (MmVad.HasField("Core.VadNode.ParentValue")) {
+
                 Parent = MmVad.Field("Core").Field("VadNode.ParentValue").GetPtr();
             }
             else return FALSE;
@@ -1343,10 +1369,20 @@ Return Value:
                 __FILE__, __FUNCTIONW__, __LINE__, VadInfo->CurrentNode);
 
             MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", Parent);
+
             if (MmVad.HasField("Core")) {
-                LeftChild = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+
+                if (MmVad.Field("Core").Field("VadNode").HasField("LeftChild")) {
+
+                    LeftChild = MmVad.Field("Core").Field("VadNode").Field("LeftChild").GetPtr();
+                }
+                else {
+
+                    LeftChild = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+                }
             }
             else {
+
                 LeftChild = MmVad.Field("LeftChild").GetPtr();
             }
 
@@ -1377,11 +1413,20 @@ Return Value:
             MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", LeftChild);
 
             if (MmVad.HasField("Core")) {
-                if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access [0x%llX].Core.VadNode.Left\n",
-                                        __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
-                Next = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+
+                if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access [0x%llX].Core.VadNode.Left\n", __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
+
+                if (MmVad.Field("Core").Field("VadNode").HasField("LeftChild")) {
+
+                    Next = MmVad.Field("Core").Field("VadNode").Field("LeftChild").GetPtr();
+                }
+                else {
+
+                    Next = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+                }
             }
             else {
+
                 Next = MmVad.Field("LeftChild").GetPtr();
             }
         }
@@ -1391,8 +1436,7 @@ Return Value:
         if (!LeftChild) return FALSE;
     }
 
-    if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Current Node [0x%llX]\n",
-        __FILE__, __FUNCTIONW__, __LINE__, SIGN_EXTEND(VadInfo->CurrentNode));
+    if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Current Node [0x%llX]\n", __FILE__, __FUNCTIONW__, __LINE__, VadInfo->CurrentNode);
 
     MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
 
