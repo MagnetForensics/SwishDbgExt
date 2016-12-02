@@ -805,15 +805,14 @@ Return Value:
                     EnvironmentSize = 0x1000;
                 }
 
-                m_EnvVarsBuffer = (LPWSTR)malloc(EnvironmentSize);
+                m_EnvVarsBuffer = (LPWSTR)calloc(EnvironmentSize, sizeof(BYTE));
                 REF_POINTER(m_EnvVarsBuffer);
 
                 if (g_Ext->m_Data->ReadVirtual(Environment, m_EnvVarsBuffer, EnvironmentSize, NULL) == S_OK)
                 {
-
                     for (UINT Index = 0; Index < (EnvironmentSize / sizeof(WCHAR)); Index += 1)
                     {
-                        ENV_VAR_OBJECT EnvVar = { 0 };
+                        ENV_VAR_OBJECT EnvVar = {0};
 
                         if (m_EnvVarsBuffer[Index] == L'\0') continue;
 
