@@ -411,14 +411,16 @@ EXT_COMMAND(ms_process,
 
                 SYSTEMTIME CreateTime, ExitTime;
 
-                if (Thread.StartAddress)
+                if (Thread.Win32StartAddress)
                 {
+                    g_Ext->ExecuteSilent(".process /p /r 0x%I64X", ProcObj.m_CcProcessObject.ProcessObjectPtr);
+
                     FileTimeToSystemTime((FILETIME *)&Thread.CreateTime, &CreateTime);
                     FileTimeToSystemTime((FILETIME *)&Thread.ExitTime, &ExitTime);
 
                     Dml("    | 0x%04x | 0x%04x | <link cmd=\"u 0x%016I64X L3\">0x%016I64X</link> | %-50s | %02d/%02d/%4d %02d:%02d:%02d | %02d/%02d/%4d %02d:%02d:%02d |\n",
-                        (ULONG)Thread.ProcessId, (ULONG)Thread.ThreadId, Thread.StartAddress, Thread.StartAddress,
-                        GetNameByOffset(Thread.StartAddress, (PSTR)Name, _countof(Name)),
+                        (ULONG)Thread.ProcessId, (ULONG)Thread.ThreadId, Thread.Win32StartAddress, Thread.Win32StartAddress,
+                        GetNameByOffset(Thread.Win32StartAddress, (PSTR)Name, _countof(Name)),
                         CreateTime.wDay, CreateTime.wMonth, CreateTime.wYear, CreateTime.wHour, CreateTime.wMinute, CreateTime.wSecond,
                         ExitTime.wDay, ExitTime.wMonth, ExitTime.wYear, ExitTime.wHour, ExitTime.wMinute, ExitTime.wSecond);
                 }

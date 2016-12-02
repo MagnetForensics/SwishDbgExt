@@ -1534,6 +1534,11 @@ Return Value:
         ThreadObject.StartAddress = ThreadList.GetTypedNode().Field("StartAddress").GetPtr();
         ThreadObject.Win32StartAddress = ThreadList.GetTypedNode().Field("Win32StartAddress").GetPtr();
 
+        if (!ThreadObject.Win32StartAddress) {
+
+            ThreadObject.Win32StartAddress = ThreadObject.StartAddress;
+        }
+
         ThreadObject.ProcessId = ThreadList.GetTypedNode().Field("Cid.UniqueProcess").GetPtr();
         ThreadObject.ThreadId = ThreadList.GetTypedNode().Field("Cid.UniqueThread").GetPtr();
 
