@@ -409,7 +409,7 @@ EXT_COMMAND(ms_process,
                 UCHAR Name[512] = { 0 };
                 UCHAR TimerType[32] = { 0 };
 
-                SYSTEMTIME CreateTime, ExitTime;
+                SYSTEMTIME CreateTime = {0}, ExitTime = {0};
 
                 if (Thread.Win32StartAddress)
                 {
