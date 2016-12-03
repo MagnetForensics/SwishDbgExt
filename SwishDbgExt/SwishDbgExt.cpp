@@ -198,8 +198,7 @@ EXT_COMMAND(ms_process,
         if (wcslen(ProcObj.m_FileVersion.CompanyName)) Dml("    <col fg=\"emphfg\">Vendor:        </col> %S\n", ProcObj.m_FileVersion.CompanyName);
         if (wcslen(ProcObj.m_FileVersion.FileVersion)) Dml("    <col fg=\"emphfg\">Version:       </col> %S\n", ProcObj.m_FileVersion.FileVersion);
         if (wcslen(ProcObj.m_FileVersion.FileDescription)) Dml("    <col fg=\"emphfg\">Description:   </col> %S\n", ProcObj.m_FileVersion.FileDescription);
-        if (ProcObj.m_CcProcessObject.CommandLine) Dml("    <col fg=\"emphfg\">Commandline:   </col> %S (%p)\n",
-            ProcObj.m_CcProcessObject.CommandLine, ProcObj.m_CcProcessObject.CommandLine);
+        if (ProcObj.m_CcProcessObject.CommandLine) Dml("    <col fg=\"emphfg\">Commandline:   </col> %S\n", ProcObj.m_CcProcessObject.CommandLine);
 
         Dml("    <col fg=\"emphfg\">Sections:</col>      ");
         for each (MsPEImageFile::CACHED_SECTION_INFO Section in ProcObj.m_CcSections)

@@ -153,21 +153,9 @@ Return Value:
 
 --*/
 {
-    BOOLEAN bIsDone = TRUE;                                                                   
-
     if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Current().GetPtr() = 0x%llX\n", __FILE__, __FUNCTIONW__, __LINE__, Current().GetPtr());
 
-    ULONG64 CurrentPtr = Current().GetPtr();
-    if (CurrentPtr && IsValid(CurrentPtr)) {
-        ULONG SizeOfImage = Current().Field("SizeOfImage").GetUlong();
-
-        bIsDone = !m_ModuleList.HasNode() ||
-                  !Current().Field("DllBase").GetPtr() ||
-                  !SizeOfImage ||
-                  (SizeOfImage >= 0x1000000);
-    }
-
-    return bIsDone;
+    return !m_ModuleList.HasNode();
 }
 
 VOID
@@ -497,18 +485,18 @@ Return Value:
 --*/
 {
     BOOLEAN Result = TRUE;
-
     ULONG64 Peb = m_TypedObject.Field("Peb").GetPtr();
 
     if (Peb && IsValid(Peb) && IsValid(m_TypedObject.Field("Peb").Field("Ldr").GetPtr())) {
 
-        ULONG64 Head = m_TypedObject.Field("Peb").Field("Ldr").Field("InLoadOrderModuleList").Field("Flink").GetPtr();
-        Head = SIGN_EXTEND(Head);
+        ULONG64 Head = m_TypedObject.Field("Peb").Field("Ldr").Field("InLoadOrderModuleList").GetPointerTo().GetPtr();
+
         if (IsValid(Head)) {
+
             ModuleIterator Dlls(Head);
 
-            for (Dlls.First(); !Dlls.IsDone(); Dlls.Next())
-            {
+            for (Dlls.First(); !Dlls.IsDone(); Dlls.Next()) {
+
                 MsDllObject Object = Dlls.Current();
                 m_DllList.push_back(Object);
             }
@@ -518,44 +506,48 @@ Return Value:
     //
     // Wow64
     //
-    if (m_TypedObject.HasField("Wow64Process") && (m_TypedObject.Field("Wow64Process").GetPtr() != 0))
-    {
-        PEB_LDR_DATA PebLdrData = { 0 };
-        LDR_DATA_TABLE_ENTRY32 LdrDataTableEntry = { 0 };
+
+    if (m_TypedObject.HasField("Wow64Process") && (m_TypedObject.Field("Wow64Process").GetPtr() != 0)) {
+
+        PEB_LDR_DATA PebLdrData = {0};
+        LDR_DATA_TABLE_ENTRY32 LdrDataTableEntry = {0};
         ExtRemoteTyped Peb32("(nt!_PEB32 *)@$extin", m_TypedObject.Field("Wow64Process").GetPtr());
 
-        ULONG64 Ldr = SIGN_EXTEND(Peb32.Field("Ldr").GetUlong());
+        if (IsValid(Peb32.GetPtr())) {
 
-        if (g_Ext->m_Data->ReadVirtual(Ldr, &PebLdrData, sizeof(PebLdrData), NULL) != S_OK) goto CleanUp;
+            ULONG64 Ldr = Peb32.Field("Ldr").GetUlong();
 
-        if (g_Ext->m_Data->ReadVirtual(SIGN_EXTEND(PebLdrData.InLoadOrderModuleList.Flink), &LdrDataTableEntry, sizeof(LdrDataTableEntry), NULL) != S_OK) goto CleanUp;
+            if (g_Ext->m_Data->ReadVirtual(Ldr, &PebLdrData, sizeof(PebLdrData), NULL) != S_OK) goto CleanUp;
 
-        while (PebLdrData.InLoadOrderModuleList.Flink != LdrDataTableEntry.InLoadOrderLinks.Flink)
-        {
-            MsDllObject Object;
+            if (g_Ext->m_Data->ReadVirtual(PebLdrData.InLoadOrderModuleList.Flink, &LdrDataTableEntry, sizeof(LdrDataTableEntry), NULL) != S_OK) goto CleanUp;
 
-            if (LdrDataTableEntry.InLoadOrderLinks.Flink == 0) break;
-            if (LdrDataTableEntry.DllBase == 0) break;
-            if (LdrDataTableEntry.SizeOfImage == 0) break;
+            while (PebLdrData.InLoadOrderModuleList.Flink != LdrDataTableEntry.InLoadOrderLinks.Flink)
+            {
+                MsDllObject Object;
 
-            Object.mm_CcDllObject.IsWow64 = TRUE;
+                if (LdrDataTableEntry.InLoadOrderLinks.Flink == 0) break;
+                if (LdrDataTableEntry.DllBase == 0) break;
+                if (LdrDataTableEntry.SizeOfImage == 0) break;
 
-            Object.m_ImageBase = LdrDataTableEntry.DllBase;
-            Object.m_ImageSize = LdrDataTableEntry.SizeOfImage;
+                Object.mm_CcDllObject.IsWow64 = TRUE;
 
-            if (g_Ext->m_Data->ReadVirtual(SIGN_EXTEND(LdrDataTableEntry.BaseDllName.Buffer),
-                                            (PWSTR)&Object.mm_CcDllObject.DllName,
-                                            LdrDataTableEntry.BaseDllName.Length,
-                                            NULL) != S_OK) break;
+                Object.m_ImageBase = LdrDataTableEntry.DllBase;
+                Object.m_ImageSize = LdrDataTableEntry.SizeOfImage;
 
-            if (g_Ext->m_Data->ReadVirtual(SIGN_EXTEND(LdrDataTableEntry.FullDllName.Buffer),
-                                            (PWSTR)&Object.mm_CcDllObject.FullDllName,
-                                            LdrDataTableEntry.FullDllName.Length,
-                                            NULL) != S_OK) break;
+                if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.BaseDllName.Buffer,
+                                               (PWSTR)&Object.mm_CcDllObject.DllName,
+                                               LdrDataTableEntry.BaseDllName.Length,
+                                               NULL) != S_OK) break;
 
-            m_DllList.push_back(Object);
+                if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.FullDllName.Buffer,
+                                               (PWSTR)&Object.mm_CcDllObject.FullDllName,
+                                               LdrDataTableEntry.FullDllName.Length,
+                                               NULL) != S_OK) break;
 
-            if (g_Ext->m_Data->ReadVirtual(SIGN_EXTEND(LdrDataTableEntry.InLoadOrderLinks.Flink), &LdrDataTableEntry, sizeof(LdrDataTableEntry), NULL) != S_OK) goto CleanUp;
+                m_DllList.push_back(Object);
+
+                if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.InLoadOrderLinks.Flink, &LdrDataTableEntry, sizeof(LdrDataTableEntry), NULL) != S_OK) goto CleanUp;
+            }
         }
     }
 
