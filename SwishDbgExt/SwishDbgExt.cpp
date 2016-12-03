@@ -126,6 +126,7 @@ EXT_COMMAND(ms_process,
     "{handletable;ed,d=0;handletable;Handle table \ntype (optional)}"
     "{dlls;b,o;dlls;Display dlls belonging to process}"
     // "{dlls_exports;b,o;dlls exports;Display exports belonging to each dlls}"
+    "{handles;b,o;handles;Display handles belonging to process}"
     "{threads;b,o;threads;Display threads belonging to process}"
     "{vads;b,o;vads;Display VADs belonging to process}"
     "{vars;b,o;vars;Display environment variables}"
@@ -146,7 +147,10 @@ EXT_COMMAND(ms_process,
     if (HasArg("threads")) Flags |= PROCESS_THREADS_FLAG;
     if (HasArg("vads")) Flags |= PROCESS_VADS_FLAG;
     if (HasArg("dlls")) Flags |= PROCESS_DLLS_FLAG;
+    if (HasArg("handles")) Flags |= PROCESS_HANDLES_FLAG;
+
     // if (HasArg("dlls_exports")) Flags |= PROCESS_DLLS_FLAG | PROCESS_DLL_EXPORTS_FLAG;
+
     if (HasArg("exports"))
     {
         Flags |= PROCESS_EXPORTS_FLAG;
@@ -309,7 +313,7 @@ EXT_COMMAND(ms_process,
 
             for each (HANDLE_OBJECT Handle in ProcObj.m_Handles)
             {
-                if (wcslen(ArgType) && (_wcsicmp(ArgType, Handle.Type) != 0)) continue;
+                if (HandlesArg && wcslen(ArgType) && (_wcsicmp(ArgType, Handle.Type) != 0)) continue;
 
                 if (_wcsicmp(Handle.Type, L"Key") == 0)
                 {

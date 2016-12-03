@@ -716,6 +716,8 @@ Return Value:
 CleanUp:
     if (ObjName) free(ObjName);
 
+    ReleaseObjectTypeTable();
+
     return Result;
 }
 
