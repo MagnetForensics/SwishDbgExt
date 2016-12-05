@@ -241,14 +241,16 @@ EXT_COMMAND(ms_process,
             {
                 ULONG64 Ptr = ProcObj.m_ImageBase + ExportInfo.Address;
 
-                if (((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && (ExportInfo.IsTablePatched || ExportInfo.IsHooked)) ||
-                    !(Flags & PROCESS_SCAN_MALICIOUS_FLAG))
+                if (!(Flags & PROCESS_SCAN_MALICIOUS_FLAG) ||
+                    ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && (ExportInfo.IsTablePatched || ExportInfo.IsHooked)))
                 {
-                    Dml("    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | <col fg=\"changed\">%-50s</col> | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col>\n",
+                    Dml((ExportInfo.IsTablePatched || ExportInfo.IsHooked) ?
+                        "    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | <col fg=\"changed\">%-50s</col> | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col>\n" :
+                        "    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | %-50s | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col>\n",
                         ExportInfo.Index, ExportInfo.Ordinal,
                         Ptr, Ptr, ExportInfo.Name,
-                        ExportInfo.IsTablePatched ? "Yes" : "No",
-                        ExportInfo.IsHooked ? "Hooked" : "No");
+                        ExportInfo.IsTablePatched ? "Yes" : "",
+                        ExportInfo.IsHooked ? "Yes" : "");
                 }
             }
 
@@ -277,14 +279,16 @@ EXT_COMMAND(ms_process,
                 {
                     ULONG64 Ptr = DllObj.m_ImageBase + ExportInfo.Address;
 
-                    if (((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && (ExportInfo.IsTablePatched || ExportInfo.IsHooked)) ||
-                        !(Flags & PROCESS_SCAN_MALICIOUS_FLAG))
+                    if (!(Flags & PROCESS_SCAN_MALICIOUS_FLAG) ||
+                        ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && (ExportInfo.IsTablePatched || ExportInfo.IsHooked)))
                     {
-                        Dml("    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | <col fg=\"changed\">%-50s</col> | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col> \n",
+                        Dml((ExportInfo.IsTablePatched || ExportInfo.IsHooked) ?
+                            "    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | <col fg=\"changed\">%-50s</col> | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col>\n" :
+                            "    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | %-50s | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col>\n",
                             ExportInfo.Index, ExportInfo.Ordinal,
                             Ptr, Ptr, ExportInfo.Name,
-                            ExportInfo.IsTablePatched ? "Yes" : "No",
-                            ExportInfo.IsHooked ? "Hooked" : "No");
+                            ExportInfo.IsTablePatched ? "Yes" : "",
+                            ExportInfo.IsHooked ? "Yes" : "");
 
                         if ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && ExportInfo.IsHooked)
                         {
