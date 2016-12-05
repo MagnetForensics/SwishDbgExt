@@ -1220,10 +1220,13 @@ public:
     ULONG m_NumProcessors;
     ULONG64 m_OffsetMask;
 
-    ULONG m_PlateformId;
+    ULONG m_PlatformId;
     ULONG m_Major;
     ULONG m_Minor;
     ULONG m_ServicePackNumber;
+    ULONG m_MajorVersion;
+    ULONG m_MinorVersion;
+    USHORT m_SystemVersion;
 
     //
     // Queries about the current debuggee information available.

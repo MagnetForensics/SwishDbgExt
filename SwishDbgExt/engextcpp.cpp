@@ -2369,12 +2369,20 @@ ExtExtension::Query(_In_ PDEBUG_CLIENT Start)
         m_IsRemote = false;
     }
 
-    m_Control->GetSystemVersion(&m_PlateformId,
+    m_Control->GetSystemVersion(&m_PlatformId,
                                 &m_Major,
                                 &m_Minor,
                                 NULL, NULL, NULL,
                                 &m_ServicePackNumber,
                                 NULL, NULL, NULL);
+
+    m_Control6->GetSystemVersionValues(&m_PlatformId,
+                                       &m_MajorVersion,
+                                       &m_MinorVersion,
+                                       NULL,
+                                       NULL);
+
+    m_SystemVersion = MAKEWORD(m_MinorVersion, m_MajorVersion);
 
     RefreshOutputCallbackFlags();
 

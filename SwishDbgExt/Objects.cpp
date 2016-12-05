@@ -97,8 +97,6 @@ Return Value:
             HandleObj->ObjectTypeIndex = (((ObjHeaderAddr >> 8) & 0xff) ^ HandleObj->ObjectTypeIndex) ^ HeaderCookie;
         }
 
-        if ((HandleObj->ObjectTypeIndex <= 1) || (HandleObj->ObjectTypeIndex >= 45)) return FALSE;
-
         ExtRemoteTypedEx::GetUnicodeString(ObjTypeTable.ArrayElement(HandleObj->ObjectTypeIndex).Field("Name"), TypeStr, sizeof(TypeStr));
         wcscpy_s(HandleObj->Type, TypeStr);
     }

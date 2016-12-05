@@ -575,113 +575,60 @@ Return Value:
 
 --*/
 {
-    ULONG64 TableCode = 0;
-    
-    if (InTableCode) TableCode = InTableCode;
-    else TableCode = m_TypedObject.Field("ObjectTable").Field("TableCode").GetPtr();
-
-    ULONG Level = (ULONG)(TableCode & 7);
-    ULONG64 Table = TableCode & ~7;
-
-    ULONG PtrSize = g_Ext->m_PtrSize;
-
-    ULONG HandleTableEntrySize = GetTypeSize("nt!_HANDLE_TABLE_ENTRY");
-
     BOOLEAN Result = FALSE;
+    PWSTR ObjName = NULL;
 
-    LPWSTR ObjName = NULL;
+    try {
 
-    ULONG HandleIndex = 4;
+        ULONG64 TableCode = 0;
+    
+        if (InTableCode) TableCode = InTableCode;
+        else TableCode = m_TypedObject.Field("ObjectTable").Field("TableCode").GetPtr();
 
-    ULONG BodyOffset = 0;
-    GetFieldOffset("nt!_OBJECT_HEADER", "Body", &BodyOffset);
+        ULONG Level = (ULONG)(TableCode & 3);
+        ULONG64 Table = TableCode & ~3;
 
-    switch (Level)
-    {
-        case 3:
-            for (UINT l = 0; l < (PAGE_SIZE / PtrSize); l += 1)
-            {
-                ULONG64 Ptr2;
-                if (ReadPointersVirtual(1, TableCode + (l * PtrSize), &Ptr2) != S_OK) goto CleanUp;
-                if (!Ptr2) continue;
+        ULONG PtrSize = g_Ext->m_PtrSize;
 
-                for (UINT k = 0; k < (PAGE_SIZE / PtrSize); k += 1)
-                {
-                    ULONG64 Ptr1;
-                    if (ReadPointersVirtual(1, Ptr2 + (k * PtrSize), &Ptr1) != S_OK) goto CleanUp;
-                    if (!Ptr1) continue;
+        ULONG HandleTableEntrySize = GetTypeSize("nt!_HANDLE_TABLE_ENTRY");
 
-                    for (UINT j = 0; j < (PAGE_SIZE / PtrSize); j += 1)
-                    {
-                        ULONG64 Ptr;
-                        if (ReadPointersVirtual(1, Ptr1 + (j * PtrSize), &Ptr) != S_OK) goto CleanUp;
-                        if (!Ptr) continue;
+        ULONG HandleIndex = 4;
 
-                        for (UINT i = 1; i < (PAGE_SIZE / HandleTableEntrySize); i += 1)
-                        {
-                            HANDLE_OBJECT HandleObj = { 0 };
+        ULONG BodyOffset = 0;
+        GetFieldOffset("nt!_OBJECT_HEADER", "Body", &BodyOffset);
 
-                            ExtRemoteTyped TableEntry("(nt!_HANDLE_TABLE_ENTRY *)@$extin", Ptr + (i * HandleTableEntrySize));
+        BOOLEAN Is64Bit = (g_Ext->m_Control->IsPointer64Bit() == S_OK) ? TRUE : FALSE;
 
-                            ULONG64 Object = (TableEntry.Field("Object").GetPtr() & ~1);
-                            if (!Object) continue;
+        USHORT SystemVersion = g_Ext->m_SystemVersion;
+        ULONG64 ObjectPtrMask = (SystemVersion == _WIN32_WINNT_WIN8) ? 0xffffe00000000000 : 0xffff000000000000;
 
-                            Object += BodyOffset;
+        switch (Level) {
 
-                            ObReadObject(Object, &HandleObj);
-                            HandleObj.Handle = HandleIndex;
+        case 0:
+        {
+            for (UINT i = 1; i < (PAGE_SIZE / HandleTableEntrySize); i += 1, HandleIndex += 4) {
 
-                            m_Handles.push_back(HandleObj);
+                HANDLE_OBJECT HandleObj = {0};
+                ULONG64 Object;
+
+                try {
+
+                    ExtRemoteTyped TableEntry("(nt!_HANDLE_TABLE_ENTRY *)@$extin", Table + (i * HandleTableEntrySize));
+
+                    if (SystemVersion < _WIN32_WINNT_WIN8) {
+
+                        Object = (TableEntry.Field("Object").GetPtr() & ~7);
+                    }
+                    else {
+
+                        Object = (TableEntry.Field("ObjectPointerBits").GetPtr());
+
+                        if (Object) {
+
+                            Object = Is64Bit ? (Object << 4) | ObjectPtrMask : DEBUG_EXTEND64(Object << 3);
                         }
                     }
-                }
-            }
-        break;
-        case 2:
-            for (UINT k = 0; k < (PAGE_SIZE / PtrSize); k += 1)
-            {
-                ULONG64 Ptr1;
-                if (ReadPointersVirtual(1, TableCode + (k * PtrSize), &Ptr1) != S_OK) goto CleanUp;
-                if (!Ptr1) continue;
 
-                for (UINT j = 0; j < (PAGE_SIZE / PtrSize); j += 1)
-                {
-                    ULONG64 Ptr;
-                    if (ReadPointersVirtual(1, Ptr1 + (j * PtrSize), &Ptr) != S_OK) goto CleanUp;
-                    if (!Ptr) continue;
-
-                    for (UINT i = 1; i < (PAGE_SIZE / HandleTableEntrySize); i += 1)
-                    {
-                        HANDLE_OBJECT HandleObj = { 0 };
-
-                        ExtRemoteTyped TableEntry("(nt!_HANDLE_TABLE_ENTRY *)@$extin", Ptr + (i * HandleTableEntrySize));
-
-                        ULONG64 Object = (TableEntry.Field("Object").GetPtr() & ~1);
-                        if (!Object) continue;
-                        Object += BodyOffset;
-
-                        ObReadObject(Object, &HandleObj);
-                        HandleObj.Handle = HandleIndex;
-
-                        m_Handles.push_back(HandleObj);
-                    }
-                }
-            }
-        break;
-        case 1:
-            for (UINT j = 0; j < (PAGE_SIZE / PtrSize); j += 1)
-            {
-                ULONG64 Ptr;
-                if (ReadPointersVirtual(1, Table + (j * PtrSize), &Ptr) != S_OK) goto CleanUp;
-                if (!Ptr) continue;
-
-                for (UINT i = 1; i < (PAGE_SIZE / HandleTableEntrySize); i += 1, HandleIndex += 4)
-                {
-                    HANDLE_OBJECT HandleObj = { 0 };
-
-                    ExtRemoteTyped TableEntry("(nt!_HANDLE_TABLE_ENTRY *)@$extin", Ptr + (i * HandleTableEntrySize));
-
-                    ULONG64 Object = (TableEntry.Field("Object").GetPtr() & ~1);
                     if (!Object) continue;
                     Object += BodyOffset;
 
@@ -690,30 +637,124 @@ Return Value:
 
                     m_Handles.push_back(HandleObj);
                 }
+                catch (...) {
+
+                }
             }
-        break;
-        case 0:
-            for (UINT i = 1; i < (PAGE_SIZE / HandleTableEntrySize); i += 1)
-            {
-                HANDLE_OBJECT HandleObj = { 0 };
 
-                ExtRemoteTyped TableEntry("(nt!_HANDLE_TABLE_ENTRY *)@$extin", Table + (i * HandleTableEntrySize));
+            break;
+        }
+        case 1:
+        {
+            for (UINT j = 0; j < (PAGE_SIZE / PtrSize); j += 1, HandleIndex += 4) {
 
-                ULONG64 Object = (TableEntry.Field("Object").GetPtr() & ~1);
-                if (!Object) continue;
-                Object += BodyOffset;
+                ULONG64 Ptr;
+                if (ReadPointersVirtual(1, Table + (j * PtrSize), &Ptr) != S_OK) goto CleanUp;
+                if (!Ptr) continue;
 
-                ObReadObject(Object, &HandleObj);
-                HandleObj.Handle = HandleIndex;
+                for (UINT i = 1; i < (PAGE_SIZE / HandleTableEntrySize); i += 1, HandleIndex += 4) {
 
-                m_Handles.push_back(HandleObj);
+                    HANDLE_OBJECT HandleObj = {0};
+                    ULONG64 Object;
+
+                    try {
+
+                        ExtRemoteTyped TableEntry("(nt!_HANDLE_TABLE_ENTRY *)@$extin", Ptr + (i * HandleTableEntrySize));
+
+                        if (SystemVersion < _WIN32_WINNT_WIN8) {
+
+                            Object = (TableEntry.Field("Object").GetPtr() & ~7);
+                        }
+                        else {
+
+                            Object = (TableEntry.Field("ObjectPointerBits").GetPtr());
+
+                            if (Object) {
+
+                                Object = Is64Bit ? (Object << 4) | ObjectPtrMask : DEBUG_EXTEND64(Object << 3);
+                            }
+                        }
+
+                        if (!Object) continue;
+                        Object += BodyOffset;
+
+                        ObReadObject(Object, &HandleObj);
+                        HandleObj.Handle = HandleIndex;
+
+                        m_Handles.push_back(HandleObj);
+                    }
+                    catch (...) {
+
+                    }
+                }
             }
-        break;
+
+            break;
+        }
+        case 2:
+        {
+            for (UINT k = 0; k < (PAGE_SIZE / PtrSize); k += 1) {
+
+                ULONG64 Ptr1;
+                if (ReadPointersVirtual(1, TableCode + (k * PtrSize), &Ptr1) != S_OK) goto CleanUp;
+                if (!Ptr1) continue;
+
+                for (UINT j = 0; j < (PAGE_SIZE / PtrSize); j += 1, HandleIndex += 4) {
+
+                    ULONG64 Ptr;
+                    if (ReadPointersVirtual(1, Ptr1 + (j * PtrSize), &Ptr) != S_OK) goto CleanUp;
+                    if (!Ptr) continue;
+
+                    for (UINT i = 1; i < (PAGE_SIZE / HandleTableEntrySize); i += 1, HandleIndex += 4) {
+
+                        HANDLE_OBJECT HandleObj = {0};
+                        ULONG64 Object;
+
+                        try {
+
+                            ExtRemoteTyped TableEntry("(nt!_HANDLE_TABLE_ENTRY *)@$extin", Ptr + (i * HandleTableEntrySize));
+
+                            if (SystemVersion < _WIN32_WINNT_WIN8) {
+
+                                Object = (TableEntry.Field("Object").GetPtr() & ~7);
+                            }
+                            else {
+
+                                Object = (TableEntry.Field("ObjectPointerBits").GetPtr());
+
+                                if (Object) {
+
+                                    Object = Is64Bit ? (Object << 4) | ObjectPtrMask : DEBUG_EXTEND64(Object << 3);
+                                }
+                            }
+
+                            if (!Object) continue;
+                            Object += BodyOffset;
+
+                            ObReadObject(Object, &HandleObj);
+                            HandleObj.Handle = HandleIndex;
+
+                            m_Handles.push_back(HandleObj);
+                        }
+                        catch (...) {
+
+                        }
+                    }
+                }
+            }
+
+            break;
+        }
+        }
+
+        Result = TRUE;
+    }
+    catch (...) {
+
     }
 
-    Result = TRUE;
-
 CleanUp:
+
     if (ObjName) free(ObjName);
 
     ReleaseObjectTypeTable();

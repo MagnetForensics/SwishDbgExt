@@ -263,23 +263,29 @@ Return Value:
 
     if (!FullNameA || !TmpName) goto CleanUp;
 
-    while (1)
-    {
-        USHORT MaxLen = Kcb.Field("NameBlock").Field("NameLength").GetUshort();
-        if (MaxLen >= sizeof(Children)) goto CleanUp;
+    try {
 
-        RtlZeroMemory(Children, sizeof(Children));
-        if (g_Ext->m_Data->ReadVirtual(Kcb.Field("NameBlock").Field("Name").GetPointerTo().GetPtr(),
-                                       (PSTR)Children,
-                                       MaxLen,
-                                       NULL) != S_OK) goto CleanUp;
+        while (1) {
 
-        swprintf_s(FullNameA, MAX_PATH, L"%s\\%S", TmpName, Children);
-        wcscpy_s(TmpName, MAX_PATH, FullNameA);
+            USHORT MaxLen = Kcb.Field("NameBlock").Field("NameLength").GetUshort();
+            if (MaxLen >= sizeof(Children)) goto CleanUp;
 
-        ParentKcb = Kcb.Field("ParentKcb").GetPtr();
-        if (!ParentKcb) break;
-        Kcb = ExtRemoteTyped("(nt!_CM_KEY_CONTROL_BLOCK *)@$extin", ParentKcb);
+            RtlZeroMemory(Children, sizeof(Children));
+            if (g_Ext->m_Data->ReadVirtual(Kcb.Field("NameBlock").Field("Name").GetPointerTo().GetPtr(),
+                                           (PSTR)Children,
+                                           MaxLen,
+                                           NULL) != S_OK) goto CleanUp;
+
+            swprintf_s(FullNameA, MAX_PATH, L"%s\\%S", TmpName, Children);
+            wcscpy_s(TmpName, MAX_PATH, FullNameA);
+
+            ParentKcb = Kcb.Field("ParentKcb").GetPtr();
+            if (!ParentKcb) break;
+            Kcb = ExtRemoteTyped("(nt!_CM_KEY_CONTROL_BLOCK *)@$extin", ParentKcb);
+        }
+    }
+    catch (...) {
+
     }
 
     Result = TRUE;
