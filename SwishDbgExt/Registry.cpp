@@ -276,8 +276,8 @@ Return Value:
                                            MaxLen,
                                            NULL) != S_OK) goto CleanUp;
 
-            swprintf_s(FullNameA, MAX_PATH, L"%s\\%S", TmpName, Children);
-            wcscpy_s(TmpName, MAX_PATH, FullNameA);
+            StringCchPrintfW(FullNameA, MAX_PATH, L"%s\\%S", TmpName, Children);
+            StringCchCopyW(TmpName, MAX_PATH, FullNameA);
 
             ParentKcb = Kcb.Field("ParentKcb").GetPtr();
             if (!ParentKcb) break;
