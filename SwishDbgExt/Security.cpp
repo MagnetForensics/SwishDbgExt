@@ -729,7 +729,7 @@ Return Value:
             lostart = base - LO; // address of loop start
 
             // is loop length not longer 0x30 ?
-            if (LO < 0x30)
+            if ((LO < 0x30) && (base > LO))
             {
                 // loinitdist is the distance length from lostart. from here we scan 0x20 bytes for a loop init via ECX
                 for (p = 0; p <= loinitdist; p++)
