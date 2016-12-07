@@ -41,7 +41,10 @@ Revision History:
 #define VVERBOSE_MODE FALSE
 #define JSON_SUPPORT FALSE
 
+#include "json.hpp"
+
 using namespace std;
+using json = nlohmann::json;
 
 #if JSON_SUPPORT
 #include <json.h>

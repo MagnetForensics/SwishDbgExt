@@ -132,21 +132,29 @@ EXT_COMMAND(ms_process,
     "{vars;b,o;vars;Display environment variables}"
     "{exports;b,o;exports;Display exports belonging to process}"
     "{all;b,o;all;Display or scan all}"
-    "{scan;b,o;scan;Display only malicious artifacts}")
+    "{scan;b,o;scan;Display only malicious artifacts}"
+    "{json;s,o;json;Save report to a file}"
+    "{jsononly;b,o;jsononly;Only save report to a file, no output}"
+    )
 {
     ULONG Flags = 0;
     ULONG64 Pid;
     BOOLEAN bScan = FALSE;
+    PCSTR JsonArg;
+    BOOL IsJson = FALSE;
+    BOOL IsJsonOnly = FALSE;
+    ULONG Index;
 
     Pid = GetArgU64("pid", FALSE);
     LPCSTR HandlesArg = GetArgStr("handletype", FALSE);
     ULONG64 HandleTable = GetArgU64("handletable", FALSE);
+
     if (HandlesArg || HandleTable) Flags |= PROCESS_HANDLES_FLAG;
 
-    if (HasArg("vars")) Flags |= PROCESS_ENVVAR_FLAG;
+    if (HasArg("vars"))    Flags |= PROCESS_ENVVAR_FLAG;
     if (HasArg("threads")) Flags |= PROCESS_THREADS_FLAG;
-    if (HasArg("vads")) Flags |= PROCESS_VADS_FLAG;
-    if (HasArg("dlls")) Flags |= PROCESS_DLLS_FLAG;
+    if (HasArg("vads"))    Flags |= PROCESS_VADS_FLAG;
+    if (HasArg("dlls"))    Flags |= PROCESS_DLLS_FLAG;
     if (HasArg("handles")) Flags |= PROCESS_HANDLES_FLAG;
 
     // if (HasArg("dlls_exports")) Flags |= PROCESS_DLLS_FLAG | PROCESS_DLL_EXPORTS_FLAG;
@@ -175,113 +183,91 @@ EXT_COMMAND(ms_process,
         Flags &= ~PROCESS_HANDLES_FLAG;
     }
 
+    if (HasArg("json")) {
+
+        IsJson = TRUE;
+
+        IsJsonOnly = HasArg("jsononly");
+
+        JsonArg = GetArgStr("json", TRUE);
+    }
+
     ProcessArray CachedProcessList = GetProcesses(Pid, Flags);
 
-    for each (MsProcessObject ProcObj in CachedProcessList)
-    {
-        Dml("\n<col fg=\"changed\">Process:</col>       <link cmd=\"!process %p 1\">%-20s</link> (PID=0x%4x) | "
-            "[<link cmd=\"!ms_process /pid 0x%I64X /dlls\">+Dlls</link>] "
-            "[<link cmd=\"!ms_process /pid 0x%I64X /dlls /exports\">+Exports</link>] "
-            "[<link cmd=\"!ms_process /pid 0x%I64X /handles\">+Handles</link>] "
-            "[<link cmd=\"!ms_process /pid 0x%I64X /threads\">+Threads</link>] "
-            "[<link cmd=\"!ms_process /pid 0x%I64X /vads\">+VADs</link>] "
-            "[<link cmd=\"!ms_process /pid 0x%I64X /all /scan\">+Scan</link>] "
-            "[<link cmd=\".process /p /r 0x%016I64X \">+Select context</link>] "
-            "\n",
-            ProcObj.m_CcProcessObject.ProcessObjectPtr, ProcObj.m_CcProcessObject.ImageFileName,
-            (ULONG)ProcObj.m_CcProcessObject.ProcessId,
-            ProcObj.m_CcProcessObject.ProcessId,
-            ProcObj.m_CcProcessObject.ProcessId,
-            ProcObj.m_CcProcessObject.ProcessId,
-            ProcObj.m_CcProcessObject.ProcessId,
-            ProcObj.m_CcProcessObject.ProcessId,
-            ProcObj.m_CcProcessObject.ProcessId,
-            ProcObj.m_CcProcessObject.ProcessObjectPtr);
-        if (wcslen(ProcObj.m_CcProcessObject.FullPath)) Dml("    <col fg=\"emphfg\">Path:          </col> %S\n", ProcObj.m_CcProcessObject.FullPath);
-        if (strlen(ProcObj.m_PdbInfo.PdbName)) Dml("    <col fg=\"emphfg\">PDB:           </col> %s\n", ProcObj.m_PdbInfo.PdbName);
-        if (wcslen(ProcObj.m_FileVersion.CompanyName)) Dml("    <col fg=\"emphfg\">Vendor:        </col> %S\n", ProcObj.m_FileVersion.CompanyName);
-        if (wcslen(ProcObj.m_FileVersion.FileVersion)) Dml("    <col fg=\"emphfg\">Version:       </col> %S\n", ProcObj.m_FileVersion.FileVersion);
-        if (wcslen(ProcObj.m_FileVersion.FileDescription)) Dml("    <col fg=\"emphfg\">Description:   </col> %S\n", ProcObj.m_FileVersion.FileDescription);
-        if (ProcObj.m_CcProcessObject.CommandLine) Dml("    <col fg=\"emphfg\">Commandline:   </col> %S\n", ProcObj.m_CcProcessObject.CommandLine);
+    for (Index = 0; Index < CachedProcessList.size(); Index++) {
 
-        Dml("    <col fg=\"emphfg\">Sections:</col>      ");
-        for each (MsPEImageFile::CACHED_SECTION_INFO Section in ProcObj.m_CcSections)
-        {
-            Dml("%s, ", Section.Name);
-        }
-        Dml("\n");
+        MsProcessObject &ProcObj = CachedProcessList[Index];
 
-        if (ProcObj.m_TypedObject.HasField("Flags2.ProtectedProcess"))
-        {
-            // Windows Vista+
-        }
-        else if (ProcObj.m_TypedObject.HasField("Protection"))
-        {
-            // Windows 8.1
-        }
+        if (!IsJsonOnly) {
 
-        if (Flags & PROCESS_ENVVAR_FLAG)
-        {
-            for each (MsProcessObject::ENV_VAR_OBJECT EnvVar in ProcObj.m_EnvVars)
-            {
-                Dml("    %S\n", EnvVar.Variable);
+            Dml("\n<col fg=\"changed\">Process:</col>       <link cmd=\"!process %p 1\">%-20s</link> (PID=0x%4x) | "
+                "[<link cmd=\"!ms_process /pid 0x%I64X /dlls\">+Dlls</link>] "
+                "[<link cmd=\"!ms_process /pid 0x%I64X /dlls /exports\">+Exports</link>] "
+                "[<link cmd=\"!ms_process /pid 0x%I64X /handles\">+Handles</link>] "
+                "[<link cmd=\"!ms_process /pid 0x%I64X /threads\">+Threads</link>] "
+                "[<link cmd=\"!ms_process /pid 0x%I64X /vads\">+VADs</link>] "
+                "[<link cmd=\"!ms_process /pid 0x%I64X /all /scan\">+Scan</link>] "
+                "[<link cmd=\".process /p /r 0x%016I64X \">+Select context</link>] "
+                "\n",
+                ProcObj.m_CcProcessObject.ProcessObjectPtr, ProcObj.m_CcProcessObject.ImageFileName,
+                (ULONG)ProcObj.m_CcProcessObject.ProcessId,
+                ProcObj.m_CcProcessObject.ProcessId,
+                ProcObj.m_CcProcessObject.ProcessId,
+                ProcObj.m_CcProcessObject.ProcessId,
+                ProcObj.m_CcProcessObject.ProcessId,
+                ProcObj.m_CcProcessObject.ProcessId,
+                ProcObj.m_CcProcessObject.ProcessId,
+                ProcObj.m_CcProcessObject.ProcessObjectPtr);
+
+            if (wcslen(ProcObj.m_CcProcessObject.FullPath)) Dml("    <col fg=\"emphfg\">Path:          </col> %S\n", ProcObj.m_CcProcessObject.FullPath);
+            if (strlen(ProcObj.m_PdbInfo.PdbName)) Dml("    <col fg=\"emphfg\">PDB:           </col> %s\n", ProcObj.m_PdbInfo.PdbName);
+            if (wcslen(ProcObj.m_FileVersion.CompanyName)) Dml("    <col fg=\"emphfg\">Vendor:        </col> %S\n", ProcObj.m_FileVersion.CompanyName);
+            if (wcslen(ProcObj.m_FileVersion.FileVersion)) Dml("    <col fg=\"emphfg\">Version:       </col> %S\n", ProcObj.m_FileVersion.FileVersion);
+            if (wcslen(ProcObj.m_FileVersion.FileDescription)) Dml("    <col fg=\"emphfg\">Description:   </col> %S\n", ProcObj.m_FileVersion.FileDescription);
+            if (ProcObj.m_CcProcessObject.CommandLine) Dml("    <col fg=\"emphfg\">Commandline:   </col> %S\n", ProcObj.m_CcProcessObject.CommandLine);
+
+            Dml("    <col fg=\"emphfg\">Sections:</col>      ");
+
+            for each (MsPEImageFile::CACHED_SECTION_INFO Section in ProcObj.m_CcSections) {
+
+                Dml("%s, ", Section.Name);
             }
-        }
 
-        if ((Flags & PROCESS_EXPORTS_FLAG) && (
-            ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && ProcObj.m_NumberOfHookedAPIs) ||
-            (!(Flags & PROCESS_SCAN_MALICIOUS_FLAG) && ProcObj.m_NumberOfExportedFunctions)))
-        {
-            Dml("    |------|------|--------------------|----------------------------------------------------|---------|\n"
-                "    | <col fg=\"emphfg\">%-4s</col> | <col fg=\"emphfg\">%-4s</col> | <col fg=\"emphfg\">%-18s</col> | <col fg=\"emphfg\">%-50s</col> | <col fg=\"emphfg\">%-7s</col> | <col fg=\"emphfg\">%-6s</col> |\n"
-                "    |------|------|--------------------|----------------------------------------------------|---------|\n",
-                "Indx", "Ord", "Addr", "Name", "Patched", "Hooked");
+            Dml("\n");
 
-            for each (MsPEImageFile::EXPORT_INFO ExportInfo in ProcObj.m_Exports)
-            {
-                ULONG64 Ptr = ProcObj.m_ImageBase + ExportInfo.Address;
+            if (ProcObj.m_TypedObject.HasField("Flags2.ProtectedProcess")) {
 
-                if (!(Flags & PROCESS_SCAN_MALICIOUS_FLAG) ||
-                    ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && (ExportInfo.IsTablePatched || ExportInfo.IsHooked)))
-                {
-                    Dml((ExportInfo.IsTablePatched || ExportInfo.IsHooked) ?
-                        "    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | <col fg=\"changed\">%-50s</col> | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col>\n" :
-                        "    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | %-50s | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col>\n",
-                        ExportInfo.Index, ExportInfo.Ordinal,
-                        Ptr, Ptr, ExportInfo.Name,
-                        ExportInfo.IsTablePatched ? "Yes" : "",
-                        ExportInfo.IsHooked ? "Yes" : "");
+                // Windows Vista+
+            }
+            else if (ProcObj.m_TypedObject.HasField("Protection")) {
+
+                // Windows 8.1
+            }
+
+            if (Flags & PROCESS_ENVVAR_FLAG) {
+
+                for each (MsProcessObject::ENV_VAR_OBJECT EnvVar in ProcObj.m_EnvVars) {
+
+                    Dml("    %S\n", EnvVar.Variable);
                 }
             }
 
-            g_Ext->Dml("\n");
-        }
+            if ((Flags & PROCESS_EXPORTS_FLAG) && (
+                ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && ProcObj.m_NumberOfHookedAPIs) ||
+                (!(Flags & PROCESS_SCAN_MALICIOUS_FLAG) && ProcObj.m_NumberOfExportedFunctions))) {
 
-        UINT i = 0;
-        for each (MsDllObject DllObj in ProcObj.m_DllList)
-        {
-            Dml("    -> [%3d]: (%s) %S\n",
-                i,
-                DllObj.mm_CcDllObject.IsWow64 ? "<col fg=\"changed\">Wow64</col>" : "     ",
-                DllObj.mm_CcDllObject.FullDllName);
-            i += 1;
-
-            if ((Flags & PROCESS_DLL_EXPORTS_FLAG) && (
-                ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && DllObj.m_NumberOfHookedAPIs) ||
-                (!(Flags & PROCESS_SCAN_MALICIOUS_FLAG) && DllObj.m_NumberOfExportedFunctions)))
-            {
                 Dml("    |------|------|--------------------|----------------------------------------------------|---------|\n"
                     "    | <col fg=\"emphfg\">%-4s</col> | <col fg=\"emphfg\">%-4s</col> | <col fg=\"emphfg\">%-18s</col> | <col fg=\"emphfg\">%-50s</col> | <col fg=\"emphfg\">%-7s</col> | <col fg=\"emphfg\">%-6s</col> |\n"
                     "    |------|------|--------------------|----------------------------------------------------|---------|\n",
                     "Indx", "Ord", "Addr", "Name", "Patched", "Hooked");
 
-                for each (MsPEImageFile::EXPORT_INFO ExportInfo in DllObj.m_Exports)
-                {
-                    ULONG64 Ptr = DllObj.m_ImageBase + ExportInfo.Address;
+                for each (MsPEImageFile::EXPORT_INFO ExportInfo in ProcObj.m_Exports) {
+
+                    ULONG64 Ptr = ProcObj.m_ImageBase + ExportInfo.Address;
 
                     if (!(Flags & PROCESS_SCAN_MALICIOUS_FLAG) ||
-                        ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && (ExportInfo.IsTablePatched || ExportInfo.IsHooked)))
-                    {
+                        ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && (ExportInfo.IsTablePatched || ExportInfo.IsHooked))) {
+
                         Dml((ExportInfo.IsTablePatched || ExportInfo.IsHooked) ?
                             "    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | <col fg=\"changed\">%-50s</col> | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col>\n" :
                             "    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | %-50s | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col>\n",
@@ -289,75 +275,128 @@ EXT_COMMAND(ms_process,
                             Ptr, Ptr, ExportInfo.Name,
                             ExportInfo.IsTablePatched ? "Yes" : "",
                             ExportInfo.IsHooked ? "Yes" : "");
-
-                        if ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && ExportInfo.IsHooked)
-                        {
-                            ExecuteSilent(".process /p /r 0x%I64X", ProcObj.m_CcProcessObject.ProcessObjectPtr);
-                            Execute("u 0x%I64X L3", Ptr);
-                        }
                     }
                 }
+
+                g_Ext->Dml("\n");
+            }
+
+            int i = 0;
+
+            for each (MsDllObject DllObj in ProcObj.m_DllList) {
+
+                Dml("    -> [%3d]: (%s) %S\n",
+                    i,
+                    DllObj.mm_CcDllObject.IsWow64 ? "<col fg=\"changed\">Wow64</col>" : "     ",
+                    DllObj.mm_CcDllObject.FullDllName);
+
+                i += 1;
+
+                if ((Flags & PROCESS_DLL_EXPORTS_FLAG) && (
+                    ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && DllObj.m_NumberOfHookedAPIs) ||
+                    (!(Flags & PROCESS_SCAN_MALICIOUS_FLAG) && DllObj.m_NumberOfExportedFunctions))) {
+
+                    Dml("    |------|------|--------------------|----------------------------------------------------|---------|\n"
+                        "    | <col fg=\"emphfg\">%-4s</col> | <col fg=\"emphfg\">%-4s</col> | <col fg=\"emphfg\">%-18s</col> | <col fg=\"emphfg\">%-50s</col> | <col fg=\"emphfg\">%-7s</col> | <col fg=\"emphfg\">%-6s</col> |\n"
+                        "    |------|------|--------------------|----------------------------------------------------|---------|\n",
+                        "Indx", "Ord", "Addr", "Name", "Patched", "Hooked");
+
+                    for each (MsPEImageFile::EXPORT_INFO ExportInfo in DllObj.m_Exports) {
+
+                        ULONG64 Ptr = DllObj.m_ImageBase + ExportInfo.Address;
+
+                        if (!(Flags & PROCESS_SCAN_MALICIOUS_FLAG) ||
+                            ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && (ExportInfo.IsTablePatched || ExportInfo.IsHooked))) {
+
+                            Dml((ExportInfo.IsTablePatched || ExportInfo.IsHooked) ?
+                                "    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | <col fg=\"changed\">%-50s</col> | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col>\n" :
+                                "    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | %-50s | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col>\n",
+                                ExportInfo.Index, ExportInfo.Ordinal,
+                                Ptr, Ptr, ExportInfo.Name,
+                                ExportInfo.IsTablePatched ? "Yes" : "",
+                                ExportInfo.IsHooked ? "Yes" : "");
+
+                            if ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && ExportInfo.IsHooked) {
+
+                                ExecuteSilent(".process /p /r 0x%I64X", ProcObj.m_CcProcessObject.ProcessObjectPtr);
+                                Execute("u 0x%I64X L3", Ptr);
+                            }
+                        }
+                    }
+
+                    Dml("\n");
+                }
+            }
+        }
+
+        if (Flags & PROCESS_HANDLES_FLAG) {
+
+            ProcObj.GetHandles(HandleTable);
+
+            if (!IsJsonOnly) {
+
+                WCHAR ArgType[64] = {0};
+
+                Dml("\n"
+                    "    |------|----------------------|--------------------|---------------------------------------------------------------------------|\n"
+                    "    | <col fg=\"emphfg\">%-4s</col> | <col fg=\"emphfg\">%-20s</col> | <col fg=\"emphfg\">%-18s</col> | <col fg=\"emphfg\">%-256s</col> |\n"
+                    "    |------|----------------------|--------------------|---------------------------------------------------------------------------|\n",
+                    "Hdle", "Object Type", "Addr", "Name");
+
+                if (HandlesArg) {
+
+                    StringCchPrintfW(ArgType, _countof(ArgType), L"%S", HandlesArg);
+                }
+
+                for each (HANDLE_OBJECT Handle in ProcObj.m_Handles) {
+
+                    if (HandlesArg && wcslen(ArgType) && (_wcsicmp(ArgType, Handle.Type) != 0)) {
+
+                        continue;
+                    }
+
+                    if (_wcsicmp(Handle.Type, L"Key") == 0) {
+
+                        Dml("    | %04x | %-20S | <link cmd=\"!ms_readkcb 0x%016I64X\">0x%016I64X</link> | %-256S | \n",
+                            Handle.Handle, Handle.Type, Handle.ObjectKcb, Handle.ObjectPtr, Handle.Name);
+                    }
+                    else if (_wcsicmp(Handle.Type, L"Directory") == 0) {
+
+                        Dml("    | %04x | %-20S | <link cmd=\"!ms_object 0x%016I64X\">0x%016I64X</link> | %-256S | \n",
+                            Handle.Handle, Handle.Type, Handle.ObjectPtr, Handle.ObjectPtr, Handle.Name);
+                    }
+                    else {
+
+                        Dml("    | %04x | %-20S | <link cmd=\"!object 0x%016I64X\">0x%016I64X</link> | %-256S | \n",
+                            Handle.Handle, Handle.Type, Handle.ObjectPtr, Handle.ObjectPtr, Handle.Name);
+                    }
+                }
+
                 Dml("\n");
             }
         }
 
-        if (Flags & PROCESS_HANDLES_FLAG)
-        {
-            ProcObj.GetHandles(HandleTable);
+        if (Flags & PROCESS_VADS_FLAG) {
 
-            Dml("\n"
-                "    |------|----------------------|--------------------|---------------------------------------------------------------------------|\n"
-                "    | <col fg=\"emphfg\">%-4s</col> | <col fg=\"emphfg\">%-20s</col> | <col fg=\"emphfg\">%-18s</col> | <col fg=\"emphfg\">%-256s</col> |\n"
-                "    |------|----------------------|--------------------|---------------------------------------------------------------------------|\n",
-                "Hdle", "Object Type", "Addr", "Name");
-
-            WCHAR ArgType[64] = { 0 };
-
-            swprintf_s(ArgType, _countof(ArgType), L"%S", HandlesArg);
-
-            for each (HANDLE_OBJECT Handle in ProcObj.m_Handles)
-            {
-                if (HandlesArg && wcslen(ArgType) && (_wcsicmp(ArgType, Handle.Type) != 0)) continue;
-
-                if (_wcsicmp(Handle.Type, L"Key") == 0)
-                {
-                    Dml("    | %04x | %-20S | <link cmd=\"!ms_readkcb 0x%016I64X\">0x%016I64X</link> | %-256S | \n",
-                        Handle.Handle, Handle.Type, Handle.ObjectKcb, Handle.ObjectPtr, Handle.Name);
-                }
-                else if (_wcsicmp(Handle.Type, L"Directory") == 0)
-                {
-                    Dml("    | %04x | %-20S | <link cmd=\"!ms_object 0x%016I64X\">0x%016I64X</link> | %-256S | \n",
-                        Handle.Handle, Handle.Type, Handle.ObjectPtr, Handle.ObjectPtr, Handle.Name);
-                }
-                else
-                {
-                    Dml("    | %04x | %-20S | <link cmd=\"!object 0x%016I64X\">0x%016I64X</link> | %-256S | \n",
-                        Handle.Handle, Handle.Type, Handle.ObjectPtr, Handle.ObjectPtr, Handle.Name);
-                }
-            }
-            Dml("\n");
-        }
-
-        if (Flags & PROCESS_VADS_FLAG)
-        {
             ProcObj.MmGetVads();
 
-            Dml("\n"
-                "    |----------------------|----------|--------------------|--------------------|---------------------------------------------------------------------------|\n"
-                "    | <col fg=\"emphfg\">%-20s</col> | <col fg=\"emphfg\">%-8s</col> | <col fg=\"emphfg\">%-18s</col> | <col fg=\"emphfg\">%-18s</col> | <col fg=\"emphfg\">%-256s</col> |\n"
-                "    |----------------------|----------|--------------------|--------------------|---------------------------------------------------------------------------|\n",
-                "Protection", "MalScore", "Start range", "End range", "FileObject");
+            if (!IsJsonOnly) {
 
-            for each (VAD_OBJECT Vad in ProcObj.m_Vads)
-            {
-                ULONG MalScore = 0;
-                HANDLE_OBJECT Handle = { 0 };
-                BOOLEAN FoResult = ObReadObject(Vad.FileObject, &Handle);
+                Dml("\n"
+                    "    |----------------------|----------|--------------------|--------------------|---------------------------------------------------------------------------|\n"
+                    "    | <col fg=\"emphfg\">%-20s</col> | <col fg=\"emphfg\">%-8s</col> | <col fg=\"emphfg\">%-18s</col> | <col fg=\"emphfg\">%-18s</col> | <col fg=\"emphfg\">%-256s</col> |\n"
+                    "    |----------------------|----------|--------------------|--------------------|---------------------------------------------------------------------------|\n",
+                    "Protection", "MalScore", "Start range", "End range", "FileObject");
 
-                CHAR Protection[22] = { 0 };
+                for each (VAD_OBJECT Vad in ProcObj.m_Vads) {
 
-                switch (Vad.Protection)
-                {
+                    HANDLE_OBJECT Handle = {0};
+                    CHAR Protection[22] = {0};
+                    ULONG MalScore = 0;
+                    BOOLEAN FoResult = ObReadObject(Vad.FileObject, &Handle);
+
+                    switch (Vad.Protection) {
+
                     case MM_READONLY:
                         strcpy_s(Protection, sizeof(Protection), "MM_READONLY");
                         break;
@@ -379,60 +418,318 @@ EXT_COMMAND(ms_process,
                     case MM_EXECUTE_WRITECOPY:
                         strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE_WRITECOPY");
                         break;
+                    }
+
+                    ULONG VadSize = (ULONG)((Vad.EndingVpn - Vad.StartingVpn) * PAGE_SIZE);
+                    ULONG64 BaseAddress = Vad.StartingVpn * PAGE_SIZE;
+
+                    if (bScan) {
+
+                        MalScore = GetMalScoreEx(FALSE, &ProcObj, BaseAddress, VadSize);
+                    }
+
+                    Dml("    | %-20s | <link cmd=\"!ms_malscore 0x%016I64X 0x%X\">%8d</link> | 0x%016I64X | 0x%016I64X | (0x%016I64X) %S |\n",
+                        Protection,
+                        BaseAddress, VadSize, MalScore,
+                        Vad.StartingVpn * PAGE_SIZE,
+                        Vad.EndingVpn * PAGE_SIZE,
+                        Vad.FileObject,
+                        FoResult ? Handle.Name : L"");
                 }
 
-                ULONG VadSize = (ULONG)((Vad.EndingVpn - Vad.StartingVpn) * PAGE_SIZE);
-                ULONG64 BaseAddress = Vad.StartingVpn * PAGE_SIZE;
-
-                if (bScan)
-                {
-                    MalScore = GetMalScoreEx(FALSE, &ProcObj, BaseAddress, VadSize);
-                }
-
-                Dml("    | %-20s | <link cmd=\"!ms_malscore 0x%016I64X 0x%X\">%8d</link> | 0x%016I64X | 0x%016I64X | (0x%016I64X) %S |\n",
-                    Protection,
-                    BaseAddress, VadSize, MalScore,
-                    Vad.StartingVpn * PAGE_SIZE,
-                    Vad.EndingVpn * PAGE_SIZE,
-                    Vad.FileObject,
-                    FoResult ? Handle.Name : L""
-                    );
+                ReleaseObjectTypeTable();
             }
-
-            ReleaseObjectTypeTable();
         }
 
-        if (Flags & PROCESS_THREADS_FLAG)
-        {
+        if (Flags & PROCESS_THREADS_FLAG) {
+
             ProcObj.GetThreads();
 
-            Dml("    |--------|--------|--------------------|----------------------------------------------------|---------------------|---------------------|\n"
-                "    | <col fg=\"emphfg\">%-6s</col> | <col fg=\"emphfg\">%-6s</col> | <col fg=\"emphfg\">%-18s</col> | <col fg=\"emphfg\">%-50s</col> | Create time         | Exit time           |\n"
-                "    |--------|--------|--------------------|----------------------------------------------------|---------------------|---------------------|\n",
-                "Proc", "Thrd", "Addr", "Name");
+            if (!IsJsonOnly) {
 
-            for each (THREAD_OBJECT Thread in ProcObj.m_Threads)
-            {
-                UCHAR Name[512] = { 0 };
-                UCHAR TimerType[32] = { 0 };
+                Dml("    |--------|--------|--------------------|----------------------------------------------------|---------------------|---------------------|\n"
+                    "    | <col fg=\"emphfg\">%-6s</col> | <col fg=\"emphfg\">%-6s</col> | <col fg=\"emphfg\">%-18s</col> | <col fg=\"emphfg\">%-50s</col> | Create time         | Exit time           |\n"
+                    "    |--------|--------|--------------------|----------------------------------------------------|---------------------|---------------------|\n",
+                    "Proc", "Thrd", "Addr", "Name");
 
-                SYSTEMTIME CreateTime = {0}, ExitTime = {0};
+                for each (THREAD_OBJECT Thread in ProcObj.m_Threads) {
 
-                if (Thread.Win32StartAddress)
-                {
-                    g_Ext->ExecuteSilent(".process /p /r 0x%I64X", ProcObj.m_CcProcessObject.ProcessObjectPtr);
+                    UCHAR Name[512] = {0};
+                    UCHAR TimerType[32] = {0};
+                    SYSTEMTIME CreateTime = {0}, ExitTime = {0};
 
-                    FileTimeToSystemTime((FILETIME *)&Thread.CreateTime, &CreateTime);
-                    FileTimeToSystemTime((FILETIME *)&Thread.ExitTime, &ExitTime);
+                    if (Thread.Win32StartAddress) {
 
-                    Dml("    | 0x%04x | 0x%04x | <link cmd=\"u 0x%016I64X L3\">0x%016I64X</link> | %-50s | %02d/%02d/%4d %02d:%02d:%02d | %02d/%02d/%4d %02d:%02d:%02d |\n",
-                        (ULONG)Thread.ProcessId, (ULONG)Thread.ThreadId, Thread.Win32StartAddress, Thread.Win32StartAddress,
-                        GetNameByOffset(Thread.Win32StartAddress, (PSTR)Name, _countof(Name)),
-                        CreateTime.wDay, CreateTime.wMonth, CreateTime.wYear, CreateTime.wHour, CreateTime.wMinute, CreateTime.wSecond,
-                        ExitTime.wDay, ExitTime.wMonth, ExitTime.wYear, ExitTime.wHour, ExitTime.wMinute, ExitTime.wSecond);
+                        g_Ext->ExecuteSilent(".process /p /r 0x%I64X", ProcObj.m_CcProcessObject.ProcessObjectPtr);
+
+                        FileTimeToSystemTime((FILETIME *)&Thread.CreateTime, &CreateTime);
+                        FileTimeToSystemTime((FILETIME *)&Thread.ExitTime, &ExitTime);
+
+                        Dml("    | 0x%04x | 0x%04x | <link cmd=\"u 0x%016I64X L3\">0x%016I64X</link> | %-50s | %02d/%02d/%4d %02d:%02d:%02d | %02d/%02d/%4d %02d:%02d:%02d |\n",
+                            (ULONG)Thread.ProcessId, (ULONG)Thread.ThreadId, Thread.Win32StartAddress, Thread.Win32StartAddress,
+                            GetNameByOffset(Thread.Win32StartAddress, (PSTR)Name, _countof(Name)),
+                            CreateTime.wDay, CreateTime.wMonth, CreateTime.wYear, CreateTime.wHour, CreateTime.wMinute, CreateTime.wSecond,
+                            ExitTime.wDay, ExitTime.wMonth, ExitTime.wYear, ExitTime.wHour, ExitTime.wMinute, ExitTime.wSecond);
+                    }
                 }
             }
         }
+    }
+
+    if (IsJson && JsonArg) {
+
+        MsProcessObject ProcObj;
+        json JsonData;
+        WCHAR Buffer[MAX_PATH];
+        wstring StringWide;
+        SYSTEMTIME CreateTime, ExitTime;
+
+        JsonData = json::array();
+
+        for (Index = 0; Index < CachedProcessList.size(); Index++) {
+
+            ProcObj = CachedProcessList[Index];
+
+            JsonData[Index]["m_CcProcessObject"]["ImageType"] = ProcObj.m_CcProcessObject.ImageType;
+
+            StringCchPrintfW(Buffer, _countof(Buffer), L"%I64x", ProcObj.m_CcProcessObject.ProcessObjectPtr);
+            StringWide = wstring(Buffer);
+            JsonData[Index]["m_CcProcessObject"]["ProcessObjectPtr"] = string(StringWide.begin(), StringWide.end());
+
+            CreateTime = {0};
+            ExitTime = {0};
+
+            FileTimeToSystemTime((FILETIME *)&ProcObj.m_CcProcessObject.CreateTime, &CreateTime);
+            FileTimeToSystemTime((FILETIME *)&ProcObj.m_CcProcessObject.ExitTime, &ExitTime);
+
+            StringCchPrintfW(Buffer, _countof(Buffer), L"%02d/%02d/%4d %02d:%02d:%02d", CreateTime.wDay, CreateTime.wMonth, CreateTime.wYear, CreateTime.wHour, CreateTime.wMinute, CreateTime.wSecond);
+            StringWide = wstring(Buffer);
+            JsonData[Index]["m_CcProcessObject"]["CreateTime"] = string(StringWide.begin(), StringWide.end());
+
+            StringCchPrintfW(Buffer, _countof(Buffer), L"%02d/%02d/%4d %02d:%02d:%02d", ExitTime.wDay, ExitTime.wMonth, ExitTime.wYear, ExitTime.wHour, ExitTime.wMinute, ExitTime.wSecond);
+            StringWide = wstring(Buffer);
+            JsonData[Index]["m_CcProcessObject"]["ExitTime"] = string(StringWide.begin(), StringWide.end());
+
+            JsonData[Index]["m_CcProcessObject"]["ImageFileName"] = ProcObj.m_CcProcessObject.ImageFileName;
+
+            StringWide = wstring(ProcObj.m_CcProcessObject.FullPath);
+            JsonData[Index]["m_CcProcessObject"]["FullPath"] = string(StringWide.begin(), StringWide.end());
+
+            StringWide = wstring(ProcObj.m_CcProcessObject.WindowTitle);
+            JsonData[Index]["m_CcProcessObject"]["WindowTitle"] = string(StringWide.begin(), StringWide.end());
+
+            if (ProcObj.m_CcProcessObject.CommandLine) {
+
+                StringWide = wstring(ProcObj.m_CcProcessObject.CommandLine);
+                JsonData[Index]["m_CcProcessObject"]["CommandLine"] = string(StringWide.begin(), StringWide.end());
+            }
+
+            if (ProcObj.m_CcProcessObject.DllPath) {
+
+                StringWide = wstring(ProcObj.m_CcProcessObject.DllPath);
+                JsonData[Index]["m_CcProcessObject"]["DllPath"] = string(StringWide.begin(), StringWide.end());
+            }
+
+            if (ProcObj.m_CcProcessObject.ImagePathName) {
+
+                StringWide = wstring(ProcObj.m_CcProcessObject.ImagePathName);
+                JsonData[Index]["m_CcProcessObject"]["ImagePathName"] = string(StringWide.begin(), StringWide.end());
+            }
+
+            JsonData[Index]["m_CcProcessObject"]["ParentProcessId"] = ProcObj.m_CcProcessObject.ParentProcessId;
+            JsonData[Index]["m_CcProcessObject"]["ProcessId"] = ProcObj.m_CcProcessObject.ProcessId;
+            JsonData[Index]["m_CcProcessObject"]["VirtualSize"] = ProcObj.m_CcProcessObject.VirtualSize;
+            JsonData[Index]["m_CcProcessObject"]["HiddenProcess"] = ProcObj.m_CcProcessObject.HiddenProcess;
+            JsonData[Index]["m_CcProcessObject"]["ProtectedProcess"] = ProcObj.m_CcProcessObject.ProtectedProcess;
+            JsonData[Index]["m_CcProcessObject"]["BreakOnTermination"] = ProcObj.m_CcProcessObject.BreakOnTermination;
+
+            if (Flags & PROCESS_ENVVAR_FLAG) {
+
+                for (int i = 0; i < ProcObj.m_EnvVars.size(); i++) {
+
+                    StringWide = wstring(ProcObj.m_EnvVars[i].Variable);
+                    size_t EqualSignPos  = wstring(ProcObj.m_EnvVars[i].Variable).find_first_of(L"=");
+
+                    JsonData[Index]["m_EnvVars"][i]["Name"] = string(StringWide.begin(), StringWide.end()).substr(0, EqualSignPos);
+                    JsonData[Index]["m_EnvVars"][i]["Value"] = string(StringWide.begin(), StringWide.end()).substr(EqualSignPos + 1);
+                }
+            }
+
+            if (Flags & PROCESS_DLLS_FLAG) {
+
+                for (int i = 0; i < ProcObj.m_DllList.size(); i++) {
+
+                    JsonData[Index]["m_DllList"][i]["IsWow64"] = (ProcObj.m_DllList[i].mm_CcDllObject.IsWow64 != 0) ? true : false;
+
+                    StringWide = wstring(ProcObj.m_DllList[i].mm_CcDllObject.FullDllName);
+                    JsonData[Index]["m_DllList"][i]["FullDllName"] = string(StringWide.begin(), StringWide.end());
+                }
+            }
+
+            if (Flags & PROCESS_HANDLES_FLAG) {
+
+                WCHAR ArgType[64] = {0};
+
+                if (HandlesArg) {
+
+                    StringCchPrintfW(ArgType, _countof(ArgType), L"%S", HandlesArg);
+                }
+
+                for (int i = 0; i < ProcObj.m_Handles.size(); i++) {
+
+                    if (HandlesArg && wcslen(ArgType) && (_wcsicmp(ArgType, ProcObj.m_Handles[i].Type) != 0)) continue;
+
+                    JsonData[Index]["m_Handles"][i]["Handle"] = ProcObj.m_Handles[i].Handle;
+                    JsonData[Index]["m_Handles"][i]["ObjectTypeIndex"] = ProcObj.m_Handles[i].ObjectTypeIndex;
+
+                    StringWide = wstring(ProcObj.m_Handles[i].Name);
+                    JsonData[Index]["m_Handles"][i]["Name"] = string(StringWide.begin(), StringWide.end());
+
+                    StringWide = wstring(ProcObj.m_Handles[i].Type);
+                    JsonData[Index]["m_Handles"][i]["Type"] = string(StringWide.begin(), StringWide.end());
+
+                    StringCchPrintfW(Buffer, _countof(Buffer), L"%I64x", ProcObj.m_Handles[i].ObjectPtr);
+                    StringWide = wstring(Buffer);
+                    JsonData[Index]["m_Handles"][i]["ObjectPtr"] = string(StringWide.begin(), StringWide.end());
+                }
+            }
+
+            if (Flags & PROCESS_VADS_FLAG) {
+
+                for (int i = 0; i < ProcObj.m_Vads.size(); i++) {
+
+                    CHAR Protection[22] = {0};
+
+                    switch (ProcObj.m_Vads[i].Protection) {
+
+                    case MM_READONLY:
+                        strcpy_s(Protection, sizeof(Protection), "MM_READONLY");
+                        break;
+                    case MM_EXECUTE:
+                        strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE");
+                        break;
+                    case MM_EXECUTE_READ:
+                        strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE_READ");
+                        break;
+                    case MM_READWRITE:
+                        strcpy_s(Protection, sizeof(Protection), "MM_READWRITE");
+                        break;
+                    case MM_WRITECOPY:
+                        strcpy_s(Protection, sizeof(Protection), "MM_WRITECOPY");
+                        break;
+                    case MM_EXECUTE_READWRITE:
+                        strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE_READWRITE");
+                        break;
+                    case MM_EXECUTE_WRITECOPY:
+                        strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE_WRITECOPY");
+                        break;
+                    }
+
+                    StringCchPrintfW(Buffer, _countof(Buffer), L"%I64x", ProcObj.m_Vads[i].ProcessObject);
+                    StringWide = wstring(Buffer);
+                    JsonData[Index]["m_Vads"][i]["ProcessObject"] = string(StringWide.begin(), StringWide.end());
+
+                    StringCchPrintfW(Buffer, _countof(Buffer), L"%I64x", ProcObj.m_Vads[i].FirstNode);
+                    StringWide = wstring(Buffer);
+                    JsonData[Index]["m_Vads"][i]["FirstNode"] = string(StringWide.begin(), StringWide.end());
+
+                    StringCchPrintfW(Buffer, _countof(Buffer), L"%I64x", ProcObj.m_Vads[i].CurrentNode);
+                    StringWide = wstring(Buffer);
+                    JsonData[Index]["m_Vads"][i]["CurrentNode"] = string(StringWide.begin(), StringWide.end());
+
+                    StringCchPrintfW(Buffer, _countof(Buffer), L"%016I64x", ProcObj.m_Vads[i].StartingVpn * PAGE_SIZE);
+                    StringWide = wstring(Buffer);
+                    JsonData[Index]["m_Vads"][i]["StartingVpn"] = string(StringWide.begin(), StringWide.end());
+
+                    StringCchPrintfW(Buffer, _countof(Buffer), L"%016I64x", ProcObj.m_Vads[i].EndingVpn * PAGE_SIZE);
+                    StringWide = wstring(Buffer);
+                    JsonData[Index]["m_Vads"][i]["EndingVpn"] = string(StringWide.begin(), StringWide.end());
+
+                    JsonData[Index]["m_Vads"][i]["Protection"] = string(Protection);
+
+                    JsonData[Index]["m_Vads"][i]["VadType"] = ProcObj.m_Vads[i].VadType;
+                    JsonData[Index]["m_Vads"][i]["PrivateMemory"] = ProcObj.m_Vads[i].PrivateMemory;
+                    JsonData[Index]["m_Vads"][i]["MemCommit"] = ProcObj.m_Vads[i].MemCommit;
+
+                    if (ProcObj.m_Vads[i].FileObject) {
+
+                        HANDLE_OBJECT Handle = {0};
+
+                        StringCchPrintfW(Buffer, _countof(Buffer), L"%I64x", ProcObj.m_Vads[i].FileObject);
+                        StringWide = wstring(Buffer);
+                        JsonData[Index]["m_Vads"][i]["FileObject"] = string(StringWide.begin(), StringWide.end());
+                        
+                        ObReadObject(ProcObj.m_Vads[i].FileObject, &Handle);
+
+                        if (Handle.Name) {
+
+                            StringWide = wstring(Handle.Name);
+                            JsonData[Index]["m_Vads"][i]["FileName"] = string(StringWide.begin(), StringWide.end());
+                        }
+                    }
+                }
+            }
+
+            if (Flags & PROCESS_THREADS_FLAG) {
+
+                for (int i = 0; i < ProcObj.m_Threads.size(); i++) {
+
+                    StringCchPrintfW(Buffer, _countof(Buffer), L"%016I64x", ProcObj.m_Threads[i].StartAddress);
+                    StringWide = wstring(Buffer);
+                    JsonData[Index]["m_Threads"][i]["StartAddress"] = string(StringWide.begin(), StringWide.end());
+
+                    StringCchPrintfW(Buffer, _countof(Buffer), L"%016I64x", ProcObj.m_Threads[i].Win32StartAddress);
+                    StringWide = wstring(Buffer);
+                    JsonData[Index]["m_Threads"][i]["Win32StartAddress"] = string(StringWide.begin(), StringWide.end());
+
+                    if (ProcObj.m_Threads[i].Win32StartAddress) {
+
+                        CHAR Name[MAX_PATH] = {0};
+
+                        g_Ext->ExecuteSilent(".process /p /r 0x%I64X", ProcObj.m_CcProcessObject.ProcessObjectPtr);
+
+                        GetNameByOffset(ProcObj.m_Threads[i].Win32StartAddress, Name, _countof(Name));
+
+                        JsonData[Index]["m_Threads"][i]["Name"] = string(Name);
+                    }
+
+                    StringCchPrintfW(Buffer, _countof(Buffer), L"%I64x", ProcObj.m_Threads[i].ServiceTable);
+                    StringWide = wstring(Buffer);
+                    JsonData[Index]["m_Threads"][i]["ServiceTable"] = string(StringWide.begin(), StringWide.end());
+
+                    StringCchPrintfW(Buffer, _countof(Buffer), L"%I64x", ProcObj.m_Threads[i].OwningProcess);
+                    StringWide = wstring(Buffer);
+                    JsonData[Index]["m_Threads"][i]["OwningProcess"] = string(StringWide.begin(), StringWide.end());
+
+                    StringCchPrintfW(Buffer, _countof(Buffer), L"%I64x", ProcObj.m_Threads[i].AttachedProcess);
+                    StringWide = wstring(Buffer);
+                    JsonData[Index]["m_Threads"][i]["AttachedProcess"] = string(StringWide.begin(), StringWide.end());
+
+                    CreateTime = {0};
+                    ExitTime = {0};
+
+                    FileTimeToSystemTime((FILETIME *)&ProcObj.m_Threads[i].CreateTime, &CreateTime);
+                    FileTimeToSystemTime((FILETIME *)&ProcObj.m_Threads[i].ExitTime, &ExitTime);
+
+                    StringCchPrintfW(Buffer, _countof(Buffer), L"%02d/%02d/%4d %02d:%02d:%02d", CreateTime.wDay, CreateTime.wMonth, CreateTime.wYear, CreateTime.wHour, CreateTime.wMinute, CreateTime.wSecond);
+                    StringWide = wstring(Buffer);
+                    JsonData[Index]["m_Threads"][i]["CreateTime"] = string(StringWide.begin(), StringWide.end());
+
+                    StringCchPrintfW(Buffer, _countof(Buffer), L"%02d/%02d/%4d %02d:%02d:%02d", ExitTime.wDay, ExitTime.wMonth, ExitTime.wYear, ExitTime.wHour, ExitTime.wMinute, ExitTime.wSecond);
+                    StringWide = wstring(Buffer);
+                    JsonData[Index]["m_Threads"][i]["ExitTime"] = string(StringWide.begin(), StringWide.end());
+
+                    JsonData[Index]["m_Threads"][i]["ProcessId"] = ProcObj.m_Threads[i].ProcessId;
+                    JsonData[Index]["m_Threads"][i]["ThreadId"] = ProcObj.m_Threads[i].ThreadId;
+                    JsonData[Index]["m_Threads"][i]["ThreadFlags"] = ProcObj.m_Threads[i].ThreadFlags;
+                    JsonData[Index]["m_Threads"][i]["CrossThreadFlags"] = ProcObj.m_Threads[i].CrossThreadFlags;
+                }
+            }
+        }
+
+        std::ofstream ofs(string(JsonArg).append("\\Process.json"));
+
+        ofs << std::setw(4) << JsonData << std::endl;
     }
 }
 

@@ -213,6 +213,7 @@ copy /Y $(OutDir)$(TargetName)$(TargetExt) $(SolutionDir)Binaries\$(TargetName)\
     <ClInclude Include="Drivers.h" />
     <ClInclude Include="EngExpCppEx.h" />
     <ClInclude Include="engextcpp.hpp" />
+    <ClInclude Include="json.hpp" />
     <ClInclude Include="Md5.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />
