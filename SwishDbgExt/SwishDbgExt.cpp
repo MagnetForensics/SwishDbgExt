@@ -668,6 +668,8 @@ EXT_COMMAND(ms_process,
                         }
                     }
                 }
+
+                ReleaseObjectTypeTable();
             }
 
             if (Flags & PROCESS_THREADS_FLAG) {
