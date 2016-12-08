@@ -140,7 +140,7 @@ EXT_COMMAND(ms_process,
     ULONG Flags = 0;
     ULONG64 Pid;
     BOOLEAN bScan = FALSE;
-    PCSTR JsonArg;
+    PCSTR JsonArg = NULL;
     BOOL IsJson = FALSE;
     BOOL IsJsonOnly = FALSE;
     ULONG Index;
@@ -545,7 +545,7 @@ EXT_COMMAND(ms_process,
 
             if (Flags & PROCESS_ENVVAR_FLAG) {
 
-                for (int i = 0; i < ProcObj.m_EnvVars.size(); i++) {
+                for (size_t i = 0; i < ProcObj.m_EnvVars.size(); i++) {
 
                     StringWide = wstring(ProcObj.m_EnvVars[i].Variable);
                     size_t EqualSignPos  = wstring(ProcObj.m_EnvVars[i].Variable).find_first_of(L"=");
@@ -557,7 +557,7 @@ EXT_COMMAND(ms_process,
 
             if (Flags & PROCESS_DLLS_FLAG) {
 
-                for (int i = 0; i < ProcObj.m_DllList.size(); i++) {
+                for (size_t i = 0; i < ProcObj.m_DllList.size(); i++) {
 
                     JsonData[Index]["m_DllList"][i]["IsWow64"] = (ProcObj.m_DllList[i].mm_CcDllObject.IsWow64 != 0) ? true : false;
 
@@ -575,7 +575,7 @@ EXT_COMMAND(ms_process,
                     StringCchPrintfW(ArgType, _countof(ArgType), L"%S", HandlesArg);
                 }
 
-                for (int i = 0; i < ProcObj.m_Handles.size(); i++) {
+                for (size_t i = 0; i < ProcObj.m_Handles.size(); i++) {
 
                     if (HandlesArg && wcslen(ArgType) && (_wcsicmp(ArgType, ProcObj.m_Handles[i].Type) != 0)) continue;
 
@@ -596,7 +596,7 @@ EXT_COMMAND(ms_process,
 
             if (Flags & PROCESS_VADS_FLAG) {
 
-                for (int i = 0; i < ProcObj.m_Vads.size(); i++) {
+                for (size_t i = 0; i < ProcObj.m_Vads.size(); i++) {
 
                     CHAR Protection[22] = {0};
 
@@ -672,7 +672,7 @@ EXT_COMMAND(ms_process,
 
             if (Flags & PROCESS_THREADS_FLAG) {
 
-                for (int i = 0; i < ProcObj.m_Threads.size(); i++) {
+                for (size_t i = 0; i < ProcObj.m_Threads.size(); i++) {
 
                     StringCchPrintfW(Buffer, _countof(Buffer), L"%016I64x", ProcObj.m_Threads[i].StartAddress);
                     StringWide = wstring(Buffer);
