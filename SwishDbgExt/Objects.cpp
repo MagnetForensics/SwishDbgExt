@@ -71,6 +71,8 @@ Return Value:
 
     WCHAR TypeStr[64] = { 0 };
 
+    ZeroMemory(HandleObj, sizeof(HANDLE_OBJECT));
+
     if ((!Object) || (!IsValid(Object))) return FALSE;
 
     if (!ObTypeInit)
@@ -131,22 +133,22 @@ Return Value:
             StringCchPrintfW(HandleObj->Name, _countof(HandleObj->Name), L"%S", Buffer);
         }
     }
-    else if (_wcsicmp(TypeStr, L"ALPC Port") == 0)
-    {
-        // dt nt!_ALPC_PORT
-    }
-    else if (_wcsicmp(TypeStr, L"EtwRegistration") == 0)
-    {
-        // dt nt!_ETW_?
-    }
+    //else if (_wcsicmp(TypeStr, L"ALPC Port") == 0)
+    //{
+    //    // dt nt!_ALPC_PORT
+    //}
+    //else if (_wcsicmp(TypeStr, L"EtwRegistration") == 0)
+    //{
+    //    // dt nt!_ETW_?
+    //}
     else if (_wcsicmp(TypeStr, L"Thread") == 0)
     {
         // dt nt!_ETHREAD
     }
-    else if (_wcsicmp(TypeStr, L"Event") == 0)
-    {
-        // dt nt!_KTHREAD
-    }
+    //else if (_wcsicmp(TypeStr, L"Event") == 0)
+    //{
+    //    // dt nt!_KTHREAD
+    //}
     else if (_wcsicmp(TypeStr, L"Key") == 0)
     {
         ExtRemoteTyped KeyObject("(nt!_CM_KEY_BODY *)@$extin", HandleObj->ObjectPtr);
@@ -284,6 +286,7 @@ Return Value:
         {
             *OutHandle = Handle;
             Result = TRUE;
+            break;
         }
     }
 

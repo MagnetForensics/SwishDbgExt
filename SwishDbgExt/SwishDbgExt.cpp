@@ -488,6 +488,8 @@ EXT_COMMAND(ms_object,
     }
     Dml("    |------|----------------------|--------------------|---------------------------------------------------------------------------|\n");
     Dml("\n");
+
+    ReleaseObjectTypeTable();
 }
 
 EXT_COMMAND(ms_drivers,
@@ -507,6 +509,8 @@ EXT_COMMAND(ms_drivers,
 
         OutDriver(&Driver, (DrvObj || Scan) ? TRUE : FALSE);
     }
+
+    ReleaseObjectTypeTable();
 }
 
 EXT_COMMAND(ms_services,
