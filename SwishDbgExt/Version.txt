@@ -1,0 +1,3 @@
+#define BINVERSION 0,7,0,0
+#define STRVERSION "0.7.0"
+#define YEAR "2016"
