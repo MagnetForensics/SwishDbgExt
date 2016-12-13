@@ -65,122 +65,127 @@ Return Value:
 {
     BOOLEAN Result = FALSE;
     LPWSTR ObjName = NULL;
-
+    WCHAR TypeStr[64] = {0};
     ULONG BodyOffset = 0;
+
     GetFieldOffset("nt!_OBJECT_HEADER", "Body", &BodyOffset);
 
-    WCHAR TypeStr[64] = { 0 };
+    try {
 
-    ZeroMemory(HandleObj, sizeof(HANDLE_OBJECT));
+        ZeroMemory(HandleObj, sizeof(HANDLE_OBJECT));
 
-    if ((!Object) || (!IsValid(Object))) return FALSE;
+        if ((!Object) || (!IsValid(Object))) return FALSE;
 
-    if (!ObTypeInit)
-    {
-        ObjTypeTable = ExtRemoteTyped("(nt!_OBJECT_TYPE **)@$extin", GetExpression("nt!ObTypeIndexTable"));
-        ObTypeInit = TRUE;
-    }
-
-    ULONG64 ObjHeaderAddr = Object - BodyOffset;
-
-    if (!IsValid(ObjHeaderAddr)) return FALSE;
-
-    ExtRemoteTyped ObjHeader("(nt!_OBJECT_HEADER *)@$extin", ObjHeaderAddr);
-    HandleObj->ObjectPtr = Object; // ObjHeader.Field("Body").GetPointerTo().GetPtr();
-
-    if (ObjHeader.HasField("TypeIndex"))
-    {
-        BYTE HeaderCookie;
-
-        HandleObj->ObjectTypeIndex = ObjHeader.Field("TypeIndex").GetUchar();
-
-        if (g_Ext->m_Data->ReadVirtual(GetExpression("nt!ObHeaderCookie"), &HeaderCookie, sizeof(HeaderCookie), NULL) == S_OK) {
-
-            HandleObj->ObjectTypeIndex = (((ObjHeaderAddr >> 8) & 0xff) ^ HandleObj->ObjectTypeIndex) ^ HeaderCookie;
-        }
-
-        ExtRemoteTypedEx::GetUnicodeString(ObjTypeTable.ArrayElement(HandleObj->ObjectTypeIndex).Field("Name"), TypeStr, sizeof(TypeStr));
-        wcscpy_s(HandleObj->Type, TypeStr);
-    }
-    else
-    {
-        if (!IsValid(ObjHeader.Field("Type").GetPtr())) goto CleanUp;
-
-        ExtRemoteTypedEx::GetUnicodeString(ObjHeader.Field("Type").Field("Name"), TypeStr, sizeof(TypeStr));
-        wcscpy_s(HandleObj->Type, TypeStr);
-    }
-
-    if (_wcsicmp(TypeStr, L"File") == 0)
-    {
-        ExtRemoteTyped FileObject("(nt!_FILE_OBJECT *)@$extin", HandleObj->ObjectPtr);
-        ObjName = ExtRemoteTypedEx::GetUnicodeString2(FileObject.Field("FileName"));
-    }
-    else if (_wcsicmp(TypeStr, L"Driver") == 0)
-    {
-        ExtRemoteTyped DrvObject("(nt!_DRIVER_OBJECT *)@$extin", HandleObj->ObjectPtr);
-        ObjName = ExtRemoteTypedEx::GetUnicodeString2(DrvObject.Field("DriverName"));
-    }
-    else if (_wcsicmp(TypeStr, L"Process") == 0)
-    {
-        CHAR Buffer[MAX_PATH] = {0};
-
-        ExtRemoteTyped ProcessObj("(nt!_EPROCESS *)@$extin", HandleObj->ObjectPtr);
-
-        ProcessObj.Field("ImageFileName").GetString(Buffer, ProcessObj.Field("ImageFileName").GetTypeSize());
-
-        if (strlen(Buffer)) {
-
-            StringCchPrintfW(HandleObj->Name, _countof(HandleObj->Name), L"%S", Buffer);
-        }
-    }
-    //else if (_wcsicmp(TypeStr, L"ALPC Port") == 0)
-    //{
-    //    // dt nt!_ALPC_PORT
-    //}
-    //else if (_wcsicmp(TypeStr, L"EtwRegistration") == 0)
-    //{
-    //    // dt nt!_ETW_?
-    //}
-    else if (_wcsicmp(TypeStr, L"Thread") == 0)
-    {
-        // dt nt!_ETHREAD
-    }
-    //else if (_wcsicmp(TypeStr, L"Event") == 0)
-    //{
-    //    // dt nt!_KTHREAD
-    //}
-    else if (_wcsicmp(TypeStr, L"Key") == 0)
-    {
-        ExtRemoteTyped KeyObject("(nt!_CM_KEY_BODY *)@$extin", HandleObj->ObjectPtr);
-        HandleObj->ObjectKcb = KeyObject.Field("KeyControlBlock").GetPtr();
-        ObjName = RegGetKeyName(KeyObject.Field("KeyControlBlock"));
-        // dt nt!_CM_KEY_BODY -> nt!_CM_KEY_CONTROL_BLOCK
-    }
-    else
-    {
-        ULONG Offset = 0;
-        UCHAR InfoMask = 0;
-
-        if (ObjHeader.HasField("InfoMask"))
+        if (!ObTypeInit)
         {
-            InfoMask = ObjHeader.Field("InfoMask").GetUchar();
+            ObjTypeTable = ExtRemoteTyped("(nt!_OBJECT_TYPE **)@$extin", GetExpression("nt!ObTypeIndexTable"));
+            ObTypeInit = TRUE;
+        }
 
-            if (InfoMask & OBP_NAME_INFO_BIT)
-            {
-                if (InfoMask & OBP_CREATOR_INFO_BIT) Offset += GetTypeSize("nt!_OBJECT_HEADER_CREATOR_INFO");
-                Offset += GetTypeSize("nt!_OBJECT_HEADER_NAME_INFO");
+        ULONG64 ObjHeaderAddr = Object - BodyOffset;
+
+        if (!IsValid(ObjHeaderAddr)) return FALSE;
+
+        ExtRemoteTyped ObjHeader("(nt!_OBJECT_HEADER *)@$extin", ObjHeaderAddr);
+        HandleObj->ObjectPtr = Object; // ObjHeader.Field("Body").GetPointerTo().GetPtr();
+
+        if (ObjHeader.HasField("TypeIndex"))
+        {
+            BYTE HeaderCookie;
+
+            HandleObj->ObjectTypeIndex = ObjHeader.Field("TypeIndex").GetUchar();
+
+            if (g_Ext->m_Data->ReadVirtual(GetExpression("nt!ObHeaderCookie"), &HeaderCookie, sizeof(HeaderCookie), NULL) == S_OK) {
+
+                HandleObj->ObjectTypeIndex = (((ObjHeaderAddr >> 8) & 0xff) ^ HandleObj->ObjectTypeIndex) ^ HeaderCookie;
             }
+
+            ExtRemoteTypedEx::GetUnicodeString(ObjTypeTable.ArrayElement(HandleObj->ObjectTypeIndex).Field("Name"), TypeStr, sizeof(TypeStr));
+            wcscpy_s(HandleObj->Type, TypeStr);
         }
         else
         {
-            Offset = ObjHeader.Field("NameInfoOffset").GetUchar();
+            if (!IsValid(ObjHeader.Field("Type").GetPtr())) goto CleanUp;
+
+            ExtRemoteTypedEx::GetUnicodeString(ObjHeader.Field("Type").Field("Name"), TypeStr, sizeof(TypeStr));
+            wcscpy_s(HandleObj->Type, TypeStr);
         }
 
-        if (Offset)
+        if (_wcsicmp(TypeStr, L"File") == 0)
         {
-            ExtRemoteTyped ObjNameInfo("(nt!_OBJECT_HEADER_NAME_INFO *)@$extin", ObjHeaderAddr - Offset);
-            ObjName = ExtRemoteTypedEx::GetUnicodeString2(ObjNameInfo.Field("Name"));
+            ExtRemoteTyped FileObject("(nt!_FILE_OBJECT *)@$extin", HandleObj->ObjectPtr);
+            ObjName = ExtRemoteTypedEx::GetUnicodeString2(FileObject.Field("FileName"));
         }
+        else if (_wcsicmp(TypeStr, L"Driver") == 0)
+        {
+            ExtRemoteTyped DrvObject("(nt!_DRIVER_OBJECT *)@$extin", HandleObj->ObjectPtr);
+            ObjName = ExtRemoteTypedEx::GetUnicodeString2(DrvObject.Field("DriverName"));
+        }
+        else if (_wcsicmp(TypeStr, L"Process") == 0)
+        {
+            CHAR Buffer[MAX_PATH] = {0};
+
+            ExtRemoteTyped ProcessObj("(nt!_EPROCESS *)@$extin", HandleObj->ObjectPtr);
+
+            ProcessObj.Field("ImageFileName").GetString(Buffer, ProcessObj.Field("ImageFileName").GetTypeSize());
+
+            if (strlen(Buffer)) {
+
+                StringCchPrintfW(HandleObj->Name, _countof(HandleObj->Name), L"%S", Buffer);
+            }
+        }
+        //else if (_wcsicmp(TypeStr, L"ALPC Port") == 0)
+        //{
+        //    // dt nt!_ALPC_PORT
+        //}
+        //else if (_wcsicmp(TypeStr, L"EtwRegistration") == 0)
+        //{
+        //    // dt nt!_ETW_?
+        //}
+        else if (_wcsicmp(TypeStr, L"Thread") == 0)
+        {
+            // dt nt!_ETHREAD
+        }
+        //else if (_wcsicmp(TypeStr, L"Event") == 0)
+        //{
+        //    // dt nt!_KTHREAD
+        //}
+        else if (_wcsicmp(TypeStr, L"Key") == 0)
+        {
+            ExtRemoteTyped KeyObject("(nt!_CM_KEY_BODY *)@$extin", HandleObj->ObjectPtr);
+            HandleObj->ObjectKcb = KeyObject.Field("KeyControlBlock").GetPtr();
+            ObjName = RegGetKeyName(KeyObject.Field("KeyControlBlock"));
+            // dt nt!_CM_KEY_BODY -> nt!_CM_KEY_CONTROL_BLOCK
+        }
+        else
+        {
+            ULONG Offset = 0;
+            UCHAR InfoMask = 0;
+
+            if (ObjHeader.HasField("InfoMask"))
+            {
+                InfoMask = ObjHeader.Field("InfoMask").GetUchar();
+
+                if (InfoMask & OBP_NAME_INFO_BIT)
+                {
+                    if (InfoMask & OBP_CREATOR_INFO_BIT) Offset += GetTypeSize("nt!_OBJECT_HEADER_CREATOR_INFO");
+                    Offset += GetTypeSize("nt!_OBJECT_HEADER_NAME_INFO");
+                }
+            }
+            else
+            {
+                Offset = ObjHeader.Field("NameInfoOffset").GetUchar();
+            }
+
+            if (Offset)
+            {
+                ExtRemoteTyped ObjNameInfo("(nt!_OBJECT_HEADER_NAME_INFO *)@$extin", ObjHeaderAddr - Offset);
+                ObjName = ExtRemoteTypedEx::GetUnicodeString2(ObjNameInfo.Field("Name"));
+            }
+        }
+    }
+    catch (...) {
+
     }
 
     if (ObjName)
@@ -191,7 +196,9 @@ Return Value:
     }
 
     Result = TRUE;
+
 CleanUp:
+
     return Result;
 }
 
