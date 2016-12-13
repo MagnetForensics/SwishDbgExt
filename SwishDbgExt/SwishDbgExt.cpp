@@ -2033,7 +2033,23 @@ EXT_COMMAND(ms_fixit,
     "Reset segmentation in WinDbg (Fix \"16.kd>\")",
     "{;e,o;;}")
 {
-    Execute(".segmentation -X");
+    switch (g_Ext->m_ActualMachine) {
+
+    case IMAGE_FILE_MACHINE_I386:
+    {
+        Execute(".segmentation -X");
+
+        break;
+    }
+    case IMAGE_FILE_MACHINE_AMD64:
+    {
+        Execute(".segmentation -X -a;.effmach amd64");
+
+        g_Ext->m_PtrSize = sizeof(ULONG64);
+
+        break;
+    }
+    }
 }
 
 EXT_COMMAND(ms_verbose,
