@@ -123,36 +123,6 @@ Return Value:
         KeyNode.Field("Name").GetString(Name, KeyNode.Field("MaxNameLen").GetUlong(), sizeof(Name)),
         ValuesCount, SubKeysStableCount + SubKeysVolatileCount);
 
-    if (ValuesCount)
-    {
-        ValuesTableAddr = RegGetCellPaged(KeyHive, ValuesIndex);
-
-        ValuesTable = (PULONG)malloc(ValuesCount * sizeof(ULONG));
-        if (ExtRemoteTypedEx::ReadVirtual(ValuesTableAddr, ValuesTable, ValuesCount * sizeof(ULONG), NULL) != S_OK) goto CleanUp;
-    }
-
-    if (ValuesCount)
-    {
-        g_Ext->Dml(" [*] Values (%d):\n", ValuesCount);
-        for (UINT i = 0; i < ValuesCount; i += 1)
-        {
-            ULONG64 Addr = RegGetCellPaged(KeyHive, ValuesTable[i]);
-
-            ExtRemoteTyped KeyValue("(nt!_CM_KEY_VALUE *)@$extin", Addr);
-
-            RtlZeroMemory(Name, sizeof(Name));
-            USHORT NameLength = KeyValue.Field("NameLength").GetUshort();
-            g_Ext->Dml("   [%2d] <link cmd=\"!ms_readkvalue 0x%I64X 0x%I64X\">0x%I64X</link> | <col fg=\"changed\">%-32s</col> | ",
-                       i,
-                       KeyHive.GetPtr(), Addr, Addr,
-                       NameLength ? KeyValue.Field("Name").GetString(Name, NameLength, sizeof(Name)) : "(Default)");
-            g_Ext->Dml("        ");
-            RegReadKeyValue(KeyHive, KeyValue);
-        }
-
-        g_Ext->Dml("\n");
-    }
-
     if (SubKeysStableCount + SubKeysVolatileCount) g_Ext->Dml(" [*] Subkeys (%d):\n", SubKeysStableCount + SubKeysVolatileCount);
 
     if (SubKeysStableCount)
@@ -179,6 +149,7 @@ Return Value:
     {
         PCM_KEY_INDEX CmKeyIndex = (PCM_KEY_INDEX)SubKeysStableTable;
         ULONG64 Addr = 0;
+        CHAR timeBuffer[128] = { 0 };
 
         if ((CmKeyIndex->Signature == CM_INDEX_ROOT_SIGNATURE) || (CmKeyIndex->Signature == CM_INDEX_LEAF_SIGNATURE))
         {
@@ -192,9 +163,14 @@ Return Value:
 
         ExtRemoteTyped LocalKeyNode("(nt!_CM_KEY_NODE *)@$extin", Addr);
 
+        FILETIME LastWriteTime = { 0 };
+        LastWriteTime.dwLowDateTime = LocalKeyNode.Field("LastWriteTime.LowPart").GetUlong();
+        LastWriteTime.dwHighDateTime = LocalKeyNode.Field("LastWriteTime.HighPart").GetUlong();
+
         RtlZeroMemory(Name, sizeof(Name));
-        g_Ext->Dml("   [%2d] <link cmd=\"!ms_readknode 0x%I64X 0x%I64X\">0x%I64X</link> | <col fg=\"changed\">%-32s</col>\n",
-            i, KeyHive.GetPtr(), Addr, Addr, LocalKeyNode.Field("Name").GetString(Name, LocalKeyNode.Field("NameLength").GetUshort(), sizeof(Name)));
+        g_Ext->Dml("   [%2d] <link cmd=\"!ms_readknode 0x%I64X 0x%I64X\">0x%I64X</link> | <col fg=\"changed\">%-50s</col> | LastWriteTime: %s\n",
+            i, KeyHive.GetPtr(), Addr, Addr, LocalKeyNode.Field("Name").GetString(Name, LocalKeyNode.Field("NameLength").GetUshort(), sizeof(Name)),
+            GetLastWriteTime(&LastWriteTime, timeBuffer, sizeof(timeBuffer)));
     }
 
     for (UINT i = 0; i < SubKeysVolatileCount; i += 1)
@@ -218,6 +194,41 @@ Return Value:
         g_Ext->Dml("   [%2d] <link cmd=\"!ms_readknode 0x%I64X 0x%I64X\">0x%I64X</link> | <col fg=\"changed\">%-32s</col>\n",
             i, KeyHive.GetPtr(), Addr, Addr,
             LocalKeyNode.Field("Name").GetString(Name, LocalKeyNode.Field("NameLength").GetUshort(), sizeof(Name)));
+    }
+
+    g_Ext->Dml("\n");
+
+    if (ValuesCount)
+    {
+        ValuesTableAddr = RegGetCellPaged(KeyHive, ValuesIndex);
+
+        ValuesTable = (PULONG)malloc(ValuesCount * sizeof(ULONG));
+        if (ExtRemoteTypedEx::ReadVirtual(ValuesTableAddr, ValuesTable, ValuesCount * sizeof(ULONG), NULL) != S_OK) goto CleanUp;
+    }
+
+    if (ValuesCount)
+    {
+        g_Ext->Dml(" [*] Values (%d):\n", ValuesCount);
+        for (UINT i = 0; i < ValuesCount; i += 1)
+        {
+            ULONG64 Addr = RegGetCellPaged(KeyHive, ValuesTable[i]);
+
+            ExtRemoteTyped KeyValue("(nt!_CM_KEY_VALUE *)@$extin", Addr);
+
+            RtlZeroMemory(Name, sizeof(Name));
+
+            USHORT NameLength = 0;
+            if (KeyValue.GetPtr()) NameLength = KeyValue.Field("NameLength").GetUshort();
+
+            g_Ext->Dml("   [%2d] <link cmd=\"!ms_readkvalue 0x%I64X 0x%I64X\">0x%I64X</link> | <col fg=\"changed\">%-32s</col> | ",
+                i,
+                KeyHive.GetPtr(), Addr, Addr,
+                NameLength ? KeyValue.Field("Name").GetString(Name, NameLength, sizeof(Name)) : "(Default)");
+            g_Ext->Dml("        ");
+            RegReadKeyValue(KeyHive, KeyValue);
+        }
+
+        g_Ext->Dml("\n");
     }
 
 CleanUp:

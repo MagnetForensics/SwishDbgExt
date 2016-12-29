@@ -54,4 +54,11 @@ OutDriver(
     ULONG ExpandFlag
 );
 
+LPSTR
+GetLastWriteTime(
+    PFILETIME ftWrite,
+    LPSTR Buffer,
+    ULONG dwSize
+);
+
 #endif

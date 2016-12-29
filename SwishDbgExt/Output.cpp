@@ -410,3 +410,29 @@ Return Value:
             GetNameByOffset(FastIo->ReleaseForCcFlush, (LPSTR)Name, _countof(Name)));
     }
 }
+
+LPSTR
+GetLastWriteTime(
+    PFILETIME ftWrite,
+    LPSTR Buffer, 
+    ULONG dwSize
+)
+{
+    
+    SYSTEMTIME stUTC, stLocal;
+
+    if (Buffer && dwSize) {
+        RtlZeroMemory(Buffer, dwSize);
+
+        // Convert the last-write time to local time.
+        FileTimeToSystemTime(ftWrite, &stUTC);
+        SystemTimeToTzSpecificLocalTime(NULL, &stUTC, &stLocal);
+
+        // Build a string showing the date and time.
+        sprintf_s(Buffer, dwSize,
+            "%02d/%02d/%d  %02d:%02d UTC",
+            stLocal.wMonth, stLocal.wDay, stLocal.wYear,
+            stLocal.wHour, stLocal.wMinute);
+    }
+    return Buffer;
+}
