@@ -1,5 +1,5 @@
 /*++
-    MoonSols Incident Response & Digital Forensics Debugging Extension
+    Incident Response & Digital Forensics Debugging Extension
 
     Copyright (C) 2014 MoonSols Ltd.
     Copyright (C) 2014 Matthieu Suiche (@msuiche)
@@ -42,6 +42,84 @@ Revision History:
 #define InitField(a, b, c) {a, b, c}
 #define InitPlatform(Platform, Minor, Major, d, Size, Type) {Platform, Minor, Major, d, Size, (ExtRemoteUnTyped::TYPED_DATA_FIELD *)Type}
 #define InitType(TypeName, Type) {TypeName, (ExtRemoteUnTyped::TYPED_DATA_VERSION *)Type}
+
+ExtRemoteUnTyped::TYPED_DATA_FIELD Lx_LX_AMD64_14393[] = {
+    // LX_GLOBAL_DATA
+    InitField("NTCSignature", 0x0, sizeof(USHORT)),
+    InitField("HeaderSize", 0x2, sizeof(USHORT)),
+    InitField("InstanceListOffset", 0x8, sizeof(ULONG64)),
+
+    // LX_INSTANCE
+    InitField("I_HeaderSize", 0x0, 0x8),
+    InitField("I_ListOffset.Flink", 0x8, 0x8),
+    InitField("I_ListOffset.Blink", 0x10, 0x8),
+    InitField("I_RefCountOffset", 0x18, 0x10),
+    InitField("I_GlobalDataOffset", 0x28, 0x8),
+    InitField("I_GuidOffset", 0x30, 0x10),
+    InitField("I_UnknownTimeOffset", 0x40, 0x8),
+    InitField("I_OtherTimeOffset", 0x48, 0x8),
+    InitField("I_StateOffset", 0x60, 0x8),
+    InitField("I_RootHandleOffset", 0x68, 0x8),
+    InitField("I_TempHandleOffset", 0x70, 0x8),
+    InitField("I_JobHandleOffset", 0x78, 0x8),
+    InitField("I_FlagsOffset", 0x80, 0x4),
+    InitField("I_TokenHandleOffset", 0x88, 0x8),
+    InitField("I_EventHandleOffset", 0x98, 0x8),
+    InitField("I_PathCountOffset", 0xa0, 0x4),
+    InitField("I_PathsOffset", 0xa8, 0x8),
+    InitField("I_VfsContextOffset", 0xb0, 0x8),
+    InitField("I_MemoryFlagsOffset", 0xb8, 0x8),
+    InitField("I_LastPidOffset", 0xd8, 0x8),
+    InitField("I_SessionListOffset.Flink", 0xe0, 0x8),
+    InitField("I_SessionListOffset.Blink", 0xe8, 0x8),
+    InitField("I_GroupCountOffset", 0xf0, 0x8),
+
+    // LX_SESSION
+    InitField("S_HeaderSize", 0x0, 0x68),
+    InitField("S_ListOffset.Flink", 0x68, 0x8),
+    InitField("S_ListOffset.Blink", 0x70, 0x8),
+    InitField("S_InstanceOffset", 0x78, 0x8),
+    InitField("S_ConInodeOffset", 0x80, 0x8),
+    InitField("S_FgPidOffset", 0x88, 0x8),
+    InitField("S_GroupListOffset.Flink", 0x90, 0x8),
+    InitField("S_GroupListOffset.Blink", 0x98, 0x8),
+
+    // LX_PROCESSGROUP
+    InitField("PG_HeaderSize", 0x0, 0x68),
+    InitField("PG_ListOffset.Flink", 0x68, 0x8),
+    InitField("PG_ListOffset.Blink", 0x70, 0x8),
+    InitField("PG_InstanceOffset", 0x78, 0x8),
+    InitField("PG_GroupListOffset.Flink", 0x80, 0x8),
+    InitField("PG_GroupListOffset.Blink", 0x88, 0x8),
+    InitField("PG_SessionOffset", 0x90, 0x8),
+
+    // LX_THREADGROUP
+    InitField("HeaderSize", 0x0, 0x68),
+    InitField("ProcOffset", 0x68, 0x8),
+    InitField("RusageOffset", 0x70, 0x90),
+    InitField("ListOffset", 0x100, 0x10),
+    InitField("FlagsOffset", 0x110, 0x4),
+    InitField("ProcGroupOffset", 0x118, 0x8),
+    InitField("ThreadListOffset", 0x138, 0x10),
+    InitField("ThreadCountOffset", 0x148, 0x4),
+    InitField("MainThreadOffset", 0x150, 0x8),
+    InitField("FileOffset", 0x170, 0x4),
+    InitField("PathOffset", 0x178, 0x10),
+    InitField("SigactionOffset", 0x1c8, 0x800),
+    InitField("SiginfoOffset", 0x9c8, 0xc00),
+    InitField("ArgumentsOffset", 0x15d0, 0x8),
+    InitField("ArgsSizeOffset", 0x15d8, 0x4),
+
+    // LX_PROCESS
+    InitField("P_InstanceOffset", 0x0, 0x8),
+    InitField("P_ProcObjectOffset", 0x8, 0x8),
+    InitField("P_ProcHandleOffset", 0x10, 0x8),
+    InitField("P_VdsoOffset", 0x18, 0x8),
+    InitField("P_StackOffset", 0x20, 0x8),
+
+
+    InitField(NULL, 0, 0)
+};
 
 ExtRemoteUnTyped::TYPED_DATA_FIELD Nt_Smc_Cache_Ref_AMD64_7600[] = {
     // SMC_CACHE_REF

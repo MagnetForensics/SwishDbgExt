@@ -1,5 +1,5 @@
 /*++
-    MoonSols Incident Response & Digital Forensics Debugging Extension
+    Incident Response & Digital Forensics Debugging Extension
 
     Copyright (C) 2014 MoonSols Ltd.
     Copyright (C) 2014 Matthieu Suiche (@msuiche)
@@ -69,6 +69,7 @@ using namespace web::http::client;
 #include "Storage.h"
 #include "VirusTotal.h"
 #include "Checks\Codecave.h"
+#include "Lxss.h"
 
 #include "Security.h"
 

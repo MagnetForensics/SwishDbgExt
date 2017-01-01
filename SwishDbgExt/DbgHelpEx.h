@@ -1,5 +1,5 @@
 /*++
-    MoonSols Incident Response & Digital Forensics Debugging Extension
+    Incident Response & Digital Forensics Debugging Extension
 
     Copyright (C) 2014 MoonSols Ltd.
     Copyright (C) 2014 Matthieu Suiche (@msuiche)

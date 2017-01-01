@@ -1,5 +1,5 @@
 /*++
-    A NDIS hook scan extension to existing MoonSols Incident Response & Digital Forensics Debugging Extension
+    A NDIS hook scan extension to existing Incident Response & Digital Forensics Debugging Extension
 
 	Copyright (C) 2014 wLcY (@x9090)
 
