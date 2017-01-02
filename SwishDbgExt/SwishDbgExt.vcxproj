@@ -179,6 +179,7 @@ copy /Y $(OutDir)$(TargetName)$(TargetExt) $(SolutionDir)Binaries\$(TargetName)\
     <ClCompile Include="Credentials.cpp" />
     <ClCompile Include="DbgHelpEx.cpp" />
     <ClCompile Include="EngExtCppEx.cpp" />
+    <ClCompile Include="Lxss.cpp" />
     <ClCompile Include="Md5.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -213,6 +214,7 @@ copy /Y $(OutDir)$(TargetName)$(TargetExt) $(SolutionDir)Binaries\$(TargetName)\
     <ClInclude Include="Drivers.h" />
     <ClInclude Include="EngExpCppEx.h" />
     <ClInclude Include="engextcpp.hpp" />
+    <ClInclude Include="Lxss.h" />
     <ClInclude Include="Md5.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="stdafx.h" />

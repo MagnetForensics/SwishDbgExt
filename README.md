@@ -156,6 +156,100 @@ Display list of cached VACBs
 ### !ms_verbose
 Turn verbose mode on/off
 
+### !ms_lxss
+The following is based on the research published by Alex Ionescu and available here: https://github.com/ionescu007/lxss/
+
+This feature is available on Windows 10+ O.S. as an optional feature installable via the following PowerShell command:
+```
+Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Windows-Subsystem-Linux
+```
+
+You can read more about the Windows Subsystem for Linux at the following links:
+- https://blogs.msdn.microsoft.com/wsl/2016/04/22/windows-subsystem-for-linux-overview/
+- https://channel9.msdn.com/Blogs/Seth-Juarez/Windows-Subsystem-for-Linux-Architectural-Overview
+- https://msdn.microsoft.com/en-us/commandline/wsl/install_guide
+
+```
+	Windows Subsystem for Linux Overview.
+	Instance 0xFFFFE704EEB8F010
+	GUID: {E29032FD-35D3-4C53-AB68-6BCEBDA7176F}
+	State:            (1) [STARTED]
+	Creation Flags:   00000001
+	GlobalData:       0xFFFFF802ED4138A0
+	Root Handle:      80000834
+	Temp Handle:      80000838
+	Job Handle:       8000083c
+	Token:            80000818
+	Event Handle:     800008bc
+
+	Map Paths (0):    0xFFFFE704EF437920
+	VFS Context:      0xFFFFE704EEFC4710
+	Memory Flags:     0x2
+
+	Last PID:         35
+	Thread Groups:    3
+		Session 0xFFFFE704EDB79EC0
+		Instance:         0xFFFFE704EEB8F010
+		Console inode:    0x0
+		Foreground PID:   -1
+			Process Group 0xFFFFE704EDB79AE0
+			Instance:      0xFFFFE704EEB8F010
+			Session:       0xFFFFE704EDB79EC0
+				Thread Group 0xFFFFE704EF4F8000
+				Binary Path:           /init
+				Thread(s):             1
+				Owner Process Group:   0xFFFFE704EDB79AE0
+				Flags:                 0x00000000
+				Main Thread:           0xFFFFE704EF5CC010
+				Arguments (006 bytes): 0x00007FFFC081D6E0
+					Process 0xFFFFE704EF2F1D70
+					Instance:            0xFFFFE704EEB8F010
+					NT Process Object:   0xFFFFAE05E84EF800
+					NT Process Handle:   0xFFFFFFFF80000F58
+					VDSO Address:        0x00007FFFC0849000
+					Stack Address:       0x00007FFFC001E000
+		Session 0xFFFFE704EF5DB830
+		Instance:         0xFFFFE704EEB8F010
+		Console inode:    0xFFFFE704EF32D7A0
+		Foreground PID:   2
+			Process Group 0xFFFFE704EF5EF970
+			Instance:      0xFFFFE704EEB8F010
+			Session:       0xFFFFE704EF5DB830
+				Thread Group 0xFFFFE704EF5EE000
+				Binary Path:           /bin/bash
+				Thread(s):             1
+				Owner Process Group:   0xFFFFE704EF5EF970
+				Flags:                 0x0000000C
+				Main Thread:           0xFFFFE704EF5F8010
+				Arguments (010 bytes): 0x00007FFFDF34E418
+					Process 0xFFFFE704EDEF6EC0
+					Instance:            0xFFFFE704EEB8F010
+					NT Process Object:   0xFFFFAE05E84E6800
+					NT Process Handle:   0xFFFFFFFF80000D9C
+					VDSO Address:        0x00007FFFDF883000
+					Stack Address:       0x00007FFFDEB4F000
+		Session 0xFFFFE704EF0A8ED0
+		Instance:         0xFFFFE704EEB8F010
+		Console inode:    0xFFFFE704EF06B9C0
+		Foreground PID:   19
+			Process Group 0xFFFFE704F059CBC0
+			Instance:      0xFFFFE704EEB8F010
+			Session:       0xFFFFE704EF0A8ED0
+				Thread Group 0xFFFFE704EDE51000
+				Binary Path:           /bin/bash
+				Thread(s):             1
+				Owner Process Group:   0xFFFFE704F059CBC0
+				Flags:                 0x0000000C
+				Main Thread:           0xFFFFE704EDC78090
+				Arguments (010 bytes): 0x00007FFFF78CFB78
+					Process 0xFFFFE704F06389B0
+					Instance:            0xFFFFE704EEB8F010
+					NT Process Object:   0xFFFFAE05E618D800
+					NT Process Handle:   0xFFFFFFFF80001650
+					VDSO Address:        0x00007FFFF7C99000
+					Stack Address:       0x00007FFFF70D0000
+```
+
 ## Classes
 ### PEFile
 `MsPEImageFile` contains the basic common information used by Windows binaries (PE) and has been derivated into three different classes:

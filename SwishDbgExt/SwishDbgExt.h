@@ -99,7 +99,7 @@ using namespace web::http::client;
 #endif
 
 #define GetPtrSize() (g_Ext->m_PtrSize)
-#define DbgPrint(fmt,...) if (VERBOSE_MODE) g_Ext->Dml(fmt, __VA_ARGS__);
+#define DbgPrint(fmt,...) if (g_Verbose) g_Ext->Dml(fmt, __VA_ARGS__);
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,5 +1,5 @@
 /*++
-    MoonSols Incident Response & Digital Forensics Debugging Extension
+    Incident Response & Digital Forensics Debugging Extension
 
     Copyright (C) 2014 MoonSols Ltd.
     Copyright (C) 2016 Comae Technologies FZE
@@ -113,6 +113,8 @@ public:
     EXT_COMMAND_METHOD(ms_checkcodecave);
     EXT_COMMAND_METHOD(ms_verbose);
     EXT_COMMAND_METHOD(ms_fixit);
+
+    EXT_COMMAND_METHOD(ms_lxss);
 
 };
 
@@ -2110,4 +2112,11 @@ EXT_COMMAND(ms_checkcodecave,
 
         ProcObject.RestoreContext();
     }
+}
+
+EXT_COMMAND(ms_lxss,
+    "Display lsxx entries",
+    "{;e,o;;}")
+{
+    GetLX();
 }

@@ -44,78 +44,88 @@ Revision History:
 #define InitType(TypeName, Type) {TypeName, (ExtRemoteUnTyped::TYPED_DATA_VERSION *)Type}
 
 ExtRemoteUnTyped::TYPED_DATA_FIELD Lx_LX_AMD64_14393[] = {
+    // Courtesy of the coolest kernel dev in the World (aionescu): https://github.com/ionescu007/lxss/tree/master/lx
     // LX_GLOBAL_DATA
     InitField("NTCSignature", 0x0, sizeof(USHORT)),
     InitField("HeaderSize", 0x2, sizeof(USHORT)),
-    InitField("InstanceListOffset", 0x8, sizeof(ULONG64)),
+    InitField("InstanceListOffset", 0x8, sizeof(ULONG64) * 2),
+    InitField("InstanceListOffset.Flink", 0x8, sizeof(ULONG64)),
+    InitField("InstanceListOffset.Blink", 0x10, sizeof(ULONG64)),
 
     // LX_INSTANCE
-    InitField("I_HeaderSize", 0x0, 0x8),
-    InitField("I_ListOffset.Flink", 0x8, 0x8),
-    InitField("I_ListOffset.Blink", 0x10, 0x8),
+    InitField("I_HeaderSize", 0x0, sizeof(ULONG64)),
+    InitField("I_ListOffset.Flink", 0x8, sizeof(ULONG64)),
+    InitField("I_ListOffset.Blink", 0x10, sizeof(ULONG64)),
     InitField("I_RefCountOffset", 0x18, 0x10),
-    InitField("I_GlobalDataOffset", 0x28, 0x8),
-    InitField("I_GuidOffset", 0x30, 0x10),
-    InitField("I_UnknownTimeOffset", 0x40, 0x8),
-    InitField("I_OtherTimeOffset", 0x48, 0x8),
-    InitField("I_StateOffset", 0x60, 0x8),
-    InitField("I_RootHandleOffset", 0x68, 0x8),
-    InitField("I_TempHandleOffset", 0x70, 0x8),
-    InitField("I_JobHandleOffset", 0x78, 0x8),
+    InitField("I_GlobalDataOffset", 0x28, sizeof(ULONG64)),
+    InitField("I_GuidOffset", 0x30, sizeof(GUID)),
+    InitField("I_UnknownTimeOffset", 0x40, sizeof(ULONG64)),
+    InitField("I_OtherTimeOffset", 0x48, sizeof(ULONG64)),
+    InitField("I_StateOffset", 0x60, sizeof(ULONG64)),
+    InitField("I_RootHandleOffset", 0x68, sizeof(ULONG64)),
+    InitField("I_TempHandleOffset", 0x70, sizeof(ULONG64)),
+    InitField("I_JobHandleOffset", 0x78, sizeof(ULONG64)),
     InitField("I_FlagsOffset", 0x80, 0x4),
-    InitField("I_TokenHandleOffset", 0x88, 0x8),
-    InitField("I_EventHandleOffset", 0x98, 0x8),
+    InitField("I_TokenHandleOffset", 0x88, sizeof(ULONG64)),
+    InitField("I_EventHandleOffset", 0x98, sizeof(ULONG64)),
     InitField("I_PathCountOffset", 0xa0, 0x4),
-    InitField("I_PathsOffset", 0xa8, 0x8),
-    InitField("I_VfsContextOffset", 0xb0, 0x8),
-    InitField("I_MemoryFlagsOffset", 0xb8, 0x8),
-    InitField("I_LastPidOffset", 0xd8, 0x8),
-    InitField("I_SessionListOffset.Flink", 0xe0, 0x8),
-    InitField("I_SessionListOffset.Blink", 0xe8, 0x8),
-    InitField("I_GroupCountOffset", 0xf0, 0x8),
+    InitField("I_PathsOffset", 0xa8, sizeof(ULONG64)),
+    InitField("I_VfsContextOffset", 0xb0, sizeof(ULONG64)),
+    InitField("I_MemoryFlagsOffset", 0xb8, sizeof(ULONG64)),
+    InitField("I_LastPidOffset", 0xd8, sizeof(ULONG64)),
+    InitField("I_SessionListOffset", 0xe0, sizeof(ULONG64) * 2),
+    InitField("I_SessionListOffset.Flink", 0xe0, sizeof(ULONG64)),
+    InitField("I_SessionListOffset.Blink", 0xe8, sizeof(ULONG64)),
+    InitField("I_GroupCountOffset", 0xf0, sizeof(ULONG64)),
 
     // LX_SESSION
     InitField("S_HeaderSize", 0x0, 0x68),
-    InitField("S_ListOffset.Flink", 0x68, 0x8),
-    InitField("S_ListOffset.Blink", 0x70, 0x8),
-    InitField("S_InstanceOffset", 0x78, 0x8),
-    InitField("S_ConInodeOffset", 0x80, 0x8),
-    InitField("S_FgPidOffset", 0x88, 0x8),
-    InitField("S_GroupListOffset.Flink", 0x90, 0x8),
-    InitField("S_GroupListOffset.Blink", 0x98, 0x8),
+    InitField("S_ListOffset", 0x68, sizeof(ULONG64) * 2),
+    InitField("S_ListOffset.Flink", 0x68, sizeof(ULONG64)),
+    InitField("S_ListOffset.Blink", 0x70, sizeof(ULONG64)),
+    InitField("S_InstanceOffset", 0x78, sizeof(ULONG64)),
+    InitField("S_ConInodeOffset", 0x80, sizeof(ULONG64)),
+    InitField("S_FgPidOffset", 0x88, sizeof(ULONG64)),
+    InitField("S_GroupListOffset", 0x90, sizeof(ULONG64) * 2),
+    InitField("S_GroupListOffset.Flink", 0x90, sizeof(ULONG64)),
+    InitField("S_GroupListOffset.Blink", 0x98, sizeof(ULONG64)),
 
     // LX_PROCESSGROUP
     InitField("PG_HeaderSize", 0x0, 0x68),
-    InitField("PG_ListOffset.Flink", 0x68, 0x8),
-    InitField("PG_ListOffset.Blink", 0x70, 0x8),
-    InitField("PG_InstanceOffset", 0x78, 0x8),
-    InitField("PG_GroupListOffset.Flink", 0x80, 0x8),
-    InitField("PG_GroupListOffset.Blink", 0x88, 0x8),
-    InitField("PG_SessionOffset", 0x90, 0x8),
+    InitField("PG_ListOffset", 0x68, sizeof(ULONG64) * 2),
+    InitField("PG_ListOffset.Flink", 0x68, sizeof(ULONG64)),
+    InitField("PG_ListOffset.Blink", 0x70, sizeof(ULONG64)),
+    InitField("PG_InstanceOffset", 0x78, sizeof(ULONG64)),
+    InitField("PG_GroupListOffset", 0x80, sizeof(ULONG64) * 2),
+    InitField("PG_GroupListOffset.Flink", 0x80, sizeof(ULONG64)),
+    InitField("PG_GroupListOffset.Blink", 0x88, sizeof(ULONG64)),
+    InitField("PG_SessionOffset", 0x90, sizeof(ULONG64)),
 
     // LX_THREADGROUP
-    InitField("HeaderSize", 0x0, 0x68),
-    InitField("ProcOffset", 0x68, 0x8),
-    InitField("RusageOffset", 0x70, 0x90),
-    InitField("ListOffset", 0x100, 0x10),
-    InitField("FlagsOffset", 0x110, 0x4),
-    InitField("ProcGroupOffset", 0x118, 0x8),
-    InitField("ThreadListOffset", 0x138, 0x10),
-    InitField("ThreadCountOffset", 0x148, 0x4),
-    InitField("MainThreadOffset", 0x150, 0x8),
-    InitField("FileOffset", 0x170, 0x4),
-    InitField("PathOffset", 0x178, 0x10),
-    InitField("SigactionOffset", 0x1c8, 0x800),
-    InitField("SiginfoOffset", 0x9c8, 0xc00),
-    InitField("ArgumentsOffset", 0x15d0, 0x8),
-    InitField("ArgsSizeOffset", 0x15d8, 0x4),
+    InitField("TG_HeaderSize", 0x0, 0x68),
+    InitField("TG_ProcOffset", 0x68, sizeof(ULONG64)),
+    InitField("TG_RusageOffset", 0x70, 0x90),
+    InitField("TG_ListOffset.Flink", 0x100, sizeof(ULONG64)),
+    InitField("TG_ListOffset.Blink", 0x108, sizeof(ULONG64)),
+    InitField("TG_FlagsOffset", 0x110, 0x4),
+    InitField("TG_ProcGroupOffset", 0x118, sizeof(ULONG64)),
+    InitField("TG_ThreadListOffset.Flink", 0x138, sizeof(ULONG64)),
+    InitField("TG_ThreadListOffset.Blink", 0x140, sizeof(ULONG64)),
+    InitField("TG_ThreadCountOffset", 0x148, 0x4),
+    InitField("TG_MainThreadOffset", 0x150, sizeof(ULONG64)),
+    InitField("TG_FileOffset", 0x170, sizeof(ULONG64)),
+    InitField("TG_PathOffset", 0x178, 0x10), // sizeof(nt!_UNICODE_STRING)
+    InitField("TG_SigactionOffset", 0x1c8, 0x800),
+    InitField("TG_SiginfoOffset", 0x9c8, 0xc00),
+    InitField("TG_ArgumentsOffset", 0x15d0, sizeof(ULONG64)),
+    InitField("TG_ArgsSizeOffset", 0x15d8, 0x4),
 
     // LX_PROCESS
-    InitField("P_InstanceOffset", 0x0, 0x8),
-    InitField("P_ProcObjectOffset", 0x8, 0x8),
-    InitField("P_ProcHandleOffset", 0x10, 0x8),
-    InitField("P_VdsoOffset", 0x18, 0x8),
-    InitField("P_StackOffset", 0x20, 0x8),
+    InitField("P_InstanceOffset", 0x0, sizeof(ULONG64)),
+    InitField("P_ProcObjectOffset", 0x8, sizeof(ULONG64)),
+    InitField("P_ProcHandleOffset", 0x10, sizeof(ULONG64)),
+    InitField("P_VdsoOffset", 0x18, sizeof(ULONG64)),
+    InitField("P_StackOffset", 0x20, sizeof(ULONG64)),
 
 
     InitField(NULL, 0, 0)
@@ -193,6 +203,11 @@ ExtRemoteUnTyped::TYPED_DATA_FIELD Nt_Sm_I386_7600[] = {
 ExtRemoteUnTyped::TYPED_DATA_VERSION Nt_Sm[] = {
     InitPlatform(IMAGE_FILE_MACHINE_AMD64, 7600, 15, 0, 0x1c, &Nt_Sm_AMD64_7600),
     InitPlatform(IMAGE_FILE_MACHINE_I386, 7600, 15, 0, 0x10, &Nt_Sm_I386_7600),
+    InitPlatform(0, 0, 0, 0, 0, NULL)
+};
+
+ExtRemoteUnTyped::TYPED_DATA_VERSION Nt_LX[] = {
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 1433, 15, 0, 0x20, &Lx_LX_AMD64_14393),
     InitPlatform(0, 0, 0, 0, 0, NULL)
 };
 
@@ -538,6 +553,12 @@ ExtRemoteUnTyped::TYPED_DATA g_UntypedData[] = {
     InitType("nt!_SMC_CACHE_REF", &Nt_Smc_Cache_ref),
     InitType("nt!_SMC_CACHE", &Nt_Sm),
     InitType("nt!_SM_GLOBALS", &Nt_Sm),
+    InitType("lx!_LX_GLOBAL_DATA", &Nt_LX),
+    InitType("lx!_LX_INSTANCE", &Nt_LX),
+    InitType("lx!_LX_SESSION", &Nt_LX),
+    InitType("lx!_LX_PROCESSGROUP", &Nt_LX),
+    InitType("lx!_LX_THREADGROUP", &Nt_LX),
+    InitType("lx!_LX_PROCESS", &Nt_LX),
     InitType(NULL, NULL)
 };
 

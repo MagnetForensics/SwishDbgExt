@@ -51,5 +51,7 @@ EXPORTS
     ms_checkcodecave
     ms_verbose
     ms_fixit
+	
+	ms_lxss
 
     help
