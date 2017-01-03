@@ -73,7 +73,15 @@ Return Value:
 
     ExtRemoteTyped DirMap = KeyHive.Field("Storage").ArrayElement(Type).Field("Map");
     ExtRemoteTyped MapTable = DirMap.Field("Directory").ArrayElement(Table);
-    CellAddr = MapTable.Field("Table").ArrayElement(Block).Field("BlockAddress").GetPtr();
+
+    if (MapTable.Field("Table").ArrayElement(Block).HasField("BlockAddress")) {
+
+        CellAddr = MapTable.Field("Table").ArrayElement(Block).Field("BlockAddress").GetPtr();
+    }
+    else {
+
+        CellAddr = MapTable.Field("Table").ArrayElement(Block).Field("PermanentBinAddress").GetPtr() & ~0xF;
+    }
 
     CellAddr += Offset;
     if (KeyHive.Field("Version").GetUlong() == 1) CellAddr += sizeof(LONG)+sizeof(ULONG);
