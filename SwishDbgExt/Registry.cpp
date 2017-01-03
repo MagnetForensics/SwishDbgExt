@@ -112,14 +112,22 @@ Return Value:
 
 --*/
 {
-    CHAR Name[512] = { 0 };
-
+    CHAR Name[512] = {0};
     PULONG ValuesTable = NULL;
     PVOID SubKeysStableTable = NULL;
     PVOID SubKeysVolatileTable = NULL;
+    ULONG64 SubKeysStableTableAddress;
+    ULONG64 SubKeysVolatileTableAddress;
+    ULONG64 ValuesTableAddress;
 
-    ULONG64 SubKeysStableTableAddr, SubKeysVolatileTableAddr;
-    ULONG64 ValuesTableAddr;
+    if (KeyNode.Field("Signature").GetUshort() == CM_LINK_NODE_SIGNATURE) {
+
+        KeyHive = ExtRemoteTyped("(nt!_HHIVE *)@$extin", KeyNode.Field("ChildHiveReference.KeyHive").GetPtr());
+
+        ULONG KeyCell = KeyNode.Field("ChildHiveReference.KeyCell").GetUlong();
+        ULONG64 KeyNodeAddress = RegGetCellPaged(KeyHive, KeyCell);
+        KeyNode = ExtRemoteTyped("(nt!_CM_KEY_NODE *)@$extin", KeyNodeAddress);
+    }
 
     ULONG ValuesCount = KeyNode.Field("ValueList").Field("Count").GetUlong();
     ULONG ValuesIndex = KeyNode.Field("ValueList").Field("List").GetUlong();
@@ -127,122 +135,177 @@ Return Value:
     ULONG SubKeysStableCount = KeyNode.Field("SubKeyCounts").ArrayElement(0).GetUlong();
     ULONG SubKeysVolatileCount = KeyNode.Field("SubKeyCounts").ArrayElement(1).GetUlong();
 
+    RtlZeroMemory(Name, sizeof(Name));
+
     g_Ext->Dml(" Key node <col fg=\"changed\">%s</col> contains %d key values and %d subkeys.\n\n",
-        KeyNode.Field("Name").GetString(Name, KeyNode.Field("MaxNameLen").GetUlong(), sizeof(Name)),
-        ValuesCount, SubKeysStableCount + SubKeysVolatileCount);
+               KeyNode.Field("Name").GetString(Name, KeyNode.Field("NameLength").GetUshort(), sizeof(Name)),
+               ValuesCount,
+               SubKeysStableCount + SubKeysVolatileCount);
 
     if (SubKeysStableCount + SubKeysVolatileCount) g_Ext->Dml(" [*] Subkeys (%d):\n", SubKeysStableCount + SubKeysVolatileCount);
 
     if (SubKeysStableCount)
     {
         ULONG SubKeysStableIndex = KeyNode.Field("SubKeyLists").ArrayElement(0).GetUlong();
-        SubKeysStableTableAddr = RegGetCellPaged(KeyHive, SubKeysStableIndex);
 
-        ULONG MaxSize = sizeof(CM_KEY_FAST_INDEX)+SubKeysStableCount * sizeof(CM_INDEX);
-        SubKeysStableTable = (PULONG)malloc(MaxSize);
-        if (ExtRemoteTypedEx::ReadVirtual(SubKeysStableTableAddr, SubKeysStableTable, MaxSize, NULL) != S_OK) goto CleanUp;
+        SubKeysStableTableAddress = RegGetCellPaged(KeyHive, SubKeysStableIndex);
+
+        ULONG MaxSize = sizeof(CM_KEY_FAST_INDEX) + SubKeysStableCount * sizeof(CM_INDEX);
+
+        SubKeysStableTable = (PULONG)calloc(MaxSize, sizeof(BYTE));
+
+        if (SubKeysStableTable) {
+
+            if (ExtRemoteTypedEx::ReadVirtual(SubKeysStableTableAddress, SubKeysStableTable, MaxSize, NULL) == S_OK) {
+
+                PCM_KEY_INDEX CmKeyIndex = (PCM_KEY_INDEX)SubKeysStableTable;
+
+                for (UINT i = 0; i < SubKeysStableCount; i++) {
+
+                    ULONG64 Address = 0;
+                    CHAR TimeBuffer[128] = {0};
+                    FILETIME LastWriteTime = {0};
+
+                    try {
+
+                        if ((CmKeyIndex->Signature == CM_INDEX_ROOT_SIGNATURE) || (CmKeyIndex->Signature == CM_INDEX_LEAF_SIGNATURE)) {
+
+                            Address = RegGetCellPaged(KeyHive, CmKeyIndex->CellIndex[i]);
+                        }
+                        else if ((CmKeyIndex->Signature == CM_FAST_LEAF_SIGNATURE) || (CmKeyIndex->Signature == CM_HASH_LEAF_SIGNATURE)) {
+
+                            PCM_KEY_FAST_INDEX CmKeyFastIndex = (PCM_KEY_FAST_INDEX)CmKeyIndex;
+                            Address = RegGetCellPaged(KeyHive, CmKeyFastIndex->Index[i].CellIndex);
+                        }
+
+                        ExtRemoteTyped LocalKeyNode("(nt!_CM_KEY_NODE *)@$extin", Address);
+
+                        LastWriteTime.dwLowDateTime = LocalKeyNode.Field("LastWriteTime.LowPart").GetUlong();
+                        LastWriteTime.dwHighDateTime = LocalKeyNode.Field("LastWriteTime.HighPart").GetUlong();
+
+                        RtlZeroMemory(Name, sizeof(Name));
+
+                        g_Ext->Dml("   [%2d] <link cmd=\"!ms_readknode 0x%I64X 0x%I64X\">0x%I64X</link> | <col fg=\"changed\">%-50s</col> | LastWriteTime: %s\n",
+                                   i,
+                                   KeyHive.GetPtr(),
+                                   Address,
+                                   Address,
+                                   LocalKeyNode.Field("Name").GetString(Name, LocalKeyNode.Field("NameLength").GetUshort(), sizeof(Name)),
+                                   GetLastWriteTime(&LastWriteTime, TimeBuffer, sizeof(TimeBuffer)));
+                    }
+                    catch (...) {
+
+                    }
+                }
+            }
+
+            free(SubKeysStableTable);
+        }
     }
 
     if (SubKeysVolatileCount)
     {
         ULONG SubKeysVolatileIndex = KeyNode.Field("SubKeyLists").ArrayElement(1).GetUlong();
-        SubKeysVolatileTableAddr = RegGetCellPaged(KeyHive, SubKeysVolatileIndex);
 
-        ULONG MaxSize = sizeof(CM_KEY_FAST_INDEX)+SubKeysVolatileCount * sizeof(CM_INDEX);
-        SubKeysVolatileTable = (PULONG)malloc(MaxSize);
-        if (ExtRemoteTypedEx::ReadVirtual(SubKeysVolatileTableAddr, SubKeysVolatileTable, MaxSize, NULL) != S_OK) goto CleanUp;
-    }
+        SubKeysVolatileTableAddress = RegGetCellPaged(KeyHive, SubKeysVolatileIndex);
 
-    for (UINT i = 0; i < SubKeysStableCount; i += 1)
-    {
-        PCM_KEY_INDEX CmKeyIndex = (PCM_KEY_INDEX)SubKeysStableTable;
-        ULONG64 Addr = 0;
-        CHAR timeBuffer[128] = { 0 };
+        ULONG MaxSize = sizeof(CM_KEY_FAST_INDEX) + SubKeysVolatileCount * sizeof(CM_INDEX);
 
-        if ((CmKeyIndex->Signature == CM_INDEX_ROOT_SIGNATURE) || (CmKeyIndex->Signature == CM_INDEX_LEAF_SIGNATURE))
-        {
-            Addr = RegGetCellPaged(KeyHive, CmKeyIndex->CellIndex[i]);
+        SubKeysVolatileTable = (PULONG)calloc(MaxSize, sizeof(BYTE));
+
+        if (SubKeysVolatileTable) {
+
+            if (ExtRemoteTypedEx::ReadVirtual(SubKeysVolatileTableAddress, SubKeysVolatileTable, MaxSize, NULL) == S_OK) {
+
+                PCM_KEY_INDEX CmKeyIndex = (PCM_KEY_INDEX)SubKeysVolatileTable;
+
+                for (UINT i = 0; i < SubKeysVolatileCount; i++) {
+
+                    ULONG64 Address = 0;
+
+                    try {
+
+                        if ((CmKeyIndex->Signature == CM_INDEX_ROOT_SIGNATURE) || (CmKeyIndex->Signature == CM_INDEX_LEAF_SIGNATURE)) {
+
+                            Address = RegGetCellPaged(KeyHive, CmKeyIndex->CellIndex[i]);
+                        }
+                        else if ((CmKeyIndex->Signature == CM_FAST_LEAF_SIGNATURE) || (CmKeyIndex->Signature == CM_HASH_LEAF_SIGNATURE)) {
+
+                            PCM_KEY_FAST_INDEX CmKeyFastIndex = (PCM_KEY_FAST_INDEX)CmKeyIndex;
+                            Address = RegGetCellPaged(KeyHive, CmKeyFastIndex->Index[i].CellIndex);
+                        }
+
+                        ExtRemoteTyped LocalKeyNode("(nt!_CM_KEY_NODE *)@$extin", Address);
+
+                        RtlZeroMemory(Name, sizeof(Name));
+
+                        g_Ext->Dml("   [%2d] <link cmd=\"!ms_readknode 0x%I64X 0x%I64X\">0x%I64X</link> | <col fg=\"changed\">%-32s</col>\n",
+                                   i,
+                                   KeyHive.GetPtr(),
+                                   Address,
+                                   Address,
+                                   LocalKeyNode.Field("Name").GetString(Name, LocalKeyNode.Field("NameLength").GetUshort(), sizeof(Name)));
+                    }
+                    catch (...) {
+
+                    }
+                }
+            }
+
+            free(SubKeysVolatileTable);
         }
-        else if ((CmKeyIndex->Signature == CM_FAST_LEAF_SIGNATURE) || (CmKeyIndex->Signature == CM_HASH_LEAF_SIGNATURE))
-        {
-            PCM_KEY_FAST_INDEX CmKeyFastIndex = (PCM_KEY_FAST_INDEX)CmKeyIndex;
-            Addr = RegGetCellPaged(KeyHive, CmKeyFastIndex->Index[i].CellIndex);
-        }
-
-        ExtRemoteTyped LocalKeyNode("(nt!_CM_KEY_NODE *)@$extin", Addr);
-
-        FILETIME LastWriteTime = { 0 };
-        LastWriteTime.dwLowDateTime = LocalKeyNode.Field("LastWriteTime.LowPart").GetUlong();
-        LastWriteTime.dwHighDateTime = LocalKeyNode.Field("LastWriteTime.HighPart").GetUlong();
-
-        RtlZeroMemory(Name, sizeof(Name));
-        g_Ext->Dml("   [%2d] <link cmd=\"!ms_readknode 0x%I64X 0x%I64X\">0x%I64X</link> | <col fg=\"changed\">%-50s</col> | LastWriteTime: %s\n",
-            i, KeyHive.GetPtr(), Addr, Addr, LocalKeyNode.Field("Name").GetString(Name, LocalKeyNode.Field("NameLength").GetUshort(), sizeof(Name)),
-            GetLastWriteTime(&LastWriteTime, timeBuffer, sizeof(timeBuffer)));
-    }
-
-    for (UINT i = 0; i < SubKeysVolatileCount; i += 1)
-    {
-        PCM_KEY_INDEX CmKeyIndex = (PCM_KEY_INDEX)SubKeysVolatileTable;
-        ULONG64 Addr = 0;
-
-        if ((CmKeyIndex->Signature == CM_INDEX_ROOT_SIGNATURE) || (CmKeyIndex->Signature == CM_INDEX_LEAF_SIGNATURE))
-        {
-            Addr = RegGetCellPaged(KeyHive, CmKeyIndex->CellIndex[i]);
-        }
-        else if ((CmKeyIndex->Signature == CM_FAST_LEAF_SIGNATURE) || (CmKeyIndex->Signature == CM_HASH_LEAF_SIGNATURE))
-        {
-            PCM_KEY_FAST_INDEX CmKeyFastIndex = (PCM_KEY_FAST_INDEX)CmKeyIndex;
-            Addr = RegGetCellPaged(KeyHive, CmKeyFastIndex->Index[i].CellIndex);
-        }
-
-        ExtRemoteTyped LocalKeyNode("(nt!_CM_KEY_NODE *)@$extin", Addr);
-
-        RtlZeroMemory(Name, sizeof(Name));
-        g_Ext->Dml("   [%2d] <link cmd=\"!ms_readknode 0x%I64X 0x%I64X\">0x%I64X</link> | <col fg=\"changed\">%-32s</col>\n",
-            i, KeyHive.GetPtr(), Addr, Addr,
-            LocalKeyNode.Field("Name").GetString(Name, LocalKeyNode.Field("NameLength").GetUshort(), sizeof(Name)));
     }
 
     g_Ext->Dml("\n");
 
-    if (ValuesCount)
-    {
-        ValuesTableAddr = RegGetCellPaged(KeyHive, ValuesIndex);
+    if (ValuesCount) {
 
-        ValuesTable = (PULONG)malloc(ValuesCount * sizeof(ULONG));
-        if (ExtRemoteTypedEx::ReadVirtual(ValuesTableAddr, ValuesTable, ValuesCount * sizeof(ULONG), NULL) != S_OK) goto CleanUp;
-    }
+        ValuesTableAddress = RegGetCellPaged(KeyHive, ValuesIndex);
 
-    if (ValuesCount)
-    {
-        g_Ext->Dml(" [*] Values (%d):\n", ValuesCount);
-        for (UINT i = 0; i < ValuesCount; i += 1)
-        {
-            ULONG64 Addr = RegGetCellPaged(KeyHive, ValuesTable[i]);
+        ValuesTable = (PULONG)calloc(ValuesCount * sizeof(ULONG), sizeof(BYTE));
 
-            ExtRemoteTyped KeyValue("(nt!_CM_KEY_VALUE *)@$extin", Addr);
+        if (ValuesTable) {
 
-            RtlZeroMemory(Name, sizeof(Name));
+            if (ExtRemoteTypedEx::ReadVirtual(ValuesTableAddress, ValuesTable, ValuesCount * sizeof(ULONG), NULL) == S_OK) {
 
-            USHORT NameLength = 0;
-            if (KeyValue.GetPtr()) NameLength = KeyValue.Field("NameLength").GetUshort();
+                g_Ext->Dml(" [*] Values (%d):\n", ValuesCount);
 
-            g_Ext->Dml("   [%2d] <link cmd=\"!ms_readkvalue 0x%I64X 0x%I64X\">0x%I64X</link> | <col fg=\"changed\">%-32s</col> | ",
-                i,
-                KeyHive.GetPtr(), Addr, Addr,
-                NameLength ? KeyValue.Field("Name").GetString(Name, NameLength, sizeof(Name)) : "(Default)");
-            g_Ext->Dml("        ");
-            RegReadKeyValue(KeyHive, KeyValue);
+                for (UINT i = 0; i < ValuesCount; i++) {
+
+                    try {
+
+                        ULONG64 Address = RegGetCellPaged(KeyHive, ValuesTable[i]);
+
+                        ExtRemoteTyped KeyValue("(nt!_CM_KEY_VALUE *)@$extin", Address);
+
+                        RtlZeroMemory(Name, sizeof(Name));
+
+                        USHORT NameLength = 0;
+
+                        if (KeyValue.GetPtr()) NameLength = KeyValue.Field("NameLength").GetUshort();
+
+                        g_Ext->Dml("   [%2d] <link cmd=\"!ms_readkvalue 0x%I64X 0x%I64X\">0x%I64X</link> | <col fg=\"changed\">%-32s</col> | ",
+                                   i,
+                                   KeyHive.GetPtr(),
+                                   Address,
+                                   Address,
+                                   NameLength ? KeyValue.Field("Name").GetString(Name, NameLength, sizeof(Name)) : "(Default)");
+
+                        g_Ext->Dml("        ");
+
+                        RegReadKeyValue(KeyHive, KeyValue);
+                    }
+                    catch (...) {
+
+                    }
+                }
+
+                g_Ext->Dml("\n");
+            }
+
+            free(ValuesTable);
         }
-
-        g_Ext->Dml("\n");
     }
-
-CleanUp:
-    if (ValuesTable) free(ValuesTable);
-    if (SubKeysStableTable) free(SubKeysStableTable);
-    if (SubKeysVolatileTable) free(SubKeysVolatileTable);
 }
 
 LPWSTR
@@ -344,9 +407,8 @@ Return Value:
 --*/
 {
     PUCHAR Buffer = NULL;
-
-    UINT i;
     ULONG64 Data;
+    UINT i;
 
     if (KeyValue.Field("Signature").GetUshort() != CM_KEY_VALUE_SIGNATURE)
     {
@@ -355,73 +417,76 @@ Return Value:
     }
 
     ULONG DataLength = (KeyValue.Field("DataLength").GetUlong()) & 0x7FFFFFFF;
-    Buffer = (PUCHAR)malloc(DataLength);
-    RtlZeroMemory(Buffer, DataLength);
 
-    switch (KeyValue.Field("Type").GetUlong())
-    {
-        case REG_BINARY:
-            Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
-            if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
+    Buffer = (PUCHAR)calloc(DataLength + sizeof(WCHAR), sizeof(BYTE));
 
-            g_Ext->Dml("\n        REG_BINARY: \n        ");
-            for (i = 0; i < DataLength; i += 1)
-            {
-                UINT j;
-                for (j = 0; (i + j < DataLength) && (j < 0x10); j += 1)
+    if (Buffer) {
+
+        switch (KeyValue.Field("Type").GetUlong())
+        {
+            case REG_BINARY:
+                Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
+                if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
+
+                g_Ext->Dml("\n        REG_BINARY: \n        ");
+                for (i = 0; i < DataLength; i += 1)
                 {
-                    g_Ext->Dml("0x%02x ", Buffer[i + j]);
+                    UINT j;
+                    for (j = 0; (i + j < DataLength) && (j < 0x10); j += 1)
+                    {
+                        g_Ext->Dml("0x%02x ", Buffer[i + j]);
+                    }
+
+                    for (; j < 0x10; j += 1) g_Ext->Dml("     ");
+
+                    g_Ext->Dml(" | ");
+                    for (j = 0; (i + j < DataLength) && (j < 0x10); j += 1)
+                    {
+                        g_Ext->Dml("%c ", ((Buffer[i + j] >= ' ') && (Buffer[i + j] <= 'Z')) ? Buffer[i + j] : '.');
+                    }
+
+                    g_Ext->Dml("\n        ");
+
+                    i += j;
                 }
-
-                for (; j < 0x10; j += 1) g_Ext->Dml("     ");
-
-                g_Ext->Dml(" | ");
-                for (j = 0; (i + j < DataLength) && (j < 0x10); j += 1)
-                {
-                    g_Ext->Dml("%c ", ((Buffer[i + j] >= ' ') && (Buffer[i + j] <= 'Z')) ? Buffer[i + j] : '.');
-                }
-
-                g_Ext->Dml("\n        ");
-
-                i += j;
-            }
-            if (((i + 1) % 0x10) != 0) g_Ext->Dml("\n");
-        break;
-        case REG_DWORD:
-            g_Ext->Dml("0x%08X (REG_DWORD)\n", KeyValue.Field("Data").GetUlong());
+                if (((i + 1) % 0x10) != 0) g_Ext->Dml("\n");
             break;
-        case REG_DWORD_BIG_ENDIAN:
-            g_Ext->Dml("0x%08X (REG_DWORD_BIG_ENDIAN)\n", KeyValue.Field("Data").GetUlong());
-            break;
-        case REG_EXPAND_SZ:
-            Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
-            if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
+            case REG_DWORD:
+                g_Ext->Dml("0x%08X (REG_DWORD)\n", KeyValue.Field("Data").GetUlong());
+                break;
+            case REG_DWORD_BIG_ENDIAN:
+                g_Ext->Dml("0x%08X (REG_DWORD_BIG_ENDIAN)\n", KeyValue.Field("Data").GetUlong());
+                break;
+            case REG_EXPAND_SZ:
+                Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
+                if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
 
-            g_Ext->Dml("%S (REG_EXPAND_SZ)\n", Buffer);
-            break;
-        case REG_LINK:
-            Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
-            if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
+                g_Ext->Dml("%S (REG_EXPAND_SZ)\n", Buffer);
+                break;
+            case REG_LINK:
+                Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
+                if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
 
-            g_Ext->Dml("%S (REG_LINK)\n", Buffer);
-            break;
-        case REG_MULTI_SZ:
-            Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
-            if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
+                g_Ext->Dml("%S (REG_LINK)\n", Buffer);
+                break;
+            case REG_MULTI_SZ:
+                Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
+                if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
 
-            g_Ext->Dml("%S (REG_MULTI_SZ)\n", Buffer);
-            break;
-        case REG_NONE:
-            break;
-        case REG_QWORD:
-            g_Ext->Dml("0x%I64X (REG_QWORD)\n", KeyValue.Field("Data").GetLong64());
-            break;
-        case REG_SZ:
-            Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
-            if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
+                g_Ext->Dml("%S (REG_MULTI_SZ)\n", Buffer);
+                break;
+            case REG_NONE:
+                break;
+            case REG_QWORD:
+                g_Ext->Dml("0x%I64X (REG_QWORD)\n", KeyValue.Field("Data").GetLong64());
+                break;
+            case REG_SZ:
+                Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
+                if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
 
-            g_Ext->Dml("%S (REG_SZ)\n", Buffer);
-        break;
+                g_Ext->Dml("%S (REG_SZ)\n", Buffer);
+            break;
+        }
     }
 
 CleanUp:
@@ -449,47 +514,44 @@ Return Value:
 {
     ULONG64 CmpHiveListHead;
     vector<HIVE_OBJECT> Hives;
-    ReadPointer(GetExpression("nt!CmpHiveListHead"), &CmpHiveListHead);
+
+    CmpHiveListHead = GetExpression("nt!CmpHiveListHead");
 
     ExtRemoteTypedList HiveList(CmpHiveListHead, "nt!_CMHIVE", "HiveList");
 
-    for (HiveList.StartHead(); HiveList.HasNode(); HiveList.Next())
-    {
-        HIVE_OBJECT HiveObject = { 0 };
+    for (HiveList.StartHead(); HiveList.HasNode(); HiveList.Next()) {
+
+        HIVE_OBJECT HiveObject = {0};
 
         if (HiveList.GetTypedNode().Field("Hive.Signature").GetUlong() != CM_HIVE_SIGNATURE) break;
 
+        ExtRemoteTypedEx::GetUnicodeString(HiveList.GetTypedNode().Field("FileUserName"), (PWSTR)&HiveObject.FileUserName, sizeof(HiveObject.FileUserName));
+        ExtRemoteTypedEx::GetUnicodeString(HiveList.GetTypedNode().Field("HiveRootPath"), (PWSTR)&HiveObject.HiveRootPath, sizeof(HiveObject.HiveRootPath));
+
         HiveObject.HivePtr = HiveList.GetNodeOffset();
-
-        ExtRemoteTypedEx::GetUnicodeString(HiveList.GetTypedNode().Field("FileUserName"),
-            (PWSTR)&HiveObject.FileUserName,
-            sizeof(HiveObject.FileUserName));
-
-        ExtRemoteTypedEx::GetUnicodeString(HiveList.GetTypedNode().Field("HiveRootPath"),
-            (PWSTR)&HiveObject.HiveRootPath,
-            sizeof(HiveObject.HiveRootPath));
-
-        if (HiveList.GetTypedNode().HasField("Flags"))
-        {
-            HiveObject.Flags = HiveList.GetTypedNode().Field("Flags").GetUlong();
-        }
-
         HiveObject.GetCellRoutine = HiveList.GetTypedNode().Field("Hive.GetCellRoutine").GetPtr();
-        if (HiveList.GetTypedNode().HasField("Hive.ReleaseCellRoutine"))
-        {
-            HiveObject.ReleaseCellRoutine = HiveList.GetTypedNode().Field("Hive.ReleaseCellRoutine").GetPtr();
-        }
         HiveObject.Allocate = HiveList.GetTypedNode().Field("Hive.Allocate").GetPtr();
         HiveObject.Free = HiveList.GetTypedNode().Field("Hive.Free").GetPtr();
-        if (HiveList.GetTypedNode().HasField("Hive.FileSetSize"))
-        {
-            HiveObject.FileSetSize = HiveList.GetTypedNode().Field("Hive.FileSetSize").GetPtr();
-        }
         HiveObject.FileWrite = HiveList.GetTypedNode().Field("Hive.FileWrite").GetPtr();
         HiveObject.FileRead = HiveList.GetTypedNode().Field("Hive.FileRead").GetPtr();
 
-        if (HiveList.GetTypedNode().HasField("Hive.FileFlush"))
-        {
+        if (HiveList.GetTypedNode().HasField("Flags")) {
+
+            HiveObject.Flags = HiveList.GetTypedNode().Field("Flags").GetUlong();
+        }
+
+        if (HiveList.GetTypedNode().HasField("Hive.ReleaseCellRoutine")) {
+
+            HiveObject.ReleaseCellRoutine = HiveList.GetTypedNode().Field("Hive.ReleaseCellRoutine").GetPtr();
+        }
+
+        if (HiveList.GetTypedNode().HasField("Hive.FileSetSize")) {
+
+            HiveObject.FileSetSize = HiveList.GetTypedNode().Field("Hive.FileSetSize").GetPtr();
+        }
+
+        if (HiveList.GetTypedNode().HasField("Hive.FileFlush")) {
+
             HiveObject.FileFlush = HiveList.GetTypedNode().Field("Hive.FileFlush").GetPtr();
         }
 
