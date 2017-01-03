@@ -38,6 +38,412 @@ Revision History:
 #include "stdafx.h"
 #include "SwishDbgExt.h"
 
+
+vector<HIVE_OBJECT> g_Hives;
+
+
+vector<KEY_NAME>
+GetKeysNames(
+    _In_ PWSTR FullKeyPath
+    )
+{
+    vector<KEY_NAME> SubKeysNames;
+    KEY_NAME KeyName;
+    PWSTR CurrentName;
+    PWSTR RemainingName;
+    ULONG Length;
+
+    CurrentName = FullKeyPath;
+    RemainingName = FullKeyPath;
+
+    while (*CurrentName) {
+
+        CurrentName++;
+        RemainingName++;
+
+        while (*RemainingName && (*RemainingName != L'\\')) {
+
+            RemainingName++;
+        }
+
+        Length = (ULONG)(RemainingName - CurrentName);
+
+        if (Length) {
+
+            StringCchCopyNW(KeyName.Name, _countof(KeyName.Name), CurrentName, Length);
+
+            SubKeysNames.push_back(KeyName);
+        }
+
+        CurrentName = RemainingName;
+    }
+
+    return SubKeysNames;
+}
+
+vector<KEY_NODE>
+GetSubKeys(
+    _In_ ExtRemoteTyped KeyHive,
+    _In_ ExtRemoteTyped KeyNode
+    )
+{
+    vector<KEY_NODE> SubKeys;
+
+    ULONG SubKeysStableCount = KeyNode.Field("SubKeyCounts").ArrayElement(0).GetUlong();
+    ULONG SubKeysVolatileCount = KeyNode.Field("SubKeyCounts").ArrayElement(1).GetUlong();
+
+    if (SubKeysStableCount) {
+
+        ULONG SubKeysStableIndex = KeyNode.Field("SubKeyLists").ArrayElement(0).GetUlong();
+        ULONG64 SubKeysStableTableAddress = RegGetCellPaged(KeyHive, SubKeysStableIndex);
+
+        ULONG MaxSize = sizeof(CM_KEY_FAST_INDEX) + SubKeysStableCount * sizeof(CM_INDEX);
+
+        PULONG SubKeysStableTable = (PULONG)calloc(MaxSize, sizeof(BYTE));
+
+        if (SubKeysStableTable) {
+
+            if (ExtRemoteTypedEx::ReadVirtual(SubKeysStableTableAddress, SubKeysStableTable, MaxSize, NULL) == S_OK) {
+                        
+                PCM_KEY_INDEX CmKeyIndex = (PCM_KEY_INDEX)SubKeysStableTable;
+
+                for (UINT i = 0; i < SubKeysStableCount; i++) {
+
+                    try {
+
+                        ULONG64 Address = 0;
+                        KEY_NODE SubKey = {0};
+
+                        if ((CmKeyIndex->Signature == CM_INDEX_ROOT_SIGNATURE) || (CmKeyIndex->Signature == CM_INDEX_LEAF_SIGNATURE)) {
+
+                            Address = RegGetCellPaged(KeyHive, CmKeyIndex->CellIndex[i]);
+                        }
+                        else if ((CmKeyIndex->Signature == CM_FAST_LEAF_SIGNATURE) || (CmKeyIndex->Signature == CM_HASH_LEAF_SIGNATURE)) {
+
+                            PCM_KEY_FAST_INDEX CmKeyFastIndex = (PCM_KEY_FAST_INDEX)CmKeyIndex;
+                            Address = RegGetCellPaged(KeyHive, CmKeyFastIndex->Index[i].CellIndex);
+                        }
+
+                        ExtRemoteTyped ChildKeyNode("(nt!_CM_KEY_NODE *)@$extin", Address);
+
+                        SubKey.KeyNode = ChildKeyNode;
+
+                        USHORT NameLength = ChildKeyNode.Field("NameLength").GetUshort();
+
+                        if (NameLength) {
+
+                            CHAR Name[MAX_PATH] = {0};
+
+                            ChildKeyNode.Field("Name").GetString(Name, NameLength, sizeof(Name) - 1);
+
+                            StringCchPrintfW(SubKey.Name, _countof(SubKey.Name), L"%S", Name);
+
+                            SubKeys.push_back(SubKey);
+                        }
+                    }
+                    catch (...) {
+
+                    }
+                }
+            }
+
+            free(SubKeysStableTable);
+        }
+    }
+
+    if (SubKeysVolatileCount) {
+
+        ULONG SubKeysVolatileIndex = KeyNode.Field("SubKeyLists").ArrayElement(1).GetUlong();
+        ULONG64 SubKeysVolatileTableAddress = RegGetCellPaged(KeyHive, SubKeysVolatileIndex);
+
+        ULONG MaxSize = sizeof(CM_KEY_FAST_INDEX) + SubKeysVolatileCount * sizeof(CM_INDEX);
+
+        PULONG SubKeysVolatileTable = (PULONG)calloc(MaxSize, sizeof(BYTE));
+
+        if (SubKeysVolatileTable) {
+
+            if (ExtRemoteTypedEx::ReadVirtual(SubKeysVolatileTableAddress, SubKeysVolatileTable, MaxSize, NULL) == S_OK) {
+
+                PCM_KEY_INDEX CmKeyIndex = (PCM_KEY_INDEX)SubKeysVolatileTable;
+
+                for (UINT i = 0; i < SubKeysVolatileCount; i++) {
+
+                    try {
+
+                        ULONG64 Address = 0;
+                        KEY_NODE SubKey = {0};
+
+                        if ((CmKeyIndex->Signature == CM_INDEX_ROOT_SIGNATURE) || (CmKeyIndex->Signature == CM_INDEX_LEAF_SIGNATURE)) {
+
+                            Address = RegGetCellPaged(KeyHive, CmKeyIndex->CellIndex[i]);
+                        }
+                        else if ((CmKeyIndex->Signature == CM_FAST_LEAF_SIGNATURE) || (CmKeyIndex->Signature == CM_HASH_LEAF_SIGNATURE)) {
+
+                            PCM_KEY_FAST_INDEX CmKeyFastIndex = (PCM_KEY_FAST_INDEX)CmKeyIndex;
+                            Address = RegGetCellPaged(KeyHive, CmKeyFastIndex->Index[i].CellIndex);
+                        }
+
+                        ExtRemoteTyped ChildKeyNode("(nt!_CM_KEY_NODE *)@$extin", Address);
+
+                        SubKey.KeyNode = ChildKeyNode;
+
+                        USHORT NameLength = ChildKeyNode.Field("NameLength").GetUshort();
+
+                        if (NameLength) {
+
+                            CHAR Name[MAX_PATH] = {0};
+
+                            ChildKeyNode.Field("Name").GetString(Name, NameLength, sizeof(Name) - 1);
+
+                            StringCchPrintfW(SubKey.Name, _countof(SubKey.Name), L"%S", Name);
+
+                            SubKeys.push_back(SubKey);
+                        }
+                    }
+                    catch (...) {
+
+                    }
+                }
+            }
+
+            free(SubKeysVolatileTable);
+        }
+    }
+
+    return SubKeys;
+}
+
+ExtRemoteTyped
+GetKeyNode(
+    _In_ PWSTR FullKeyPath
+    )
+{
+    ULONG64 CmpMasterHive;
+    ULONG64 CmpRegistryRootObject;
+    ExtRemoteTyped KeyNode;
+
+    try {
+
+        ReadPointer(GetExpression("nt!CmpMasterHive"), &CmpMasterHive);
+        ReadPointer(GetExpression("nt!CmpRegistryRootObject"), &CmpRegistryRootObject);
+
+        ExtRemoteTyped KeyHive("(nt!_HHIVE *)@$extin", CmpMasterHive);
+        ExtRemoteTyped KeyBody("(nt!_CM_KEY_BODY *)@$extin", CmpRegistryRootObject);
+        ExtRemoteTyped KeyControlBlock("(nt!_CM_KEY_CONTROL_BLOCK *)@$extin", KeyBody.Field("KeyControlBlock").GetPtr());
+
+        ULONG KeyCell = KeyControlBlock.Field("KeyCell").GetUlong();
+
+        KeyNode = ExtRemoteTyped("(nt!_CM_KEY_NODE *)@$extin", RegGetCellPaged(KeyHive, KeyCell));
+
+        vector<KEY_NAME> KeysNames = GetKeysNames(FullKeyPath);
+
+        for (size_t i = 1; i < KeysNames.size(); i++) {
+
+            BOOL IsFound = FALSE;
+
+            vector<KEY_NODE> SubKeys = GetSubKeys(KeyHive, KeyNode);
+
+            for (size_t j = 0; j < SubKeys.size(); j++) {
+
+                if (0 == _wcsicmp(KeysNames[i].Name, SubKeys[j].Name)) {
+
+                    KeyNode = SubKeys[j].KeyNode;
+
+                    if (KeyNode.Field("Signature").GetUshort() == CM_LINK_NODE_SIGNATURE) {
+
+                        KeyHive = ExtRemoteTyped("(nt!_HHIVE *)@$extin", KeyNode.Field("ChildHiveReference.KeyHive").GetPtr());
+                        KeyCell = KeyNode.Field("ChildHiveReference.KeyCell").GetUlong();
+                        KeyNode = ExtRemoteTyped("(nt!_CM_KEY_NODE *)@$extin", RegGetCellPaged(KeyHive, KeyCell));
+                    }
+
+                    IsFound = TRUE;
+                    break;
+                }
+            }
+
+            if (!IsFound) {
+
+                KeyNode = ExtRemoteTyped("(nt!_CM_KEY_NODE *)@$extin", NULL);
+                break;
+            }
+        }
+    }
+    catch (...) {
+
+    }
+
+    return KeyNode;
+}
+
+ExtRemoteTyped
+GetHive(
+    _In_ PWSTR FullKeyPath
+    )
+{
+    PHIVE_OBJECT Hive = NULL;
+    ULONG64 HiveAddress = NULL;
+    ULONG HiveRootLength;
+    ULONG KeyPathLength;
+
+    if (g_Hives.size()) {
+
+        KeyPathLength = (ULONG)wcslen(FullKeyPath);
+
+        for (size_t i = 0; i < g_Hives.size(); i++) {
+
+            HiveRootLength = (ULONG)wcslen(g_Hives[i].HiveRootPath);
+
+            if (HiveRootLength && (HiveRootLength <= KeyPathLength) && (0 == _wcsnicmp(g_Hives[i].HiveRootPath, FullKeyPath, HiveRootLength))) {
+
+                Hive = &g_Hives[i];
+                break;
+            }
+        }
+
+        if (!Hive) {
+
+            Hive = &g_Hives[0];
+        }
+
+        HiveAddress = Hive->HivePtr;
+    }
+
+    return ExtRemoteTyped("(nt!_HHIVE *)@$extin", HiveAddress);
+}
+
+BOOL
+RegGetKeyValue(
+    _In_ PWSTR FullKeyPath,
+    _In_ PWSTR ValueName,
+    _Out_ PVOID Data,
+    _In_ ULONG DataLength
+    )
+{
+    BOOL Status = FALSE;
+
+    ZeroMemory(Data, DataLength);
+
+    try {
+
+        ExtRemoteTyped CmHive = GetHive(FullKeyPath);
+        ExtRemoteTyped KeyNode = GetKeyNode(FullKeyPath);
+
+        ULONG ValuesCount = KeyNode.Field("ValueList").Field("Count").GetUlong();
+
+        if (ValuesCount) {
+
+            PULONG ValuesTable = (PULONG)calloc(ValuesCount, sizeof(ULONG));
+
+            if (ValuesTable) {
+
+                ULONG ValuesIndex = KeyNode.Field("ValueList").Field("List").GetUlong();
+                ULONG64 ValuesTableAddress = RegGetCellPaged(CmHive, ValuesIndex);
+
+                if (ExtRemoteTypedEx::ReadVirtual(ValuesTableAddress, ValuesTable, ValuesCount * sizeof(ULONG), NULL) == S_OK) {
+
+                    CHAR ValueNameAnsi[MAX_VALUE_NAME];
+                    WCHAR ValueNameWide[MAX_VALUE_NAME];
+
+                    for (UINT j = 0; j < ValuesCount; j++) {
+
+                        ULONG64 KeyValueAddress = RegGetCellPaged(CmHive, ValuesTable[j]);
+
+                        ExtRemoteTyped KeyValue("(nt!_CM_KEY_VALUE *)@$extin", KeyValueAddress);
+
+                        USHORT NameLength = KeyValue.Field("NameLength").GetUshort();
+
+                        if (NameLength) {
+
+                            ZeroMemory(ValueNameAnsi, sizeof(ValueNameAnsi));
+
+                            KeyValue.Field("Name").GetString(ValueNameAnsi, NameLength, sizeof(ValueNameAnsi) - 1);
+
+                            StringCchPrintfW(ValueNameWide, _countof(ValueNameWide), L"%S", ValueNameAnsi);
+
+                            if (0 == wcscmp(ValueName, ValueNameWide)) {
+
+                                if (KeyValue.Field("Signature").GetUshort() == CM_KEY_VALUE_SIGNATURE) {
+
+                                    ULONG ValueLength = (KeyValue.Field("DataLength").GetUlong()) & 0x7FFFFFFF;
+
+                                    if (ValueLength <= DataLength) {
+
+                                        switch (KeyValue.Field("Type").GetUlong()) {
+
+                                        case REG_SZ:
+                                        case REG_EXPAND_SZ:
+                                        case REG_MULTI_SZ:
+                                        case REG_BINARY:
+                                        case REG_LINK:
+                                        {
+                                            ULONG64 ValueAddress = RegGetCellPaged(CmHive, KeyValue.Field("Data").GetUlong());
+
+                                            if (ExtRemoteTypedEx::ReadVirtual(ValueAddress, Data, ValueLength, NULL) == S_OK) {
+
+                                                Status = TRUE;
+                                            }
+
+                                            break;
+                                        }
+                                        case REG_DWORD:
+                                        case REG_DWORD_BIG_ENDIAN:
+                                        {
+                                            *(PDWORD)Data = KeyValue.Field("Data").GetUlong();
+
+                                            Status = TRUE;
+
+                                            break;
+                                        }
+                                        case REG_QWORD:
+                                        {
+                                            *(PDWORD64)Data = KeyValue.Field("Data").GetLong64();
+
+                                            Status = TRUE;
+
+                                            break;
+                                        }
+                                        }
+                                    }
+                                }
+
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                free(ValuesTable);
+            }
+        }
+    }
+    catch (...) {
+
+    }
+
+    return Status;
+}
+
+vector<KEY_NODE>
+RegGetSubKeys(
+    _In_ PWSTR FullKeyPath
+    )
+{
+    vector<KEY_NODE> SubKeys;
+
+    try {
+
+        ExtRemoteTyped KeyHive = GetHive(FullKeyPath);
+        ExtRemoteTyped KeyNode = GetKeyNode(FullKeyPath);
+
+        SubKeys = GetSubKeys(KeyHive, KeyNode);
+    }
+    catch (...) {
+
+    }
+
+    return SubKeys;
+}
+
 ULONG64
 RegGetCellPaged(
     _In_ ExtRemoteTyped KeyHive,
@@ -559,4 +965,14 @@ Return Value:
     }
 
     return Hives;
+}
+
+BOOL
+RegInitialize(
+    VOID
+    )
+{
+    g_Hives = GetHives();
+
+    return g_Hives.size() ? TRUE : FALSE;
 }
