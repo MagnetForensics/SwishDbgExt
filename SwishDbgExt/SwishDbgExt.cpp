@@ -1514,15 +1514,22 @@ EXT_COMMAND(ms_hivelist,
     CHAR Buffer[128] = { 0 };
 
     Dml("\n"
-        "    |------------------------|----------------------------------------------------------------------------|------------------------|\n"
-        "    | <col fg=\"emphfg\">%-22s</col> | <col fg=\"emphfg\">%-74s</col> | <col fg=\"emphfg\">%-64s</col> |\n"
-        "    |------------------------|----------------------------------------------------------------------------|------------------------|\n",
-        "Hive ('U' = Untrusted)", "Hive Root Path", "File user name");
+        "    |------------------------|--------------------|----------------------------------------------------------------------------|------------------------------------------------------------------------\n"
+        "    | <col fg=\"emphfg\">%-22s</col> | <col fg=\"emphfg\">%-18s</col> | <col fg=\"emphfg\">%-74s</col> | <col fg=\"emphfg\">%-64s</col>\n"
+        "    |------------------------|--------------------|----------------------------------------------------------------------------|------------------------------------------------------------------------\n",
+        "Hive ('U' = Untrusted)", "Key Node", "Hive Root Path", "File User Name");
 
     for each (HIVE_OBJECT Hive in Hives)
     {
-        Dml("    | <link cmd = \"!reg openkeys 0x%I64X\">0x%I64X</link> (%s) | %-74S | %-64S |\n",
-            Hive.HivePtr, Hive.HivePtr, Hive.Flags & CM_FLAG_UNTRUSTED ? "U" : "T", Hive.HiveRootPath, Hive.FileUserName);
+        Dml("    | <link cmd = \"!reg openkeys 0x%I64X\">0x%I64X</link> (%s) | <link cmd = \"!ms_readknode 0x%I64X 0x%I64X\">0x%I64X</link> | %-74S | %-64S\n",
+            Hive.HivePtr,
+            Hive.HivePtr,
+            Hive.Flags & CM_FLAG_UNTRUSTED ? "U" : "T",
+            Hive.HivePtr,
+            Hive.KeyNodePtr,
+            Hive.KeyNodePtr,
+            Hive.HiveRootPath,
+            Hive.FileUserName);
 
         if (!Scan) continue;
 
@@ -1590,6 +1597,8 @@ EXT_COMMAND(ms_hivelist,
                 GetNameByOffset(Hive.FileFlush, (PSTR)Buffer, _countof(Buffer)));
         }
     }
+
+    Dml("\n");
 }
 
 EXT_COMMAND(ms_idt,

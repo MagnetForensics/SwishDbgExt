@@ -83,6 +83,7 @@ typedef struct _CM_KEY_INDEX {
 
 typedef struct _HIVE_OBJECT {
     ULONG64 HivePtr;
+    ULONG64 KeyNodePtr;
 
     ULONG Flags;
 

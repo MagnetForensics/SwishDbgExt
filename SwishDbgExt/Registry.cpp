@@ -935,6 +935,7 @@ Return Value:
         ExtRemoteTypedEx::GetUnicodeString(HiveList.GetTypedNode().Field("HiveRootPath"), (PWSTR)&HiveObject.HiveRootPath, sizeof(HiveObject.HiveRootPath));
 
         HiveObject.HivePtr = HiveList.GetNodeOffset();
+        HiveObject.KeyNodePtr = GetKeyNode(HiveObject.HiveRootPath).m_Data;
         HiveObject.GetCellRoutine = HiveList.GetTypedNode().Field("Hive.GetCellRoutine").GetPtr();
         HiveObject.Allocate = HiveList.GetTypedNode().Field("Hive.Allocate").GetPtr();
         HiveObject.Free = HiveList.GetTypedNode().Field("Hive.Free").GetPtr();
