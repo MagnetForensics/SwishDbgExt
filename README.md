@@ -79,6 +79,8 @@ Display list of registry hives.
 `ms_hivelist` displays a list of registry hives.
 We can look directly into a hive (\Registry\Machine\Software for example) to see its subkeys, values, etc:
 
+![Alt text](Documents/Hivelist.gif?raw=true "Hive List")
+
 ### !ms_idt
 Display IDT.
 
