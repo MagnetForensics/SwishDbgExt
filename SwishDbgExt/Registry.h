@@ -55,11 +55,14 @@ Revision History:
 #define CM_INDEX_LEAF_SIGNATURE 'il'
 
 #define CM_KEY_NODE_SIGNATURE 'kn'
+#define CM_LINK_NODE_SIGNATURE 'kl'
 #define CM_KEY_VALUE_SIGNATURE 'kv'
 
 #define CM_FLAG_UNTRUSTED 0x1
 
 #define CM_HIVE_SIGNATURE 0xbee0bee0
+
+#define MAX_VALUE_NAME 16383
 
 typedef struct _CM_INDEX {
     ULONG CellIndex;
@@ -80,6 +83,7 @@ typedef struct _CM_KEY_INDEX {
 
 typedef struct _HIVE_OBJECT {
     ULONG64 HivePtr;
+    ULONG64 KeyNodePtr;
 
     ULONG Flags;
 
@@ -95,6 +99,16 @@ typedef struct _HIVE_OBJECT {
     ULONG64 FileRead;
     ULONG64 FileFlush;
 } HIVE_OBJECT, *PHIVE_OBJECT;
+
+typedef struct _KEY_NAME {
+    WCHAR Name[MAX_PATH];
+} KEY_NAME, *PKEY_NAME ;
+
+typedef struct _KEY_NODE {
+    WCHAR Name[MAX_PATH];
+    ExtRemoteTyped KeyNode;
+} KEY_NODE, *PKEY_NODE;
+
 
 ULONG64
 RegGetCellPaged(
@@ -118,6 +132,24 @@ LPWSTR
 RegGetKeyName(
     ExtRemoteTyped KeyControlBlock
 );
+
+BOOL
+RegGetKeyValue(
+    _In_ PWSTR FullKeyPath,
+    _In_ PWSTR ValueName,
+    _In_ PVOID Data,
+    _In_ ULONG DataLength
+    );
+
+vector<KEY_NODE>
+RegGetSubKeys(
+    _In_ PWSTR FullKeyPath
+    );
+
+BOOL
+RegInitialize(
+    VOID
+    );
 
 vector<HIVE_OBJECT>
 GetHives(
