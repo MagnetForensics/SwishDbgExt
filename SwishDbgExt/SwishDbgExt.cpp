@@ -42,13 +42,12 @@ Revision History:
 #include "stdafx.h"
 #include "SwishDbgExt.h"
 
-#ifdef _DEBUG
-#define VERBOSE TRUE
+#ifdef _VERBOSE
+BOOLEAN g_Verbose = TRUE;
 #else
-#define VERBOSE FALSE
+BOOLEAN g_Verbose = FALSE;
 #endif
 
-BOOLEAN g_Verbose = VERBOSE;
 
 class EXT_CLASS : public ExtExtension
 {
@@ -115,7 +114,6 @@ public:
     EXT_COMMAND_METHOD(ms_fixit);
 
     EXT_COMMAND_METHOD(ms_lxss);
-
 };
 
 EXT_DECLARE_GLOBALS();
@@ -134,7 +132,8 @@ EXT_COMMAND(ms_process,
     "{vars;b,o;vars;Display environment variables}"
     "{exports;b,o;exports;Display exports belonging to process}"
     "{all;b,o;all;Display or scan all}"
-    "{scan;b,o;scan;Display only malicious artifacts}")
+    "{scan;b,o;scan;Display only malicious artifacts}"
+    )
 {
     ULONG Flags = 0;
     ULONG64 Pid;
@@ -143,12 +142,13 @@ EXT_COMMAND(ms_process,
     Pid = GetArgU64("pid", FALSE);
     LPCSTR HandlesArg = GetArgStr("handletype", FALSE);
     ULONG64 HandleTable = GetArgU64("handletable", FALSE);
+
     if (HandlesArg || HandleTable) Flags |= PROCESS_HANDLES_FLAG;
 
-    if (HasArg("vars")) Flags |= PROCESS_ENVVAR_FLAG;
+    if (HasArg("vars"))    Flags |= PROCESS_ENVVAR_FLAG;
     if (HasArg("threads")) Flags |= PROCESS_THREADS_FLAG;
-    if (HasArg("vads")) Flags |= PROCESS_VADS_FLAG;
-    if (HasArg("dlls")) Flags |= PROCESS_DLLS_FLAG;
+    if (HasArg("vads"))    Flags |= PROCESS_VADS_FLAG;
+    if (HasArg("dlls"))    Flags |= PROCESS_DLLS_FLAG;
     if (HasArg("handles")) Flags |= PROCESS_HANDLES_FLAG;
 
     // if (HasArg("dlls_exports")) Flags |= PROCESS_DLLS_FLAG | PROCESS_DLL_EXPORTS_FLAG;
@@ -179,8 +179,8 @@ EXT_COMMAND(ms_process,
 
     ProcessArray CachedProcessList = GetProcesses(Pid, Flags);
 
-    for each (MsProcessObject ProcObj in CachedProcessList)
-    {
+    for each (MsProcessObject ProcObj in CachedProcessList) {
+
         Dml("\n<col fg=\"changed\">Process:</col>       <link cmd=\"!process %p 1\">%-20s</link> (PID=0x%4x) | "
             "[<link cmd=\"!ms_process /pid 0x%I64X /dlls\">+Dlls</link>] "
             "[<link cmd=\"!ms_process /pid 0x%I64X /dlls /exports\">+Exports</link>] "
@@ -199,6 +199,7 @@ EXT_COMMAND(ms_process,
             ProcObj.m_CcProcessObject.ProcessId,
             ProcObj.m_CcProcessObject.ProcessId,
             ProcObj.m_CcProcessObject.ProcessObjectPtr);
+
         if (wcslen(ProcObj.m_CcProcessObject.FullPath)) Dml("    <col fg=\"emphfg\">Path:          </col> %S\n", ProcObj.m_CcProcessObject.FullPath);
         if (strlen(ProcObj.m_PdbInfo.PdbName)) Dml("    <col fg=\"emphfg\">PDB:           </col> %s\n", ProcObj.m_PdbInfo.PdbName);
         if (wcslen(ProcObj.m_FileVersion.CompanyName)) Dml("    <col fg=\"emphfg\">Vendor:        </col> %S\n", ProcObj.m_FileVersion.CompanyName);
@@ -207,105 +208,112 @@ EXT_COMMAND(ms_process,
         if (ProcObj.m_CcProcessObject.CommandLine) Dml("    <col fg=\"emphfg\">Commandline:   </col> %S\n", ProcObj.m_CcProcessObject.CommandLine);
 
         Dml("    <col fg=\"emphfg\">Sections:</col>      ");
-        for each (MsPEImageFile::CACHED_SECTION_INFO Section in ProcObj.m_CcSections)
-        {
+
+        for each (MsPEImageFile::CACHED_SECTION_INFO Section in ProcObj.m_CcSections) {
+
             Dml("%s, ", Section.Name);
         }
+
         Dml("\n");
 
-        if (ProcObj.m_TypedObject.HasField("Flags2.ProtectedProcess"))
-        {
+        if (ProcObj.m_TypedObject.HasField("Flags2.ProtectedProcess")) {
+
             // Windows Vista+
         }
-        else if (ProcObj.m_TypedObject.HasField("Protection"))
-        {
+        else if (ProcObj.m_TypedObject.HasField("Protection")) {
+
             // Windows 8.1
         }
 
-        if (Flags & PROCESS_ENVVAR_FLAG)
-        {
-            for each (MsProcessObject::ENV_VAR_OBJECT EnvVar in ProcObj.m_EnvVars)
-            {
+        if (Flags & PROCESS_ENVVAR_FLAG) {
+
+            for each (MsProcessObject::ENV_VAR_OBJECT EnvVar in ProcObj.m_EnvVars) {
+
                 Dml("    %S\n", EnvVar.Variable);
             }
         }
 
         if ((Flags & PROCESS_EXPORTS_FLAG) && (
             ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && ProcObj.m_NumberOfHookedAPIs) ||
-            (!(Flags & PROCESS_SCAN_MALICIOUS_FLAG) && ProcObj.m_NumberOfExportedFunctions)))
-        {
+            (!(Flags & PROCESS_SCAN_MALICIOUS_FLAG) && ProcObj.m_NumberOfExportedFunctions))) {
+
             Dml("    |------|------|--------------------|----------------------------------------------------|---------|\n"
                 "    | <col fg=\"emphfg\">%-4s</col> | <col fg=\"emphfg\">%-4s</col> | <col fg=\"emphfg\">%-18s</col> | <col fg=\"emphfg\">%-50s</col> | <col fg=\"emphfg\">%-7s</col> | <col fg=\"emphfg\">%-6s</col> |\n"
                 "    |------|------|--------------------|----------------------------------------------------|---------|\n",
                 "Indx", "Ord", "Addr", "Name", "Patched", "Hooked");
 
-            for each (MsPEImageFile::EXPORT_INFO ExportInfo in ProcObj.m_Exports)
-            {
-                ULONG64 Ptr = ProcObj.m_ImageBase + ExportInfo.Address;
+            for each (MsPEImageFile::EXPORT_INFO ExportInfo in ProcObj.m_Exports) {
+
+                ULONG64 Ptr = ExportInfo.AddressInfo.Address;
 
                 if (!(Flags & PROCESS_SCAN_MALICIOUS_FLAG) ||
-                    ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && (ExportInfo.IsTablePatched || ExportInfo.IsHooked)))
-                {
-                    Dml((ExportInfo.IsTablePatched || ExportInfo.IsHooked) ?
+                    ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && (ExportInfo.AddressInfo.IsTablePatched || ExportInfo.AddressInfo.IsHooked))) {
+
+                    Dml((ExportInfo.AddressInfo.IsTablePatched || ExportInfo.AddressInfo.IsHooked) ?
                         "    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | <col fg=\"changed\">%-50s</col> | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col>\n" :
                         "    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | %-50s | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col>\n",
                         ExportInfo.Index, ExportInfo.Ordinal,
                         Ptr, Ptr, ExportInfo.Name,
-                        ExportInfo.IsTablePatched ? "Yes" : "",
-                        ExportInfo.IsHooked ? "Yes" : "");
+                        ExportInfo.AddressInfo.IsTablePatched ? "Yes" : "",
+                        ExportInfo.AddressInfo.IsHooked ? "Yes" : "");
                 }
             }
 
             g_Ext->Dml("\n");
         }
 
-        UINT i = 0;
-        for each (MsDllObject DllObj in ProcObj.m_DllList)
-        {
+        int i = 0;
+
+        for each (MsDllObject DllObj in ProcObj.m_DllList) {
+
             Dml("    -> [%3d]: (%s) %S\n",
                 i,
                 DllObj.mm_CcDllObject.IsWow64 ? "<col fg=\"changed\">Wow64</col>" : "     ",
                 DllObj.mm_CcDllObject.FullDllName);
+
             i += 1;
 
             if ((Flags & PROCESS_DLL_EXPORTS_FLAG) && (
                 ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && DllObj.m_NumberOfHookedAPIs) ||
-                (!(Flags & PROCESS_SCAN_MALICIOUS_FLAG) && DllObj.m_NumberOfExportedFunctions)))
-            {
+                (!(Flags & PROCESS_SCAN_MALICIOUS_FLAG) && DllObj.m_NumberOfExportedFunctions))) {
+
                 Dml("    |------|------|--------------------|----------------------------------------------------|---------|\n"
                     "    | <col fg=\"emphfg\">%-4s</col> | <col fg=\"emphfg\">%-4s</col> | <col fg=\"emphfg\">%-18s</col> | <col fg=\"emphfg\">%-50s</col> | <col fg=\"emphfg\">%-7s</col> | <col fg=\"emphfg\">%-6s</col> |\n"
                     "    |------|------|--------------------|----------------------------------------------------|---------|\n",
                     "Indx", "Ord", "Addr", "Name", "Patched", "Hooked");
 
-                for each (MsPEImageFile::EXPORT_INFO ExportInfo in DllObj.m_Exports)
-                {
-                    ULONG64 Ptr = DllObj.m_ImageBase + ExportInfo.Address;
+                for each (MsPEImageFile::EXPORT_INFO ExportInfo in DllObj.m_Exports) {
+
+                    ULONG64 Ptr = ExportInfo.AddressInfo.Address;
 
                     if (!(Flags & PROCESS_SCAN_MALICIOUS_FLAG) ||
-                        ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && (ExportInfo.IsTablePatched || ExportInfo.IsHooked)))
-                    {
-                        Dml((ExportInfo.IsTablePatched || ExportInfo.IsHooked) ?
+                        ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && (ExportInfo.AddressInfo.IsTablePatched || ExportInfo.AddressInfo.IsHooked))) {
+
+                        Dml((ExportInfo.AddressInfo.IsTablePatched || ExportInfo.AddressInfo.IsHooked) ?
                             "    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | <col fg=\"changed\">%-50s</col> | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col>\n" :
                             "    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | %-50s | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col>\n",
                             ExportInfo.Index, ExportInfo.Ordinal,
                             Ptr, Ptr, ExportInfo.Name,
-                            ExportInfo.IsTablePatched ? "Yes" : "",
-                            ExportInfo.IsHooked ? "Yes" : "");
+                            ExportInfo.AddressInfo.IsTablePatched ? "Yes" : "",
+                            ExportInfo.AddressInfo.IsHooked ? "Yes" : "");
 
-                        if ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && ExportInfo.IsHooked)
-                        {
+                        if ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && ExportInfo.AddressInfo.IsHooked) {
+
                             ExecuteSilent(".process /p /r 0x%I64X", ProcObj.m_CcProcessObject.ProcessObjectPtr);
                             Execute("u 0x%I64X L3", Ptr);
                         }
                     }
                 }
+
                 Dml("\n");
             }
         }
 
-        if (Flags & PROCESS_HANDLES_FLAG)
-        {
+        if (Flags & PROCESS_HANDLES_FLAG) {
+
             ProcObj.GetHandles(HandleTable);
+
+            WCHAR ArgType[64] = {0};
 
             Dml("\n"
                 "    |------|----------------------|--------------------|---------------------------------------------------------------------------|\n"
@@ -313,35 +321,40 @@ EXT_COMMAND(ms_process,
                 "    |------|----------------------|--------------------|---------------------------------------------------------------------------|\n",
                 "Hdle", "Object Type", "Addr", "Name");
 
-            WCHAR ArgType[64] = { 0 };
+            if (HandlesArg) {
 
-            swprintf_s(ArgType, _countof(ArgType), L"%S", HandlesArg);
+                StringCchPrintfW(ArgType, _countof(ArgType), L"%S", HandlesArg);
+            }
 
-            for each (HANDLE_OBJECT Handle in ProcObj.m_Handles)
-            {
-                if (HandlesArg && wcslen(ArgType) && (_wcsicmp(ArgType, Handle.Type) != 0)) continue;
+            for each (HANDLE_OBJECT Handle in ProcObj.m_Handles) {
 
-                if (_wcsicmp(Handle.Type, L"Key") == 0)
-                {
+                if (HandlesArg && wcslen(ArgType) && (_wcsicmp(ArgType, Handle.Type) != 0)) {
+
+                    continue;
+                }
+
+                if (_wcsicmp(Handle.Type, L"Key") == 0) {
+
                     Dml("    | %04x | %-20S | <link cmd=\"!ms_readkcb 0x%016I64X\">0x%016I64X</link> | %-256S | \n",
                         Handle.Handle, Handle.Type, Handle.ObjectKcb, Handle.ObjectPtr, Handle.Name);
                 }
-                else if (_wcsicmp(Handle.Type, L"Directory") == 0)
-                {
+                else if (_wcsicmp(Handle.Type, L"Directory") == 0) {
+
                     Dml("    | %04x | %-20S | <link cmd=\"!ms_object 0x%016I64X\">0x%016I64X</link> | %-256S | \n",
                         Handle.Handle, Handle.Type, Handle.ObjectPtr, Handle.ObjectPtr, Handle.Name);
                 }
-                else
-                {
+                else {
+
                     Dml("    | %04x | %-20S | <link cmd=\"!object 0x%016I64X\">0x%016I64X</link> | %-256S | \n",
                         Handle.Handle, Handle.Type, Handle.ObjectPtr, Handle.ObjectPtr, Handle.Name);
                 }
             }
+
             Dml("\n");
         }
 
-        if (Flags & PROCESS_VADS_FLAG)
-        {
+        if (Flags & PROCESS_VADS_FLAG) {
+
             ProcObj.MmGetVads();
 
             Dml("\n"
@@ -350,44 +363,43 @@ EXT_COMMAND(ms_process,
                 "    |----------------------|----------|--------------------|--------------------|---------------------------------------------------------------------------|\n",
                 "Protection", "MalScore", "Start range", "End range", "FileObject");
 
-            for each (VAD_OBJECT Vad in ProcObj.m_Vads)
-            {
+            for each (VAD_OBJECT Vad in ProcObj.m_Vads) {
+
+                HANDLE_OBJECT Handle = {0};
+                CHAR Protection[22] = {0};
                 ULONG MalScore = 0;
-                HANDLE_OBJECT Handle = { 0 };
                 BOOLEAN FoResult = ObReadObject(Vad.FileObject, &Handle);
 
-                CHAR Protection[22] = { 0 };
+                switch (Vad.Protection) {
 
-                switch (Vad.Protection)
-                {
-                    case MM_READONLY:
-                        strcpy_s(Protection, sizeof(Protection), "MM_READONLY");
-                        break;
-                    case MM_EXECUTE:
-                        strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE");
-                        break;
-                    case MM_EXECUTE_READ:
-                        strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE_READ");
-                        break;
-                    case MM_READWRITE:
-                        strcpy_s(Protection, sizeof(Protection), "MM_READWRITE");
-                        break;
-                    case MM_WRITECOPY:
-                        strcpy_s(Protection, sizeof(Protection), "MM_WRITECOPY");
-                        break;
-                    case MM_EXECUTE_READWRITE:
-                        strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE_READWRITE");
-                        break;
-                    case MM_EXECUTE_WRITECOPY:
-                        strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE_WRITECOPY");
-                        break;
+                case MM_READONLY:
+                    strcpy_s(Protection, sizeof(Protection), "MM_READONLY");
+                    break;
+                case MM_EXECUTE:
+                    strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE");
+                    break;
+                case MM_EXECUTE_READ:
+                    strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE_READ");
+                    break;
+                case MM_READWRITE:
+                    strcpy_s(Protection, sizeof(Protection), "MM_READWRITE");
+                    break;
+                case MM_WRITECOPY:
+                    strcpy_s(Protection, sizeof(Protection), "MM_WRITECOPY");
+                    break;
+                case MM_EXECUTE_READWRITE:
+                    strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE_READWRITE");
+                    break;
+                case MM_EXECUTE_WRITECOPY:
+                    strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE_WRITECOPY");
+                    break;
                 }
 
                 ULONG VadSize = (ULONG)((Vad.EndingVpn - Vad.StartingVpn) * PAGE_SIZE);
                 ULONG64 BaseAddress = Vad.StartingVpn * PAGE_SIZE;
 
-                if (bScan)
-                {
+                if (bScan) {
+
                     MalScore = GetMalScoreEx(FALSE, &ProcObj, BaseAddress, VadSize);
                 }
 
@@ -397,15 +409,14 @@ EXT_COMMAND(ms_process,
                     Vad.StartingVpn * PAGE_SIZE,
                     Vad.EndingVpn * PAGE_SIZE,
                     Vad.FileObject,
-                    FoResult ? Handle.Name : L""
-                    );
+                    FoResult ? Handle.Name : L"");
             }
 
             ReleaseObjectTypeTable();
         }
 
-        if (Flags & PROCESS_THREADS_FLAG)
-        {
+        if (Flags & PROCESS_THREADS_FLAG) {
+
             ProcObj.GetThreads();
 
             Dml("    |--------|--------|--------------------|----------------------------------------------------|---------------------|---------------------|\n"
@@ -413,15 +424,14 @@ EXT_COMMAND(ms_process,
                 "    |--------|--------|--------------------|----------------------------------------------------|---------------------|---------------------|\n",
                 "Proc", "Thrd", "Addr", "Name");
 
-            for each (THREAD_OBJECT Thread in ProcObj.m_Threads)
-            {
-                UCHAR Name[512] = { 0 };
-                UCHAR TimerType[32] = { 0 };
+            for each (THREAD_OBJECT Thread in ProcObj.m_Threads) {
 
+                UCHAR Name[512] = {0};
+                UCHAR TimerType[32] = {0};
                 SYSTEMTIME CreateTime = {0}, ExitTime = {0};
 
-                if (Thread.Win32StartAddress)
-                {
+                if (Thread.Win32StartAddress) {
+
                     g_Ext->ExecuteSilent(".process /p /r 0x%I64X", ProcObj.m_CcProcessObject.ProcessObjectPtr);
 
                     FileTimeToSystemTime((FILETIME *)&Thread.CreateTime, &CreateTime);

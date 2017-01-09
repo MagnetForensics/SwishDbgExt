@@ -76,14 +76,16 @@ if (Ptr) \
 #define MM_EXECUTE_READWRITE   6
 #define MM_EXECUTE_WRITECOPY   7
 
-#define PROCESS_DLLS_FLAG (1 << 0)
-#define PROCESS_EXPORTS_FLAG (1 << 1)
-#define PROCESS_DLL_EXPORTS_FLAG (1 << 2)
-#define PROCESS_SCAN_MALICIOUS_FLAG (1 << 3)
-#define PROCESS_HANDLES_FLAG (1 << 4)
-#define PROCESS_VADS_FLAG (1 << 5)
-#define PROCESS_THREADS_FLAG (1 << 6)
-#define PROCESS_ENVVAR_FLAG (1 << 7)
+#define PROCESS_DLLS_FLAG            (1 << 0)
+#define PROCESS_EXPORTS_FLAG         (1 << 1)
+#define PROCESS_DLL_EXPORTS_FLAG     (1 << 2)
+#define PROCESS_SCAN_MALICIOUS_FLAG  (1 << 3)
+#define PROCESS_HANDLES_FLAG         (1 << 4)
+#define PROCESS_VADS_FLAG            (1 << 5)
+#define PROCESS_THREADS_FLAG         (1 << 6)
+#define PROCESS_ENVVAR_FLAG          (1 << 7)
+#define PROCESS_IMPORTS_FLAG         (1 << 8)
+#define PROCESS_DLL_IMPORTS_FLAG     (1 << 9)
 
 #define OBP_CREATOR_INFO_BIT 0x1
 #define OBP_NAME_INFO_BIT 0x2
@@ -180,7 +182,7 @@ public:
         ULONG64 DirectoryTableBase;
         ULONG64 DllEntry;
 
-        ULONG64 LoadTime;
+        LARGE_INTEGER LoadTime;
         WCHAR DllName[MAX_PATH + 1];
         WCHAR FullDllName[MAX_PATH + 1];
     } DLL_INFO, *PDLL_INFO;
@@ -202,7 +204,7 @@ public:
 
     VOID Set();
 
-    BOOLEAN Init(VOID);
+    //BOOLEAN Init(VOID);
 
     DLL_INFO mm_CcDllObject;
 
@@ -220,8 +222,8 @@ public:
 
         ULONG64 ProcessObjectPtr;
 
-        ULONG64 CreateTime;
-        ULONG64 ExitTime;
+        LARGE_INTEGER CreateTime;
+        LARGE_INTEGER ExitTime;
 
         ULONG64 ParentProcessId;
         ULONG64 ProcessId;

@@ -51,6 +51,8 @@ typedef struct _CV_INFO_PDB70
     CHAR PdbFileName[1]; // zero terminated string with the name of the PDB file 
 } CV_INFO_PDB70, *PCV_INFO_PDB70;
 
+class MsDllObject;
+
 class MsPEImageFile {
 public:
     typedef enum _IMAGE_TYPE {
@@ -75,7 +77,7 @@ public:
     typedef struct _CACHED_SECTION_INFO {
         ULONG Index;
 
-        UCHAR Name[9];
+        CHAR Name[9];
 
         ULONG VaBase;
         ULONG VaSize;
@@ -107,14 +109,27 @@ public:
         WCHAR FileDescription[256];
     } FILE_VERSION, *PFILE_VERSION;
 
-    typedef struct _EXPORT_INFO {
-        ULONG Index;
+    typedef struct _ADDRESS_INFO {
         ULONG64 Address;
-        ULONG Ordinal;
-        CHAR Name[128];
-
         BOOL IsTablePatched;
         BOOL IsHooked;
+    } ADDRESS_INFO, *PADDRESS_INFO;
+
+    typedef struct _IMPORT_INFO {
+        ADDRESS_INFO AddressInfo;
+        CHAR Name[MAX_PATH];
+    } IMPORT_INFO, *PIMPORT_INFO;
+
+    typedef struct _IMPORT_DESCRIPTOR {
+        vector<IMPORT_INFO> m_Imports;
+        CHAR DllName[MAX_PATH];
+    } IMPORT_DESCRIPTOR, *PIMPORT_DESCRIPTOR;
+
+    typedef struct _EXPORT_INFO {
+        ADDRESS_INFO AddressInfo;
+        ULONG Index;
+        ULONG Ordinal;
+        CHAR Name[128];
     } EXPORT_INFO, *PEXPORT_INFO;
 
     ULONG64 m_ImageBase;
@@ -126,18 +141,36 @@ public:
     PDB_INFO m_PdbInfo;
 
     ULONG64 m_ObjectPtr;
+    ULONG m_NumberOfHookedAPIs;
+
+    //
+    // Imports
+    //
+
+    vector<IMPORT_DESCRIPTOR> m_ImportDescriptors;
+    ULONG m_NumberOfImportedFunctions;
 
     //
     // Exports
     //
+
     vector<EXPORT_INFO> m_Exports;
-    ULONG m_NumberOfHookedAPIs;
     ULONG m_NumberOfExportedFunctions;
+
+    VOID GetAddressInfo(
+        _In_ ULONG64 Address,
+        _Inout_ PADDRESS_INFO AddressInfo
+        );
 
     PVOID
     RtlGetRessourceData(
        _In_ ULONG Name,
        _In_ ULONG Type
+    );
+
+    BOOLEAN
+    RtlGetImports(
+        vector<MsDllObject> &DllList
     );
 
     BOOLEAN

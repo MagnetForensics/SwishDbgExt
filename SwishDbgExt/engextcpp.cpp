@@ -2286,6 +2286,8 @@ HRESULT WINAPI
 ExtExtension::Query(_In_ PDEBUG_CLIENT Start)
 {
     HRESULT Status;
+    ULONG64 Address = 0;
+    ULONG CSDVersion = 0;
 
     // We don't support nested queries.
     if (*&m_Advanced != NULL)
@@ -2383,6 +2385,26 @@ ExtExtension::Query(_In_ PDEBUG_CLIENT Start)
                                        NULL);
 
     m_SystemVersion = MAKEWORD(m_MinorVersion, m_MajorVersion);
+
+    m_Data4->ReadDebuggerData(DEBUG_DATA_CmNtCSDVersionAddr, &Address, sizeof(Address), NULL);
+
+    if (S_OK == m_Data4->ReadVirtual(Address, &CSDVersion, sizeof(CSDVersion), NULL)) {
+
+        m_ServicePackMajor = (CSDVersion >> 8) & 0xFF;
+        m_ServicePackMinor = CSDVersion & 0xFF;
+    }
+
+    m_Data4->ReadDebuggerData(DEBUG_DATA_ProductType, &m_ProductType, sizeof(m_ProductType), NULL);
+    m_Data4->ReadDebuggerData(DEBUG_DATA_SuiteMask, &m_SuiteMask, sizeof(m_SuiteMask), NULL);
+
+    m_Data4->ReadDebuggerData(DEBUG_DATA_MmNumberOfPhysicalPagesAddr, &Address, sizeof(Address), NULL);
+    m_Data4->ReadVirtual(Address, &m_NumberOfPhysicalPages, sizeof(m_NumberOfPhysicalPages), NULL);
+
+    if (m_Data4->ReadDebuggerData(DEBUG_DATA_SharedUserData, &Address, sizeof(Address), NULL) == S_OK) {
+
+        ExtRemoteTyped SharedData = ExtRemoteTyped("(nt!_KUSER_SHARED_DATA *)@$extin", Address);
+        SharedData.Field("SystemTime").ReadBuffer(&m_SystemTime, sizeof(m_SystemTime));
+    }
 
     RefreshOutputCallbackFlags();
 

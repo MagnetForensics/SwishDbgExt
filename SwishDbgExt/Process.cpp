@@ -180,16 +180,17 @@ Return Value:
     RtlZeroMemory(&mm_CcDllObject, sizeof(mm_CcDllObject));
 
     if (m_TypedObject.GetPtr()) {
+
         m_ImageBase = m_TypedObject.Field("DllBase").GetPtr();
         m_ImageSize = m_TypedObject.Field("SizeOfImage").GetUlong();
 
-        ExtRemoteTypedEx::GetUnicodeString(m_TypedObject.Field("FullDllName"),
-            (PWSTR)&mm_CcDllObject.FullDllName,
-            sizeof(mm_CcDllObject.FullDllName));
+        if (m_TypedObject.HasField("LoadTime")) {
 
-        ExtRemoteTypedEx::GetUnicodeString(m_TypedObject.Field("BaseDllName"),
-            (PWSTR)&mm_CcDllObject.DllName,
-            sizeof(mm_CcDllObject.DllName));
+            mm_CcDllObject.LoadTime.QuadPart = m_TypedObject.Field("LoadTime.QuadPart").GetUlong64();
+        }
+
+        ExtRemoteTypedEx::GetUnicodeString(m_TypedObject.Field("FullDllName"), (PWSTR)&mm_CcDllObject.FullDllName, sizeof(mm_CcDllObject.FullDllName));
+        ExtRemoteTypedEx::GetUnicodeString(m_TypedObject.Field("BaseDllName"), (PWSTR)&mm_CcDllObject.DllName, sizeof(mm_CcDllObject.DllName));
     }
 }
 
@@ -485,11 +486,10 @@ Return Value:
 --*/
 {
     BOOLEAN Result = TRUE;
-    ULONG64 Peb = m_TypedObject.Field("Peb").GetPtr();
 
-    if (Peb && IsValid(Peb) && IsValid(m_TypedObject.Field("Peb").Field("Ldr").GetPtr())) {
+    if (m_CcProcessObject.ProcessId == 4) {
 
-        ULONG64 Head = m_TypedObject.Field("Peb").Field("Ldr").Field("InLoadOrderModuleList").GetPointerTo().GetPtr();
+        ULONG64 Head = ExtNtOsInformation::GetKernelLoadedModuleListHead();
 
         if (IsValid(Head)) {
 
@@ -502,51 +502,71 @@ Return Value:
             }
         }
     }
+    else {
 
-    //
-    // Wow64
-    //
+        ULONG64 Peb = m_TypedObject.Field("Peb").GetPtr();
 
-    if (m_TypedObject.HasField("Wow64Process") && (m_TypedObject.Field("Wow64Process").GetPtr() != 0)) {
+        if (Peb && IsValid(Peb) && IsValid(m_TypedObject.Field("Peb").Field("Ldr").GetPtr())) {
 
-        PEB_LDR_DATA PebLdrData = {0};
-        LDR_DATA_TABLE_ENTRY32 LdrDataTableEntry = {0};
-        ExtRemoteTyped Peb32("(nt!_PEB32 *)@$extin", m_TypedObject.Field("Wow64Process").GetPtr());
+            ULONG64 Head = m_TypedObject.Field("Peb").Field("Ldr").Field("InLoadOrderModuleList").GetPointerTo().GetPtr();
 
-        if (IsValid(Peb32.GetPtr())) {
+            if (IsValid(Head)) {
 
-            ULONG64 Ldr = Peb32.Field("Ldr").GetUlong();
+                ModuleIterator Dlls(Head);
 
-            if (g_Ext->m_Data->ReadVirtual(Ldr, &PebLdrData, sizeof(PebLdrData), NULL) != S_OK) goto CleanUp;
+                for (Dlls.First(); !Dlls.IsDone(); Dlls.Next()) {
 
-            if (g_Ext->m_Data->ReadVirtual(PebLdrData.InLoadOrderModuleList.Flink, &LdrDataTableEntry, sizeof(LdrDataTableEntry), NULL) != S_OK) goto CleanUp;
+                    MsDllObject Object = Dlls.Current();
+                    m_DllList.push_back(Object);
+                }
+            }
+        }
 
-            while (PebLdrData.InLoadOrderModuleList.Flink != LdrDataTableEntry.InLoadOrderLinks.Flink)
-            {
-                MsDllObject Object;
+        //
+        // Wow64
+        //
 
-                if (LdrDataTableEntry.InLoadOrderLinks.Flink == 0) break;
-                if (LdrDataTableEntry.DllBase == 0) break;
-                if (LdrDataTableEntry.SizeOfImage == 0) break;
+        if (m_TypedObject.HasField("Wow64Process") && (m_TypedObject.Field("Wow64Process").GetPtr() != 0)) {
 
-                Object.mm_CcDllObject.IsWow64 = TRUE;
+            PEB_LDR_DATA PebLdrData = {0};
+            LDR_DATA_TABLE_ENTRY32 LdrDataTableEntry = {0};
+            ExtRemoteTyped Peb32("(nt!_PEB32 *)@$extin", m_TypedObject.Field("Wow64Process").GetPtr());
 
-                Object.m_ImageBase = LdrDataTableEntry.DllBase;
-                Object.m_ImageSize = LdrDataTableEntry.SizeOfImage;
+            if (IsValid(Peb32.GetPtr())) {
 
-                if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.BaseDllName.Buffer,
-                                               (PWSTR)&Object.mm_CcDllObject.DllName,
-                                               LdrDataTableEntry.BaseDllName.Length,
-                                               NULL) != S_OK) break;
+                ULONG64 Ldr = Peb32.Field("Ldr").GetUlong();
 
-                if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.FullDllName.Buffer,
-                                               (PWSTR)&Object.mm_CcDllObject.FullDllName,
-                                               LdrDataTableEntry.FullDllName.Length,
-                                               NULL) != S_OK) break;
+                if (g_Ext->m_Data->ReadVirtual(Ldr, &PebLdrData, sizeof(PebLdrData), NULL) != S_OK) goto CleanUp;
 
-                m_DllList.push_back(Object);
+                if (g_Ext->m_Data->ReadVirtual(PebLdrData.InLoadOrderModuleList.Flink, &LdrDataTableEntry, sizeof(LdrDataTableEntry), NULL) != S_OK) goto CleanUp;
 
-                if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.InLoadOrderLinks.Flink, &LdrDataTableEntry, sizeof(LdrDataTableEntry), NULL) != S_OK) goto CleanUp;
+                while (PebLdrData.InLoadOrderModuleList.Flink != LdrDataTableEntry.InLoadOrderLinks.Flink)
+                {
+                    MsDllObject Object;
+
+                    if (LdrDataTableEntry.InLoadOrderLinks.Flink == 0) break;
+                    if (LdrDataTableEntry.DllBase == 0) break;
+                    if (LdrDataTableEntry.SizeOfImage == 0) break;
+
+                    Object.mm_CcDllObject.IsWow64 = TRUE;
+
+                    Object.m_ImageBase = LdrDataTableEntry.DllBase;
+                    Object.m_ImageSize = LdrDataTableEntry.SizeOfImage;
+
+                    if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.BaseDllName.Buffer,
+                                                   (PWSTR)&Object.mm_CcDllObject.DllName,
+                                                   LdrDataTableEntry.BaseDllName.Length,
+                                                   NULL) != S_OK) break;
+
+                    if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.FullDllName.Buffer,
+                                                   (PWSTR)&Object.mm_CcDllObject.FullDllName,
+                                                   LdrDataTableEntry.FullDllName.Length,
+                                                   NULL) != S_OK) break;
+
+                    m_DllList.push_back(Object);
+
+                    if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.InLoadOrderLinks.Flink, &LdrDataTableEntry, sizeof(LdrDataTableEntry), NULL) != S_OK) goto CleanUp;
+                }
             }
         }
     }
@@ -788,22 +808,26 @@ Return Value:
     m_CcProcessObject.ProcessId = m_TypedObject.Field("UniqueProcessId").GetPtr();
     m_CcProcessObject.ParentProcessId = m_TypedObject.Field("InheritedFromUniqueProcessId").GetPtr();
     m_ImageBase = m_TypedObject.Field("SectionBaseAddress").GetPtr();
-    if ((m_ImageBase == 0ULL) && (m_CcProcessObject.ProcessId == 4))
-    {
+
+    if ((m_ImageBase == 0ULL) && (m_CcProcessObject.ProcessId == 4)) {
+
         //
         // System Process
         //
+
         m_ImageBase = ExtNtOsInformation::GetNtDebuggerData(DEBUG_DATA_KernBase, "nt", 0);
     }
 
     m_CcProcessObject.ProcessObjectPtr = m_TypedObject.GetPtr();
 
-    m_TypedObject.Field("ImageFileName").GetString((PTSTR)&m_CcProcessObject.ImageFileName,
-        sizeof(m_CcProcessObject.ImageFileName));
+    m_TypedObject.Field("ImageFileName").GetString((PTSTR)&m_CcProcessObject.ImageFileName, sizeof(m_CcProcessObject.ImageFileName));
 
     ExtRemoteTypedEx::GetUnicodeString(m_TypedObject.Field("SeAuditProcessCreationInfo.ImageFileName").Field("Name"),
-        (PWSTR)&m_CcProcessObject.FullPath,
-        sizeof(m_CcProcessObject.FullPath));
+                                       (PWSTR)&m_CcProcessObject.FullPath,
+                                       sizeof(m_CcProcessObject.FullPath));
+
+    m_CcProcessObject.CreateTime.QuadPart = m_TypedObject.Field("CreateTime.QuadPart").GetUlong64();
+    m_CcProcessObject.ExitTime.QuadPart = m_TypedObject.Field("ExitTime.QuadPart").GetUlong64();
 
     Peb = m_TypedObject.Field("Peb").GetPtr();
 
@@ -1100,16 +1124,27 @@ Return Value:
         BOOLEAN Initialized = FALSE;
         MsProcessObject& ProcObj = ProcessList[i];
 
-        ProcObj.SwitchContext();
+        g_Ext->ExecuteSilent(".process /p /r 0x%I64X", ProcObj.m_CcProcessObject.ProcessObjectPtr);
 
         Initialized = ProcObj.GetInfoFull();
 
-        if (Flags & PROCESS_DLLS_FLAG) {
+        if ((Flags & PROCESS_DLLS_FLAG) || (Flags & PROCESS_IMPORTS_FLAG)) {
             if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Get DLL list for %s (Pid=0x%llx)\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObj.m_CcProcessObject.ImageFileName, ProcObj.m_CcProcessObject.ProcessId);
             ProcObj.GetDlls();
         }
 
-        if (Initialized && (Flags & PROCESS_EXPORTS_FLAG)) ProcObj.RtlGetExports();
+        if (Initialized) {
+
+            if (Flags & PROCESS_EXPORTS_FLAG) {
+
+                ProcObj.RtlGetExports();
+            }
+
+            if (Flags & PROCESS_IMPORTS_FLAG) {
+
+                ProcObj.RtlGetImports(ProcObj.m_DllList);
+            }
+        }
 
         if (Flags & PROCESS_DLLS_FLAG)
         {
@@ -1117,21 +1152,28 @@ Return Value:
             {
                 MsDllObject& DllObj = ProcObj.m_DllList[j];
 
-                if (Flags & PROCESS_DLL_EXPORTS_FLAG)
-                {
-                    if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Get DLL information for %s!%S\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObj.m_CcProcessObject.ImageFileName, DllObj.mm_CcDllObject.DllName);
-                    DllObj.GetInfoFull();
+                if (g_Verbose) {
+
+                    g_Ext->Dml("[%s!%S!%d] Get DLL information for %s!%S\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObj.m_CcProcessObject.ImageFileName, DllObj.mm_CcDllObject.DllName);
+                }
+
+                DllObj.GetInfoFull();
+
+                if (Flags & PROCESS_DLL_EXPORTS_FLAG) {
 
                     DllObj.RtlGetExports();
-
-                    DllObj.Free();
                 }
+
+                if (Flags & PROCESS_DLL_IMPORTS_FLAG) {
+
+                    DllObj.RtlGetImports(ProcObj.m_DllList);
+                }
+
+                DllObj.Free();
             }
         }
 
         ProcObj.Free();
-
-        ProcObj.RestoreContext();
     }
 
     //

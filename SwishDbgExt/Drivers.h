@@ -44,33 +44,33 @@ class MsDriverObject : public MsPEImageFile {
 public:
     typedef struct _FAST_IO_DISPATCH
     {
-        ULONG64 FastIoCheckIfPossible;
-        ULONG64 FastIoRead;
-        ULONG64 FastIoWrite;
-        ULONG64 FastIoQueryBasicInfo;
-        ULONG64 FastIoQueryStandardInfo;
-        ULONG64 FastIoLock;
-        ULONG64 FastIoUnlockSingle;
-        ULONG64 FastIoUnlockAll;
-        ULONG64 FastIoUnlockAllByKey;
-        ULONG64 FastIoDeviceControl;
-        ULONG64 AcquireFileForNtCreateSection;
-        ULONG64 ReleaseFileForNtCreateSection;
-        ULONG64 FastIoDetachDevice;
-        ULONG64 FastIoQueryNetworkOpenInfo;
-        ULONG64 AcquireForModWrite;
-        ULONG64 MdlRead;
-        ULONG64 MdlReadComplete;
-        ULONG64 PrepareMdlWrite;
-        ULONG64 MdlWriteComplete;
-        ULONG64 FastIoReadCompressed;
-        ULONG64 FastIoWriteCompressed;
-        ULONG64 MdlReadCompleteCompressed;
-        ULONG64 MdlWriteCompleteCompressed;
-        ULONG64 FastIoQueryOpen;
-        ULONG64 ReleaseForModWrite;
-        ULONG64 AcquireForCcFlush;
-        ULONG64 ReleaseForCcFlush;
+        ADDRESS_INFO FastIoCheckIfPossible;
+        ADDRESS_INFO FastIoRead;
+        ADDRESS_INFO FastIoWrite;
+        ADDRESS_INFO FastIoQueryBasicInfo;
+        ADDRESS_INFO FastIoQueryStandardInfo;
+        ADDRESS_INFO FastIoLock;
+        ADDRESS_INFO FastIoUnlockSingle;
+        ADDRESS_INFO FastIoUnlockAll;
+        ADDRESS_INFO FastIoUnlockAllByKey;
+        ADDRESS_INFO FastIoDeviceControl;
+        ADDRESS_INFO AcquireFileForNtCreateSection;
+        ADDRESS_INFO ReleaseFileForNtCreateSection;
+        ADDRESS_INFO FastIoDetachDevice;
+        ADDRESS_INFO FastIoQueryNetworkOpenInfo;
+        ADDRESS_INFO AcquireForModWrite;
+        ADDRESS_INFO MdlRead;
+        ADDRESS_INFO MdlReadComplete;
+        ADDRESS_INFO PrepareMdlWrite;
+        ADDRESS_INFO MdlWriteComplete;
+        ADDRESS_INFO FastIoReadCompressed;
+        ADDRESS_INFO FastIoWriteCompressed;
+        ADDRESS_INFO MdlReadCompleteCompressed;
+        ADDRESS_INFO MdlWriteCompleteCompressed;
+        ADDRESS_INFO FastIoQueryOpen;
+        ADDRESS_INFO ReleaseForModWrite;
+        ADDRESS_INFO AcquireForCcFlush;
+        ADDRESS_INFO ReleaseForCcFlush;
     } FAST_IO_DISPATCH, *PFAST_IO_DISPATCH;
 
     typedef struct _DRIVER_INFO {
@@ -89,7 +89,7 @@ public:
         ULONG64 DriverStartIo;
         ULONG64 DriverUnload;
 
-        ULONG64 MajorFunction[28];
+        ADDRESS_INFO MajorFunction[28];
 
         ULONG64 LoadTime;
         WCHAR DllName[MAX_PATH + 1];

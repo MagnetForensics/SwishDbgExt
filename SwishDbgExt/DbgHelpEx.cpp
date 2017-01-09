@@ -42,6 +42,22 @@ Revision History:
 // PE functions
 //
 
+
+VOID
+MsPEImageFile::GetAddressInfo(
+    _In_ ULONG64 Address,
+    _Out_ PADDRESS_INFO AddressInfo
+    )
+{
+    AddressInfo->Address = Address;
+    AddressInfo->IsHooked = IsPointerHooked(Address);
+
+    if (Address && m_ImageBase && m_ImageSize) {
+
+        AddressInfo->IsTablePatched = (Address >= m_ImageBase && Address < (m_ImageBase + m_ImageSize)) ? FALSE : TRUE;
+    }
+}
+
 PVOID
 MsPEImageFile::RtlGetRessourceData(
     ULONG Name,
@@ -176,6 +192,209 @@ CleanUp:
 }
 
 BOOLEAN
+MsPEImageFile::RtlGetImports(
+    vector<MsDllObject> &DllList
+)
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    -
+
+Return Value:
+
+    BOOLEAN.
+
+--*/
+{
+    PIMAGE_IMPORT_DESCRIPTOR ImageImportDescriptor;
+    WCHAR DllName[MAX_PATH];
+    ULONG_PTR ImageBase;
+    ULONG64 Address;
+    ULONG ImportDescriptorIndex = 0;
+    BOOL Is64BitTarget;
+    BOOL Is32BitImage;
+
+    ASSERTDBG(m_Image.Initialized);
+
+    Is64BitTarget = (g_Ext->m_Control->IsPointer64Bit() == S_OK) ? TRUE : FALSE;
+    Is32BitImage = m_Image.NtHeader32 ? TRUE : FALSE;
+
+    if (m_Image.Initialized) {
+
+        ImageBase = (ULONG_PTR)m_Image.Image;
+
+        if (m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress && m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size) {
+
+            ImageImportDescriptor = (PIMAGE_IMPORT_DESCRIPTOR)(ImageBase + m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
+
+            if ((ULONG_PTR)ImageImportDescriptor >= ImageBase && (ULONG_PTR)ImageImportDescriptor < (ImageBase + m_ImageSize)) {
+
+                try {
+
+                    while(ImageImportDescriptor->OriginalFirstThunk ||
+                          ImageImportDescriptor->TimeDateStamp ||
+                          ImageImportDescriptor->ForwarderChain ||
+                          ImageImportDescriptor->Name ||
+                          ImageImportDescriptor->FirstThunk) {
+
+                        IMPORT_DESCRIPTOR ImportDescriptor;
+                        IMPORT_INFO ImportInfo = {0};
+                        ULONG64 DllImageBase = 0;
+                        ULONG64 DllImageEnd = 0;
+
+                        StringCchPrintfW(DllName, _countof(DllName), L"%S", (PSTR)(ImageBase + ImageImportDescriptor->Name));
+
+                        if (wcslen(DllName)) {
+
+                            for (size_t i = 0; i < DllList.size(); i++) {
+
+                                MsDllObject DllObject = DllList[i];
+
+                                if (Is64BitTarget && Is32BitImage && !DllObject.mm_CcDllObject.IsWow64) {
+
+                                    continue;
+                                }
+
+                                if (0 == _wcsicmp(DllName, DllObject.mm_CcDllObject.DllName)) {
+
+                                    DllImageBase = DllObject.m_ImageBase;
+                                    DllImageEnd = DllObject.m_ImageBase + DllObject.m_ImageSize;
+
+                                    break;
+                                }
+                            }
+
+                            StringCchCopy(ImportDescriptor.DllName, _countof(ImportDescriptor.DllName), (PSTR)(ImageBase + ImageImportDescriptor->Name));
+                        }
+                        else {
+
+                            StringCchPrintf(ImportDescriptor.DllName, _countof(ImportDescriptor.DllName), "%d", ImportDescriptorIndex);
+                        }
+
+                        if (ImageImportDescriptor->FirstThunk && ImageImportDescriptor->OriginalFirstThunk) {
+
+                            ULONG_PTR ImportAddressTable = (ULONG_PTR)(ImageBase + ImageImportDescriptor->FirstThunk);
+                            ULONG_PTR ImportNameTable = (ULONG_PTR)(ImageBase + ImageImportDescriptor->OriginalFirstThunk);
+
+                            if (Is32BitImage) {
+
+                                PULONG ImportAddressTable32 = (PULONG)ImportAddressTable;
+                                PIMAGE_THUNK_DATA32 ImageThunkData32 = (PIMAGE_THUNK_DATA32)ImportNameTable;
+
+                                while (*ImportAddressTable32) {
+
+                                    Address = *ImportAddressTable32;
+
+                                    if (!Is64BitTarget) {
+
+                                        Address = DEBUG_EXTEND64(Address);
+                                    }
+
+                                    ImportInfo.AddressInfo.Address = Address;
+                                    ImportInfo.AddressInfo.IsHooked = IsPointerHooked(Address);
+
+                                    if (Address && DllImageBase && DllImageEnd) {
+
+                                        ImportInfo.AddressInfo.IsTablePatched = (Address >= DllImageBase && Address < DllImageEnd) ? FALSE : TRUE;
+                                    }
+
+                                    if (g_Ext->m_Symbols->GetNameByOffset(Address, ImportInfo.Name, _countof(ImportInfo.Name), NULL, NULL) != S_OK) {
+
+                                        if (ImageThunkData32->u1.Ordinal & IMAGE_ORDINAL_FLAG32) {
+
+                                            StringCchPrintf(ImportInfo.Name, _countof(ImportInfo.Name), "Ordinal %04X", (WORD)ImageThunkData32->u1.Ordinal);
+                                        }
+                                        else {
+
+                                            PIMAGE_IMPORT_BY_NAME ImageImportByName = (PIMAGE_IMPORT_BY_NAME)(ImageBase + ImageThunkData32->u1.AddressOfData);
+
+                                            StringCchCopy(ImportInfo.Name, _countof(ImportInfo.Name), ImageImportByName->Name);
+                                        }
+                                    }
+
+                                    if (ImportInfo.AddressInfo.IsTablePatched || ImportInfo.AddressInfo.IsHooked) {
+
+                                        m_NumberOfHookedAPIs++;
+                                    }
+
+                                    ImportDescriptor.m_Imports.push_back(ImportInfo);
+
+                                    m_NumberOfImportedFunctions++;
+
+                                    ImportAddressTable32++;
+                                    ImageThunkData32++;
+                                }
+                            }
+                            else {
+
+                                PULONG64 ImportAddressTable64 = (PULONG64)ImportAddressTable;
+                                PIMAGE_THUNK_DATA64 ImageThunkData64 = (PIMAGE_THUNK_DATA64)ImportNameTable;
+
+                                while (*ImportAddressTable64) {
+
+                                    Address = *ImportAddressTable64;
+
+                                    ImportInfo.AddressInfo.Address = Address;
+                                    ImportInfo.AddressInfo.IsHooked = IsPointerHooked(Address);
+
+                                    if (Address && DllImageBase && DllImageEnd) {
+
+                                        ImportInfo.AddressInfo.IsTablePatched = (Address >= DllImageBase && Address < DllImageEnd) ? FALSE : TRUE;
+                                    }
+
+                                    if (g_Ext->m_Symbols->GetNameByOffset(Address, ImportInfo.Name, _countof(ImportInfo.Name), NULL, NULL) != S_OK) {
+
+                                        if (ImageThunkData64->u1.Ordinal & IMAGE_ORDINAL_FLAG64) {
+
+                                            StringCchPrintf(ImportInfo.Name, _countof(ImportInfo.Name), "Ordinal %04X", (WORD)ImageThunkData64->u1.Ordinal);
+                                        }
+                                        else {
+
+                                            PIMAGE_IMPORT_BY_NAME ImageImportByName = (PIMAGE_IMPORT_BY_NAME)(ImageBase + ImageThunkData64->u1.AddressOfData);
+
+                                            StringCchCopy(ImportInfo.Name, _countof(ImportInfo.Name), ImageImportByName->Name);
+                                        }
+                                    }
+
+                                    if (ImportInfo.AddressInfo.IsTablePatched || ImportInfo.AddressInfo.IsHooked) {
+
+                                        m_NumberOfHookedAPIs++;
+                                    }
+
+                                    ImportDescriptor.m_Imports.push_back(ImportInfo);
+
+                                    m_NumberOfImportedFunctions++;
+
+                                    ImportAddressTable64++;
+                                    ImageThunkData64++;
+                                }
+                            }
+                        }
+
+                        m_ImportDescriptors.push_back(ImportDescriptor);
+
+                        ImageImportDescriptor++;
+                        ImportDescriptorIndex++;
+                    }
+
+                    return TRUE;
+                }
+                catch (...) {
+
+                }
+            }
+        }
+    }
+
+    return FALSE;
+}
+
+BOOLEAN
 MsPEImageFile::RtlGetExports(
 )
 /*++
@@ -196,12 +415,11 @@ Return Value:
 {
     BOOLEAN Result = FALSE;
     PIMAGE_EXPORT_DIRECTORY ExportDir = NULL;
-
     ULONG DirRva, DirSize;
-
     PULONG AddressOfNames;
     PUSHORT AddressOfNameOrdinals;
     PULONG AddressOfFunctions;
+    ULONG NumberOfHookedAPIs = 0;
 
     UINT i;
 
@@ -236,29 +454,34 @@ Return Value:
 #endif
 
     m_NumberOfExportedFunctions = ExportDir->NumberOfNames;
-    ULONG NumberOfHookedAPIs = 0;
-    for (i = 0; i < ExportDir->NumberOfNames && i < 5000; i += 1)
-    {
-        EXPORT_INFO ExportInfo = { 0 };
 
-        if (AddressOfNameOrdinals[i] >= ExportDir->NumberOfNames) continue;
+    for (i = 0; i < ExportDir->NumberOfNames && i < 5000; i += 1) {
 
-        ExportInfo.Address = AddressOfFunctions[AddressOfNameOrdinals[i]];
+        EXPORT_INFO ExportInfo = {0};
+
+        if (AddressOfNameOrdinals[i] >= ExportDir->NumberOfNames) {
+
+            continue;
+        }
 
         ExportInfo.Index = i;
         ExportInfo.Ordinal = AddressOfNameOrdinals[i];
-        ExportInfo.IsTablePatched = (ExportInfo.Address >= m_ImageSize) ? TRUE : FALSE;
-        ExportInfo.IsHooked = IsPointerHooked(m_ImageBase + ExportInfo.Address);
-        if (ExportInfo.IsTablePatched || ExportInfo.IsHooked) NumberOfHookedAPIs++;
+
+        GetAddressInfo(m_ImageBase + AddressOfFunctions[AddressOfNameOrdinals[i]], &ExportInfo.AddressInfo);
+
+        if (ExportInfo.AddressInfo.IsTablePatched || ExportInfo.AddressInfo.IsHooked) {
+        
+            NumberOfHookedAPIs++;
+        }
 
         ULONG Len = (ULONG)strnlen_s((LPSTR)(Image + AddressOfNames[i]), sizeof(ExportInfo.Name) - 1);
-        if ((AddressOfNames[i] <= (DirRva + DirSize)) && Len)
-        {
-            // strcpy_s(ExportInfo.Name, sizeof(ExportInfo.Name), (LPSTR)(Image + AddressOfNames[i]));
+
+        if ((AddressOfNames[i] <= (DirRva + DirSize)) && Len) {
+
             memcpy_s(ExportInfo.Name, sizeof(ExportInfo.Name), (LPSTR)(Image + AddressOfNames[i]), Len);
         }
-        else
-        {
+        else {
+
             strcpy_s(ExportInfo.Name, sizeof(ExportInfo.Name), "*unreadable*");
         }
 
@@ -419,24 +642,35 @@ Return Value:
 
     for (Index = 0; Index < m_Image.NumberOfSections; Index += 1)
     {
-        CACHED_SECTION_INFO SectionInfo = { 0 };
-        MD5_CONTEXT Md5Context = { 0 };
+        CACHED_SECTION_INFO SectionInfo = {0};
+        MD5_CONTEXT Md5Context = {0};
 
-        memcpy_s(SectionInfo.Name, sizeof(SectionInfo.Name),
-            m_Image.Sections[Index].Name, sizeof(m_Image.Sections[Index].Name));
+        memcpy_s(SectionInfo.Name, sizeof(SectionInfo.Name), m_Image.Sections[Index].Name, sizeof(m_Image.Sections[Index].Name));
+
         SectionInfo.VaBase = m_Image.Sections[Index].VirtualAddress;
         SectionInfo.VaSize = m_Image.Sections[Index].Misc.VirtualSize;
         SectionInfo.RawSize = m_Image.Sections[Index].SizeOfRawData;
+
+        if (m_Image.Sections[Index].Characteristics & IMAGE_SCN_MEM_EXECUTE) {
+
+            SectionInfo.IsExecutable = TRUE;
+        }
 
         if (SectionInfo.VaSize > m_ImageSize) continue;
 
         if (g_Verbose) g_Ext->Dml("[%d][%s] Base = 0x%I64X Size = 0x%x RawSize = 0x%x\n", Index, SectionInfo.Name, SectionInfo.VaBase, SectionInfo.VaSize, SectionInfo.RawSize);
 
         MD5Init(&Md5Context);
-        MD5Update(&Md5Context, (PUCHAR)m_Image.Image + SectionInfo.VaBase, SectionInfo.RawSize);
+        MD5Update(&Md5Context, (PUCHAR)m_Image.Image + SectionInfo.VaBase, SectionInfo.VaSize);
         MD5Final(&Md5Context);
 
         memcpy_s(SectionInfo.VaMd5Hash, sizeof(SectionInfo.VaMd5Hash), Md5Context.Digest, sizeof(Md5Context.Digest));
+
+        MD5Init(&Md5Context);
+        MD5Update(&Md5Context, (PUCHAR)m_Image.Image + SectionInfo.VaBase, SectionInfo.RawSize);
+        MD5Final(&Md5Context);
+
+        memcpy_s(SectionInfo.RawMd5Hash, sizeof(SectionInfo.RawMd5Hash), Md5Context.Digest, sizeof(Md5Context.Digest));
 
 #if VERBOSE_MODE
         g_Ext->Dml("Section: %s\n", SectionInfo.Name);

@@ -53,6 +53,7 @@ using namespace web::http::client;
 #endif
 
 #pragma once
+
 #include "engextcpp.hpp"
 #include "EngExpCppEx.h"
 #include "UntypedData.h"
@@ -72,13 +73,10 @@ using namespace web::http::client;
 #include "Lxss.h"
 
 #include "Security.h"
-
 #include "Objects.h"
-
 #include "Md5.h"
-
 #include "Output.h"
-
+#include "Common.h"
 #include "CNdiskd\CNdiskd.h"
 
 #pragma comment(lib, "version.lib")
