@@ -1223,10 +1223,18 @@ public:
     ULONG m_PlatformId;
     ULONG m_Major;
     ULONG m_Minor;
-    ULONG m_ServicePackNumber;
     ULONG m_MajorVersion;
     ULONG m_MinorVersion;
+    ULONG m_ServicePackNumber;
+    ULONG m_ServicePackMajor;
+    ULONG m_ServicePackMinor;
     USHORT m_SystemVersion;
+    ULONG m_ProductType;
+    ULONG m_SuiteMask;
+
+    ULONG m_NumberOfPhysicalPages;
+
+    LARGE_INTEGER m_SystemTime;
 
     //
     // Queries about the current debuggee information available.

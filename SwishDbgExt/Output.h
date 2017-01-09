@@ -38,6 +38,8 @@ Revision History:
 #ifndef __OUTPUT_H__
 #define __OUTPUT_H__
 
+extern LPSTR IrpMajor[];
+
 VOID
 OutThread(
 PTHREAD_OBJECT Thread
