@@ -104,7 +104,7 @@ Return Value:
     }
     else
     {
-        ULONG Offset;
+        LONG Offset;
 
         for (UINT i = 0; i < Limit; i++, Address += sizeof(ULONG))
         {
