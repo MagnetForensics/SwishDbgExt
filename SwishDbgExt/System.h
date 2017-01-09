@@ -41,7 +41,7 @@ Revision History:
 
 typedef struct _SSDT_ENTRY {
     ULONG Index;
-    ULONG64 Address;
+    MsPEImageFile::ADDRESS_INFO Address;
     BOOLEAN InlineHooking;
     BOOLEAN PatchedEntry;
 } SSDT_ENTRY, *PSSDT_ENTRY;

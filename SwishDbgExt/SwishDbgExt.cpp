@@ -1122,24 +1122,24 @@ EXT_COMMAND(ms_ssdt,
 {
     vector<SSDT_ENTRY> Table = GetServiceDescriptorTable();
 
-    // Dml("\n<col fg=\"changed\">[*] Service Descriptor Table:</col>\n");
-
     Dml("    |-------|--------------------|--------------------------------------------------------|---------|--------|\n"
         "    | <col fg=\"emphfg\">%-5s</col> | <col fg=\"emphfg\">%-18s</col> | <col fg=\"emphfg\">%-54s</col> | <col fg=\"emphfg\">%-7s</col> | <col fg=\"emphfg\">%-6s</col> |\n"
         "    |-------|--------------------|--------------------------------------------------------|---------|--------|\n",
         "Index", "Address", "Name", "Patched", "Hooked");
 
-    for each (SSDT_ENTRY Entry in Table)
-    {
-        UCHAR Name[512] = { 0 };
+    for each (SSDT_ENTRY Entry in Table) {
 
-        Dml("    | %5d |  <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | %-54s | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col> |\n",
+        CHAR Name[512] = {0};
+
+        Dml((Entry.Address.IsTablePatched || Entry.Address.IsHooked) ?
+            "    | %5d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | <col fg=\"changed\">%-54s</col> | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col> |\n" :
+            "    | %5d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | %-54s | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col> |\n",
             Entry.Index,
-            Entry.Address,
-            Entry.Address,
-            GetNameByOffset(Entry.Address, (PSTR)Name, _countof(Name)),
-            Entry.PatchedEntry ? "Yes" : "",
-            IsPointerHooked(Entry.Address) ? "Yes" : "");
+            Entry.Address.Address,
+            Entry.Address.Address,
+            GetNameByOffset(Entry.Address.Address, (PSTR)Name, _countof(Name)),
+            Entry.Address.IsTablePatched ? "Yes" : "",
+            Entry.Address.IsHooked ? "Yes" : "");
     }
 }
 

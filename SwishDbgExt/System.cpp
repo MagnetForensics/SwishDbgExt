@@ -69,11 +69,12 @@ Return Value:
 --*/
 {
     vector<SSDT_ENTRY> SDT;
-
+    IMAGE_NT_HEADERS64 ImageNtHeaders;
     ULONG64 KiServiceTable;
-
     ULONG64 Address;
     ULONG64 ServiceAddress;
+    ULONG64 KernelBase = NULL;
+    ULONG64 KernelEnd = NULL;
     ULONG Limit;
     BOOLEAN Status = FALSE;
 
@@ -82,32 +83,44 @@ Return Value:
 
     if (!KiServiceTable) goto Exit;
 
+    KernelBase = ExtNtOsInformation::GetNtDebuggerData(DEBUG_DATA_KernBase, "nt", 0);
+
+    if (KernelBase) {
+
+        g_Ext->m_Data4->ReadImageNtHeaders(KernelBase, &ImageNtHeaders);
+
+        KernelEnd = KernelBase + ImageNtHeaders.OptionalHeader.SizeOfImage;
+    }
+
     Address = KiServiceTable;
 
-    if (g_Ext->m_ActualMachine == IMAGE_FILE_MACHINE_I386)
-    {
-        for (UINT i = 0; i < Limit; i++, Address += sizeof(ULONG))
-        {
+    if (g_Ext->m_ActualMachine == IMAGE_FILE_MACHINE_I386) {
+
+        for (UINT i = 0; i < Limit; i++, Address += sizeof(ULONG)) {
+
             SSDT_ENTRY Entry = {0};
 
             ReadPointer(Address, &ServiceAddress);
             if (!ServiceAddress) break;
 
             Entry.Index = i;
-            Entry.Address = ServiceAddress;
-            // TODO: Entry.InlineHooking
-            // TODO: Entry.PatchedEntry
+            Entry.Address.Address = ServiceAddress;
+            Entry.Address.IsHooked = IsPointerHooked(ServiceAddress);
+
+            if ((KernelBase && KernelEnd) && !(ServiceAddress >= KernelBase && ServiceAddress < KernelEnd)) {
+
+                Entry.Address.IsTablePatched = TRUE;
+            }
 
             SDT.push_back(Entry);
         }
-
     }
-    else
-    {
+    else {
+
         LONG Offset;
 
-        for (UINT i = 0; i < Limit; i++, Address += sizeof(ULONG))
-        {
+        for (UINT i = 0; i < Limit; i++, Address += sizeof(ULONG)) {
+
             SSDT_ENTRY Entry = {0};
 
             if (g_Ext->m_Data->ReadVirtual(Address, &Offset, sizeof(Offset), NULL) != S_OK) break;
@@ -118,9 +131,13 @@ Return Value:
             ServiceAddress = KiServiceTable + Offset;
 
             Entry.Index = i;
-            Entry.Address = ServiceAddress;
-            // TODO: Entry.InlineHooking
-            // TODO: Entry.PatchedEntry
+            Entry.Address.Address = ServiceAddress;
+            Entry.Address.IsHooked = IsPointerHooked(ServiceAddress);
+
+            if ((KernelBase && KernelEnd) && !(ServiceAddress >= KernelBase && ServiceAddress < KernelEnd)) {
+
+                Entry.Address.IsTablePatched = TRUE;
+            }
 
             SDT.push_back(Entry);
         }
