@@ -629,7 +629,7 @@ EXT_COMMAND(ms_callbacks,
         // (...)
         ExtRemoteTypedList PnpProfileNotifyList(Offset, "nt!_LIST_ENTRY", "Flink");
 
-        Dml("\n<col fg=\"changed\">[*] PnpProfileNotifyList/:</col>\n");
+        Dml("\n<col fg=\"changed\">[*] PnpProfileNotifyList:</col>\n");
 
         for (PnpProfileNotifyList.StartHead();
             PnpProfileNotifyList.HasNode();
@@ -802,13 +802,13 @@ EXT_COMMAND(ms_callbacks,
         ULONG64 pCmpCallBackCount;
         ULONG Count = 0;
 
+        Dml("\n<col fg=\"changed\">[*] CmpCallBackVector:</col>\n");
+
         pCmpCallBackCount = GetExpression("nt!CmpCallBackCount");
 
         if (pCmpCallBackCount)
         {
             g_Ext->m_Data->ReadVirtual(pCmpCallBackCount, (PUCHAR)&Count, sizeof(Count), NULL);
-
-            Dml("\n<col fg=\"changed\">[*] CmpCallBackVector:</col>\n");
         }
 
         for (ULONG Index = 0;
@@ -1006,7 +1006,7 @@ EXT_COMMAND(ms_callbacks,
             CallbackListHead.HasNode();
             CallbackListHead.Next())
         {
-            GUID Guid;
+            GUID Guid = {0};
             ULONG64 NotificationProc;
             ULONG64 Node = CallbackListHead.GetNodeOffset();
 
@@ -1014,7 +1014,7 @@ EXT_COMMAND(ms_callbacks,
 
             ReadPointer(Node - ProcOffset, &NotificationProc);
 
-            g_Ext->m_Data->ReadVirtual(SIGN_EXTEND(Node - ProcOffset - sizeof(GUID)), (PUCHAR)&Guid, sizeof(GUID), NULL);
+            g_Ext->m_Data->ReadVirtual(Node - ProcOffset - sizeof(GUID), &Guid, sizeof(GUID), NULL);
 
             Dml("     GUID: {%08lX-%04hX-%04hX-%02hhX%02hhX-%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX} "
                 "Procedure: <link cmd = \"u 0x%016I64X L5\">0x%016I64X</link> (%s) \n",
