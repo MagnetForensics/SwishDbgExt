@@ -651,6 +651,8 @@ Return Value:
         SectionInfo.VaSize = m_Image.Sections[Index].Misc.VirtualSize;
         SectionInfo.RawSize = m_Image.Sections[Index].SizeOfRawData;
 
+        SectionInfo.Characteristics = m_Image.Sections[Index].Characteristics;
+
         if (m_Image.Sections[Index].Characteristics & IMAGE_SCN_MEM_EXECUTE) {
 
             SectionInfo.IsExecutable = TRUE;
