@@ -712,13 +712,11 @@ Return Value:
     PVOID Image = NULL;
     ULONG BytesRead = 0;
     ULONG64 BaseImageAddress = m_ImageBase;
-
     PIMAGE_NT_HEADERS32 NtHeader32 = NULL;
     PIMAGE_NT_HEADERS64 NtHeader64 = NULL;
-
     ExtRemoteTyped BaseImage;
-
     BOOLEAN Result = FALSE;
+    HRESULT Status;
 
     if (m_Image.Initialized)
     {
@@ -769,7 +767,13 @@ Return Value:
     if (Image == NULL) goto CleanUp;
     RtlZeroMemory(Image, (ULONG)m_ImageSize);
 
-    if (ExtRemoteTypedEx::ReadVirtual(BaseImageAddress, Image, (ULONG)m_ImageSize, &BytesRead) != S_OK)
+    Status = ExtRemoteTypedEx::ReadImageMemory(BaseImageAddress, Image, (ULONG)m_ImageSize, &BytesRead);
+
+    if (Status == E_ACCESSDENIED) {
+
+        m_IsPagedOut = TRUE;
+    }
+    else if (Status != S_OK)
     {
 #if VERBOSE_MODE
         g_Ext->Dml("Error: Can't read 0x%I64x bytes at %I64x.\n", m_ImageSize, BaseImageAddress);

@@ -135,6 +135,8 @@ public:
     ULONG64 m_ImageBase;
     ULONG m_ImageSize;
 
+    BOOL m_IsPagedOut;
+
     vector<CACHED_SECTION_INFO> m_CcSections;
     FILE_VERSION m_FileVersion;
     IMAGE_DATA m_Image;
