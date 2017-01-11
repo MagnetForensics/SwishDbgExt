@@ -114,6 +114,34 @@ public:
     EXT_COMMAND_METHOD(ms_fixit);
 
     EXT_COMMAND_METHOD(ms_lxss);
+
+    HRESULT
+    Initialize(void)
+    {
+        PDEBUG_CLIENT DebugClient;
+        PDEBUG_CONTROL DebugControl;
+        HRESULT Result = S_OK;
+
+        DebugCreate(__uuidof(IDebugClient), (void **)&DebugClient);
+
+        DebugClient->QueryInterface(__uuidof(IDebugControl), (void **)&DebugControl);
+
+        ExtensionApis.nSize = sizeof (ExtensionApis);
+        DebugControl->GetWindbgExtensionApis64(&ExtensionApis);
+
+        dprintf("       SwishDbgExt v%s (%s) - Incident Response & Digital Forensics Debugging Extension\n"
+                "       SwishDbgExt Copyright (C) 2016 Comae Technologies FZE\n"
+                "       SwishDbgExt Copyright (C) 2014-2016 Matthieu Suiche (@msuiche) - http://msuiche.net\n\n"
+                "       This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.\n"
+                "       This is free software, and you are welcome to redistribute it\n"
+                "       under certain conditions; type `show c' for details.\n",
+                EXT_VERSION, __DATE__);
+
+        DebugControl->Release();
+        DebugClient->Release();
+
+        return Result;
+    }
 };
 
 EXT_DECLARE_GLOBALS();

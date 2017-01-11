@@ -84,6 +84,8 @@ using namespace web::http::client;
 #pragma comment(lib, "cpprest120_1_4.lib")
 #endif
 
+#define EXT_VERSION "0.7"
+
 #define API_EXPORT __declspec(dllexport)
 #define SIGN_EXTEND(_x_) (ULONG64)(LONG)(_x_) 
 #define PAGE_SIZE 0x1000
