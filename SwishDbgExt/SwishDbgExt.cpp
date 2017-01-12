@@ -579,14 +579,14 @@ EXT_COMMAND(ms_services,
     {
         if (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_KERNEL_DRIVER)
         {
-            Dml("\n[%3d] | 0x%02X |           | <col fg=\"changed\">%-32S</col> | %-50S | %-16s | %-100S | ",
+            Dml("\n[%3d] | 0x%02X |           | <col fg=\"changed\">%-32S</col> | %-50S | %-16s | %-100S",
                 i, ServiceEntry.ServiceStatus.dwServiceType, 
                 ServiceEntry.Name, ServiceEntry.Desc, ServiceStatus[ServiceEntry.ServiceStatus.dwCurrentState], ServiceEntry.CommandLine);
         }
         else if ((ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_OWN_PROCESS) ||
                  (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_SHARE_PROCESS))
         {
-            Dml("\n[%3d] | 0x%02X | <link cmd=\"!process %x 1\">Pid=0x%x</link> | <col fg=\"changed\">%-32S</col> | %-50S | %-16s | %-128S | ",
+            Dml("\n[%3d] | 0x%02X | <link cmd=\"!process %x 1\">Pid=0x%x</link> | <col fg=\"changed\">%-32S</col> | %-50S | %-16s | %-128S",
                 i, ServiceEntry.ServiceStatus.dwServiceType,
                 ServiceEntry.ProcessId, ServiceEntry.ProcessId, ServiceEntry.Name,
                 ServiceEntry.Desc, ServiceStatus[ServiceEntry.ServiceStatus.dwCurrentState], ServiceEntry.CommandLine);

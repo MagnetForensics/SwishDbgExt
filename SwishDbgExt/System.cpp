@@ -169,226 +169,257 @@ Return Value:
 --*/
 {
     MsProcessObject ProcessObject = FindProcessByName("services.exe");
-    ULONG BufferSize = PAGE_SIZE * 2;
-    PULONG Buffer = (PULONG)malloc(BufferSize);
-
-    ULONG64 Offset;
-
     vector<SERVICE_ENTRY> Services;
+    SERVICE_ENTRY ServiceEntry;
+    ULONG64 Offset;
+    PULONG Buffer;
+    ULONG BufferSize;
+    ULONG MachineType;
 
-    SERVICE_ENTRY ServiceEntry = { 0 };
+    if (!ProcessObject.m_CcProcessObject.ProcessObjectPtr) {
 
-    ProcessObject.SwitchContext();
-    g_Ext->Execute(".process /p /r 0x%I64X", ProcessObject.m_CcProcessObject.ProcessObjectPtr);
-
-    for (Offset = 0; Offset < 0x10000000ULL; Offset += PAGE_SIZE)
-    {
-        RtlZeroMemory(Buffer, BufferSize);
-
-        if (ExtRemoteTypedEx::ReadVirtual(Offset, Buffer, BufferSize, NULL) != S_OK) continue;
-
-        for (UINT i = 0; i < (PAGE_SIZE / sizeof(ULONG)); i += 1)
-        {
-            if (Buffer[i] == SERVICE_SIGNATURE_NT6)
-            {
-                RtlZeroMemory(&ServiceEntry, sizeof(ServiceEntry));
-
-                if (g_Ext->m_ActualMachine == IMAGE_FILE_MACHINE_I386)
-                {
-                    PSERVICE_HANDLE_X86 ServiceHandle = (PSERVICE_HANDLE_X86)(&Buffer[i]);
-                    SERVICE_RECORD_X86 ServiceRecord;
-                    IMAGE_RECORD_X86 ImageRecord;
-
-                    if (ExtRemoteTypedEx::ReadVirtual(SIGN_EXTEND(ServiceHandle->ServiceRecord),
-                        &ServiceRecord,
-                        sizeof(ServiceRecord),
-                        NULL) != S_OK) continue;
-                    if (!IsValid((ULONG64)ServiceRecord.ServiceName) ||
-                        !IsValid((ULONG64)ServiceRecord.DisplayName)) continue;
-
-                    ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord.ServiceName, ServiceEntry.Name, sizeof(ServiceEntry.Name));
-                    ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord.DisplayName, ServiceEntry.Desc, sizeof(ServiceEntry.Desc));
-
-                    ServiceEntry.StartType = ServiceRecord.StartType;
-                    ServiceEntry.ServiceStatus = ServiceRecord.ServiceStatus;
-                    ServiceEntry.UseCount = ServiceRecord.UseCount;
-
-                    if ((ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_OWN_PROCESS) ||
-                        (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_SHARE_PROCESS))
-                    {
-                        if (ExtRemoteTypedEx::ReadVirtual(SIGN_EXTEND(ServiceRecord.ImageRecord),
-                            &ImageRecord,
-                            sizeof(ImageRecord),
-                            NULL) != S_OK) continue;
-
-                        ExtRemoteTypedEx::GetString((ULONG64)ImageRecord.ImageName, ServiceEntry.CommandLine, sizeof(ServiceEntry.CommandLine));
-                        ServiceEntry.ProcessHandle = (ULONG64)ImageRecord.ProcessHandle;
-                        ServiceEntry.ProcessId = ImageRecord.Pid;
-                        ServiceEntry.TokenHandle = (ULONG64)ImageRecord.TokenHandle;
-
-                        /* if (IsValid((ULONG64)ImageRecord.AccountName))
-                        {
-                        // ExtRemoteTypedEx::GetString((ULONG64)ImageRecord.AccountName, (LPSTR)ServiceEntry.AccountName, sizeof(ServiceEntry.AccountName));
-                        }*/
-                        ServiceEntry.ServiceCount = ImageRecord.ServiceCount;
-
-                    }
-                    else if (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_KERNEL_DRIVER)
-                    {
-                        ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord.ObjectName, ServiceEntry.CommandLine, sizeof(ServiceEntry.CommandLine));
-                    }
-                }
-                else // 64-bits
-                {
-                    PSERVICE_HANDLE_X64 ServiceHandle = (PSERVICE_HANDLE_X64)(&Buffer[i]);
-
-                    SERVICE_RECORD_X64 ServiceRecord;
-                    IMAGE_RECORD_X64 ImageRecord;
-
-                    if (ExtRemoteTypedEx::ReadVirtual(SIGN_EXTEND(ServiceHandle->ServiceRecord),
-                        &ServiceRecord,
-                        sizeof(ServiceRecord),
-                        NULL) != S_OK) continue;
-                    if (!IsValid((ULONG64)ServiceRecord.ServiceName) ||
-                        !IsValid((ULONG64)ServiceRecord.DisplayName)) continue;
-
-                    ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord.ServiceName, ServiceEntry.Name, sizeof(ServiceEntry.Name));
-                    ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord.DisplayName, ServiceEntry.Desc, sizeof(ServiceEntry.Desc));
-
-                    ServiceEntry.StartType = ServiceRecord.StartType;
-                    ServiceEntry.ServiceStatus = ServiceRecord.ServiceStatus;
-                    ServiceEntry.UseCount = ServiceRecord.UseCount;
-
-                    if ((ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_OWN_PROCESS) ||
-                        (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_SHARE_PROCESS))
-                    {
-                        if (ExtRemoteTypedEx::ReadVirtual(SIGN_EXTEND(ServiceRecord.ImageRecord),
-                            &ImageRecord,
-                            sizeof(ImageRecord),
-                            NULL) != S_OK) continue;
-
-                        ExtRemoteTypedEx::GetString((ULONG64)ImageRecord.ImageName, ServiceEntry.CommandLine, sizeof(ServiceEntry.CommandLine));
-                        ServiceEntry.ProcessHandle = (ULONG64)ImageRecord.ProcessHandle;
-                        ServiceEntry.ProcessId = ImageRecord.Pid;
-                        ServiceEntry.TokenHandle = (ULONG64)ImageRecord.TokenHandle;
-
-                        /* if (IsValid((ULONG64)ImageRecord.AccountName))
-                        {
-                        // ExtRemoteTypedEx::GetString((ULONG64)ImageRecord.AccountName, (LPSTR)ServiceEntry.AccountName, sizeof(ServiceEntry.AccountName));
-                        }*/
-                        ServiceEntry.ServiceCount = ImageRecord.ServiceCount;
-
-                    }
-                    else if (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_KERNEL_DRIVER)
-                    {
-                        ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord.ObjectName, ServiceEntry.CommandLine, sizeof(ServiceEntry.CommandLine));
-                    }
-                }
-
-                Services.push_back(ServiceEntry);
-            }
-            else if (Buffer[i] == SERVICE_SIGNATURE_NT5)
-            {
-                RtlZeroMemory(&ServiceEntry, sizeof(ServiceEntry));
-
-                if (g_Ext->m_ActualMachine == IMAGE_FILE_MACHINE_I386)
-                {
-                    PUCHAR pServiceRecord = (PUCHAR)(&Buffer[i]);
-                    PSERVICE_RECORD_X86 ServiceRecord;
-                    IMAGE_RECORD_X86 ImageRecord;
-
-                    pServiceRecord -= FIELD_OFFSET(SERVICE_RECORD_X86, UseCount);
-                    ServiceRecord = (PSERVICE_RECORD_X86)pServiceRecord;
-
-                    if (!IsValid((ULONG64)ServiceRecord->ServiceName) ||
-                        !IsValid((ULONG64)ServiceRecord->DisplayName)) continue;
-
-                    ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord->ServiceName, ServiceEntry.Name, sizeof(ServiceEntry.Name));
-                    ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord->DisplayName, ServiceEntry.Desc, sizeof(ServiceEntry.Desc));
-
-                    ServiceRecord = (PSERVICE_RECORD_X86)(pServiceRecord + sizeof(ULONG)); // shift of one DWORD, because NT5 do use Signature.
-
-                    ServiceEntry.StartType = ServiceRecord->StartType;
-                    ServiceEntry.ServiceStatus = ServiceRecord->ServiceStatus;
-                    ServiceEntry.UseCount = ServiceRecord->UseCount;
-
-                    if ((ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_OWN_PROCESS) ||
-                        (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_SHARE_PROCESS))
-                    {
-                        if (ExtRemoteTypedEx::ReadVirtual(SIGN_EXTEND(ServiceRecord->ImageRecord),
-                            &ImageRecord,
-                            sizeof(ImageRecord),
-                            NULL) != S_OK) continue;
-
-                        ExtRemoteTypedEx::GetString((ULONG64)ImageRecord.ImageName, ServiceEntry.CommandLine, sizeof(ServiceEntry.CommandLine));
-
-                        ServiceEntry.ProcessHandle = (ULONG64)ImageRecord.ProcessHandle;
-                        ServiceEntry.ProcessId = ImageRecord.Pid;
-                        ServiceEntry.TokenHandle = (ULONG64)ImageRecord.TokenHandle;
-
-                        /* if (IsValid((ULONG64)ImageRecord.AccountName))
-                        {
-                        // ExtRemoteTypedEx::GetString((ULONG64)ImageRecord.AccountName, ServiceEntry.AccountName, sizeof(ServiceEntry.AccountName));
-                        }*/
-                        ServiceEntry.ServiceCount = ImageRecord.ServiceCount;
-                    }
-                    else if (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_KERNEL_DRIVER)
-                    {
-                        ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord->ObjectName, ServiceEntry.CommandLine, sizeof(ServiceEntry.CommandLine));
-                    }
-                }
-                else // x64bits
-                {
-                    PUCHAR pServiceRecord = (PUCHAR)(&Buffer[i]);
-                    PSERVICE_RECORD_X64 ServiceRecord = NULL;
-                    IMAGE_RECORD_X64 ImageRecord;
-
-                    pServiceRecord -= FIELD_OFFSET(SERVICE_RECORD_X64, UseCount);
-                    ServiceRecord = (PSERVICE_RECORD_X64)pServiceRecord;
-
-                    if (!IsValid((ULONG64)ServiceRecord->ServiceName) ||
-                        !IsValid((ULONG64)ServiceRecord->DisplayName)) continue;
-
-                    ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord->ServiceName, ServiceEntry.Name, sizeof(ServiceEntry.Name));
-                    ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord->DisplayName, ServiceEntry.Desc, sizeof(ServiceEntry.Desc));
-
-                    ServiceRecord = (PSERVICE_RECORD_X64)(pServiceRecord + sizeof(ULONG)); // shift of one DWORD, because NT5 do use Signature.
-
-                    ServiceEntry.StartType = ServiceRecord->StartType;
-                    ServiceEntry.ServiceStatus = ServiceRecord->ServiceStatus;
-                    ServiceEntry.UseCount = ServiceRecord->UseCount;
-
-                    if ((ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_OWN_PROCESS) ||
-                        (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_SHARE_PROCESS))
-                    {
-                        if (ExtRemoteTypedEx::ReadVirtual(SIGN_EXTEND(ServiceRecord->ImageRecord),
-                            &ImageRecord,
-                            sizeof(ImageRecord),
-                            NULL) != S_OK) continue;
-
-                        ExtRemoteTypedEx::GetString((ULONG64)ImageRecord.ImageName, ServiceEntry.CommandLine, sizeof(ServiceEntry.CommandLine));
-                        ServiceEntry.ProcessHandle = (ULONG64)ImageRecord.ProcessHandle;
-                        ServiceEntry.ProcessId = ImageRecord.Pid;
-                        ServiceEntry.TokenHandle = (ULONG64)ImageRecord.TokenHandle;
-
-                        // ExtRemoteTypedEx::GetString((ULONG64)ImageRecord.AccountName, (LPSTR)ServiceEntry.AccountName, sizeof(ServiceEntry.AccountName));
-                        ServiceEntry.ServiceCount = ImageRecord.ServiceCount;
-
-                    }
-                    else if (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_KERNEL_DRIVER)
-                    {
-                        ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord->ObjectName, ServiceEntry.CommandLine, sizeof(ServiceEntry.CommandLine));
-                    }
-                }
-
-                Services.push_back(ServiceEntry);
-            }
-        }
+        return Services;
     }
 
-    ProcessObject.RestoreContext();
+    BufferSize = g_Ext->m_PageSize ? g_Ext->m_PageSize : PAGE_SIZE;
 
-    if (Buffer) free(Buffer);
+    Buffer = (PULONG)calloc(BufferSize * 2, sizeof(BYTE));
+
+    if (Buffer) {
+
+        ProcessObject.SwitchContext();
+
+        g_Ext->Execute(".process /p /r 0x%I64X", ProcessObject.m_CcProcessObject.ProcessObjectPtr);
+
+        MachineType = g_Ext->m_ActualMachine;
+
+        for (Offset = 0; Offset < 0x10000000ULL; Offset += BufferSize) {
+
+            RtlZeroMemory(Buffer, BufferSize);
+
+            if (ExtRemoteTypedEx::ReadVirtual(Offset, Buffer, BufferSize, NULL) != S_OK) {
+
+                continue;
+            }
+
+            for (UINT i = 0; i < (BufferSize / sizeof(ULONG)); i += 1) {
+
+                if (Buffer[i] == SERVICE_SIGNATURE_NT6) {
+
+                    RtlZeroMemory(&ServiceEntry, sizeof(ServiceEntry));
+
+                    if (MachineType == IMAGE_FILE_MACHINE_I386) {
+
+                        PSERVICE_HANDLE_X86 ServiceHandle = (PSERVICE_HANDLE_X86)(&Buffer[i]);
+                        SERVICE_RECORD_X86 ServiceRecord;
+                        IMAGE_RECORD_X86 ImageRecord;
+
+                        if (ExtRemoteTypedEx::ReadVirtual(ServiceHandle->ServiceRecord, &ServiceRecord, sizeof(ServiceRecord), NULL) != S_OK) {
+
+                            continue;
+                        }
+
+                        if (!IsValid((ULONG64)ServiceRecord.ServiceName) ||
+                            !IsValid((ULONG64)ServiceRecord.DisplayName)) {
+
+                            continue;
+                        }
+
+                        ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord.ServiceName, ServiceEntry.Name, sizeof(ServiceEntry.Name));
+                        ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord.DisplayName, ServiceEntry.Desc, sizeof(ServiceEntry.Desc));
+
+                        ServiceEntry.StartType = ServiceRecord.StartType;
+                        ServiceEntry.ServiceStatus = ServiceRecord.ServiceStatus;
+                        ServiceEntry.UseCount = ServiceRecord.UseCount;
+
+                        if ((ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_OWN_PROCESS) ||
+                            (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_SHARE_PROCESS)) {
+
+                            if (ExtRemoteTypedEx::ReadVirtual(ServiceRecord.ImageRecord, &ImageRecord, sizeof(ImageRecord), NULL) != S_OK) {
+
+                                continue;
+                            }
+
+                            ExtRemoteTypedEx::GetString((ULONG64)ImageRecord.ImageName, ServiceEntry.CommandLine, sizeof(ServiceEntry.CommandLine));
+
+                            ServiceEntry.ProcessHandle = (ULONG64)ImageRecord.ProcessHandle;
+                            ServiceEntry.ProcessId = ImageRecord.Pid;
+                            ServiceEntry.TokenHandle = (ULONG64)ImageRecord.TokenHandle;
+
+                            /* if (IsValid((ULONG64)ImageRecord.AccountName))
+                            {
+                            // ExtRemoteTypedEx::GetString((ULONG64)ImageRecord.AccountName, (LPSTR)ServiceEntry.AccountName, sizeof(ServiceEntry.AccountName));
+                            }*/
+                            ServiceEntry.ServiceCount = ImageRecord.ServiceCount;
+                        }
+                        else if (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_KERNEL_DRIVER) {
+
+                            ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord.ObjectName, ServiceEntry.CommandLine, sizeof(ServiceEntry.CommandLine));
+                        }
+                    }
+                    else // 64-bits
+                    {
+                        PSERVICE_HANDLE_X64 ServiceHandle = (PSERVICE_HANDLE_X64)(&Buffer[i]);
+                        SERVICE_RECORD_X64 ServiceRecord;
+                        IMAGE_RECORD_X64 ImageRecord;
+
+                        if (ExtRemoteTypedEx::ReadVirtual(ServiceHandle->ServiceRecord, &ServiceRecord, sizeof(ServiceRecord), NULL) != S_OK) {
+
+                            continue;
+                        }
+
+                        if (!IsValid((ULONG64)ServiceRecord.ServiceName) ||
+                            !IsValid((ULONG64)ServiceRecord.DisplayName)) {
+
+                            continue;
+                        }
+
+                        ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord.ServiceName, ServiceEntry.Name, sizeof(ServiceEntry.Name));
+                        ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord.DisplayName, ServiceEntry.Desc, sizeof(ServiceEntry.Desc));
+
+                        ServiceEntry.StartType = ServiceRecord.StartType;
+                        ServiceEntry.ServiceStatus = ServiceRecord.ServiceStatus;
+                        ServiceEntry.UseCount = ServiceRecord.UseCount;
+
+                        if ((ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_OWN_PROCESS) ||
+                            (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_SHARE_PROCESS)) {
+
+                            if (ExtRemoteTypedEx::ReadVirtual(ServiceRecord.ImageRecord, &ImageRecord, sizeof(ImageRecord), NULL) != S_OK) {
+
+                                continue;
+                            }
+
+                            ExtRemoteTypedEx::GetString((ULONG64)ImageRecord.ImageName, ServiceEntry.CommandLine, sizeof(ServiceEntry.CommandLine));
+
+                            ServiceEntry.ProcessHandle = (ULONG64)ImageRecord.ProcessHandle;
+                            ServiceEntry.ProcessId = ImageRecord.Pid;
+                            ServiceEntry.TokenHandle = (ULONG64)ImageRecord.TokenHandle;
+
+                            /* if (IsValid((ULONG64)ImageRecord.AccountName))
+                            {
+                            // ExtRemoteTypedEx::GetString((ULONG64)ImageRecord.AccountName, (LPSTR)ServiceEntry.AccountName, sizeof(ServiceEntry.AccountName));
+                            }*/
+
+                            ServiceEntry.ServiceCount = ImageRecord.ServiceCount;
+                        }
+                        else if (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_KERNEL_DRIVER) {
+
+                            ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord.ObjectName, ServiceEntry.CommandLine, sizeof(ServiceEntry.CommandLine));
+                        }
+                    }
+
+                    Services.push_back(ServiceEntry);
+                }
+                else if (Buffer[i] == SERVICE_SIGNATURE_NT5) {
+
+                    RtlZeroMemory(&ServiceEntry, sizeof(ServiceEntry));
+
+                    if (MachineType == IMAGE_FILE_MACHINE_I386) {
+
+                        PUCHAR pServiceRecord = (PUCHAR)(&Buffer[i]);
+                        PSERVICE_RECORD_X86 ServiceRecord;
+                        IMAGE_RECORD_X86 ImageRecord;
+
+                        pServiceRecord -= FIELD_OFFSET(SERVICE_RECORD_X86, UseCount);
+                        ServiceRecord = (PSERVICE_RECORD_X86)pServiceRecord;
+
+                        if (!IsValid((ULONG64)ServiceRecord->ServiceName) ||
+                            !IsValid((ULONG64)ServiceRecord->DisplayName)) {
+
+                            continue;
+                        }
+
+                        ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord->ServiceName, ServiceEntry.Name, sizeof(ServiceEntry.Name));
+                        ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord->DisplayName, ServiceEntry.Desc, sizeof(ServiceEntry.Desc));
+
+                        ServiceRecord = (PSERVICE_RECORD_X86)(pServiceRecord + sizeof(ULONG)); // shift of one DWORD, because NT5 do use Signature.
+
+                        ServiceEntry.StartType = ServiceRecord->StartType;
+                        ServiceEntry.ServiceStatus = ServiceRecord->ServiceStatus;
+                        ServiceEntry.UseCount = ServiceRecord->UseCount;
+
+                        if ((ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_OWN_PROCESS) ||
+                            (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_SHARE_PROCESS)) {
+
+                            if (ExtRemoteTypedEx::ReadVirtual(ServiceRecord->ImageRecord, &ImageRecord, sizeof(ImageRecord), NULL) != S_OK) {
+
+                                continue;
+                            }
+
+                            ExtRemoteTypedEx::GetString((ULONG64)ImageRecord.ImageName, ServiceEntry.CommandLine, sizeof(ServiceEntry.CommandLine));
+
+                            ServiceEntry.ProcessHandle = (ULONG64)ImageRecord.ProcessHandle;
+                            ServiceEntry.ProcessId = ImageRecord.Pid;
+                            ServiceEntry.TokenHandle = (ULONG64)ImageRecord.TokenHandle;
+
+                            /* if (IsValid((ULONG64)ImageRecord.AccountName))
+                            {
+                            // ExtRemoteTypedEx::GetString((ULONG64)ImageRecord.AccountName, ServiceEntry.AccountName, sizeof(ServiceEntry.AccountName));
+                            }*/
+
+                            ServiceEntry.ServiceCount = ImageRecord.ServiceCount;
+                        }
+                        else if (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_KERNEL_DRIVER) {
+
+                            ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord->ObjectName, ServiceEntry.CommandLine, sizeof(ServiceEntry.CommandLine));
+                        }
+                    }
+                    else // x64bits
+                    {
+                        PUCHAR pServiceRecord = (PUCHAR)(&Buffer[i]);
+                        PSERVICE_RECORD_X64 ServiceRecord = NULL;
+                        IMAGE_RECORD_X64 ImageRecord;
+
+                        pServiceRecord -= FIELD_OFFSET(SERVICE_RECORD_X64, UseCount);
+                        ServiceRecord = (PSERVICE_RECORD_X64)pServiceRecord;
+
+                        if (!IsValid((ULONG64)ServiceRecord->ServiceName) ||
+                            !IsValid((ULONG64)ServiceRecord->DisplayName)) {
+
+                            continue;
+                        }
+
+                        ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord->ServiceName, ServiceEntry.Name, sizeof(ServiceEntry.Name));
+                        ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord->DisplayName, ServiceEntry.Desc, sizeof(ServiceEntry.Desc));
+
+                        ServiceRecord = (PSERVICE_RECORD_X64)(pServiceRecord + sizeof(ULONG)); // shift of one DWORD, because NT5 do use Signature.
+
+                        ServiceEntry.StartType = ServiceRecord->StartType;
+                        ServiceEntry.ServiceStatus = ServiceRecord->ServiceStatus;
+                        ServiceEntry.UseCount = ServiceRecord->UseCount;
+
+                        if ((ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_OWN_PROCESS) ||
+                            (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_SHARE_PROCESS)) {
+
+                            if (ExtRemoteTypedEx::ReadVirtual(ServiceRecord->ImageRecord, &ImageRecord, sizeof(ImageRecord), NULL) != S_OK) {
+
+                                continue;
+                            }
+
+                            ExtRemoteTypedEx::GetString((ULONG64)ImageRecord.ImageName, ServiceEntry.CommandLine, sizeof(ServiceEntry.CommandLine));
+
+                            ServiceEntry.ProcessHandle = (ULONG64)ImageRecord.ProcessHandle;
+                            ServiceEntry.ProcessId = ImageRecord.Pid;
+                            ServiceEntry.TokenHandle = (ULONG64)ImageRecord.TokenHandle;
+
+                            // ExtRemoteTypedEx::GetString((ULONG64)ImageRecord.AccountName, (LPSTR)ServiceEntry.AccountName, sizeof(ServiceEntry.AccountName));
+                            ServiceEntry.ServiceCount = ImageRecord.ServiceCount;
+                        }
+                        else if (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_KERNEL_DRIVER) {
+
+                            ExtRemoteTypedEx::GetString((ULONG64)ServiceRecord->ObjectName, ServiceEntry.CommandLine, sizeof(ServiceEntry.CommandLine));
+                        }
+                    }
+
+                    Services.push_back(ServiceEntry);
+                }
+            }
+        }
+
+        ProcessObject.RestoreContext();
+
+        free(Buffer);
+    }
 
     return Services;
 }
