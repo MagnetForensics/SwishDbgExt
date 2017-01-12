@@ -344,34 +344,38 @@ typedef enum _WORK_QUEUE_TYPE {
 
 vector<VACB_OBJECT>
 GetVacbs(
-);
+    VOID
+    );
 
 vector<KTIMER>
 GetTimers(
-);
+    VOID
+    );
 
 vector<SSDT_ENTRY>
 GetServiceDescriptorTable(
-);
+    VOID
+    );
 
 vector<SERVICE_ENTRY>
 GetServices(
-);
+    VOID
+    );
 
-LPSTR
+PSTR
 GetPartitionType(
-ULONG Type
-);
+    _In_ ULONG Type
+    );
 
 vector<IDT_OBJECT>
 GetInterrupts(
-ULONG64 InIdtBase
-);
+    _In_opt_ ULONG64 InIdtBase
+    );
 
 vector<GDT_OBJECT>
 GetDescriptors(
-_In_opt_ ULONG64 InGdtBase
-);
+    _In_opt_ ULONG64 InGdtBase
+    );
 
 void
 GetExQueue(
