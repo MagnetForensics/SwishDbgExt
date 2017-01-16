@@ -192,7 +192,7 @@ Return Value:
 
     if (IsValid(Address))
     {
-        ExtRemoteData usData(SIGN_EXTEND(Address), MaxChars);
+        ExtRemoteData usData(Address, MaxChars);
         usData.GetString(Buffer, MaxChars / sizeof(*Buffer));
     }
 

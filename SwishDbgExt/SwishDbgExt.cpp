@@ -558,42 +558,45 @@ EXT_COMMAND(ms_services,
     "{;e,o;;}")
 {
     vector<SERVICE_ENTRY> Services = GetServices();
-    UINT i = 0;
-
-    LPSTR ServiceStatus[] = {
-        "SERVICE_NONE",
-        "SERVICE_STOPPED",
-        "SERVICE_START_PENDING",
-        "SERVICE_STOP_PENDING",
-        "SERVICE_RUNNING",
-        "SERVICE_CONTINUE_PENDING",
-        "SERVICE_PAUSE_PENDING",
-        "SERVICE_PAUSED",
-        NULL };
+    UINT Index = 0;
 
     Dml("   Additional information (Registry): <link cmd=\"!reg findkcb %s\">%s</link> (Use KCB addr with \"!ms_readkcb\")\n",
         "\\REGISTRY\\MACHINE\\SYSTEM\\CONTROLSET001\\SERVICES",
         "\\REGISTRY\\MACHINE\\SYSTEM\\CONTROLSET001\\SERVICES");
 
-    for each (SERVICE_ENTRY ServiceEntry in Services)
-    {
-        if (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_KERNEL_DRIVER)
-        {
-            Dml("\n[%3d] | 0x%02X |           | <col fg=\"changed\">%-32S</col> | %-50S | %-16s | %-100S",
-                i, ServiceEntry.ServiceStatus.dwServiceType, 
-                ServiceEntry.Name, ServiceEntry.Desc, ServiceStatus[ServiceEntry.ServiceStatus.dwCurrentState], ServiceEntry.CommandLine);
+    for each (SERVICE_ENTRY ServiceEntry in Services) {
+
+        if (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_KERNEL_DRIVER) {
+
+            Dml("\n[%3d] | 0x%02X |           | <col fg=\"changed\">%-32S</col> | %-50S | %-20s | %-16s | %-30S | %-128S",
+                Index,
+                ServiceEntry.ServiceStatus.dwServiceType,
+                ServiceEntry.Name,
+                ServiceEntry.Desc,
+                GetServiceStartType(ServiceEntry.StartType),
+                GetServiceState(ServiceEntry.ServiceStatus.dwCurrentState),
+                ServiceEntry.AccountName,
+                ServiceEntry.CommandLine);
         }
         else if ((ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_OWN_PROCESS) ||
-                 (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_SHARE_PROCESS))
-        {
-            Dml("\n[%3d] | 0x%02X | <link cmd=\"!process %x 1\">Pid=0x%x</link> | <col fg=\"changed\">%-32S</col> | %-50S | %-16s | %-128S",
-                i, ServiceEntry.ServiceStatus.dwServiceType,
-                ServiceEntry.ProcessId, ServiceEntry.ProcessId, ServiceEntry.Name,
-                ServiceEntry.Desc, ServiceStatus[ServiceEntry.ServiceStatus.dwCurrentState], ServiceEntry.CommandLine);
+                 (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_SHARE_PROCESS)) {
+
+            Dml("\n[%3d] | 0x%02X | <link cmd=\"!process %x 1\">Pid=0x%x</link> | <col fg=\"changed\">%-32S</col> | %-50S | %-20s | %-16s | %-30S | %-128S",
+                Index,
+                ServiceEntry.ServiceStatus.dwServiceType,
+                ServiceEntry.ProcessId,
+                ServiceEntry.ProcessId,
+                ServiceEntry.Name,
+                ServiceEntry.Desc,
+                GetServiceStartType(ServiceEntry.StartType),
+                GetServiceState(ServiceEntry.ServiceStatus.dwCurrentState),
+                ServiceEntry.AccountName,
+                ServiceEntry.CommandLine);
         }
 
-        i += 1;
+        Index += 1;
     }
+
     Dml("\n");
 }
 
