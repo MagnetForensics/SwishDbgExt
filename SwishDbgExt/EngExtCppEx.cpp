@@ -192,7 +192,7 @@ Return Value:
 
     if (IsValid(Address))
     {
-        ExtRemoteData usData(SIGN_EXTEND(Address), MaxChars);
+        ExtRemoteData usData(Address, MaxChars);
         usData.GetString(Buffer, MaxChars / sizeof(*Buffer));
     }
 
@@ -255,29 +255,27 @@ Return Value:
 --*/
 {
     HRESULT Result = S_FALSE;
-
     ULONG Index = 0;
-
-    ULONG SumBytesRead = 0;
+    ULONG TotalBytesRead = 0;
     ULONG BytesRead = 0;
     ULONG BytesToRead;
 
     RtlZeroMemory(Buffer, BufferSize);
 
-    for (Index = 0; SumBytesRead < BufferSize; Index += 1)
-    {
-        BytesToRead = (BufferSize - (Index * PAGE_SIZE));
-        if (BytesToRead > PAGE_SIZE) BytesToRead = PAGE_SIZE; 
+    for (Index = 0; TotalBytesRead < BufferSize; Index += 1) {
+
+        BytesToRead = min(PAGE_SIZE, BufferSize - TotalBytesRead);
 
         Result = g_Ext->m_Data->ReadVirtual(BaseAddress + (Index * PAGE_SIZE),
                                             (PUCHAR)Buffer + (Index * PAGE_SIZE),
                                             BytesToRead,
                                             &BytesRead);
-        if (Result != S_OK)
-        {
+        if (Result != S_OK) {
+
             //
             // Check if base address is valid or not.
             //
+
             if (Index == 0) goto CleanUp;
 
             // g_Ext->Dml("Error: [%d] Can't read 0x%I64x bytes at %I64x.\n",
@@ -285,13 +283,83 @@ Return Value:
             // goto CleanUp;
         }
 
-        SumBytesRead += BytesToRead;
+        TotalBytesRead += BytesToRead;
     }
 
 CleanUp:
-    if (SumBytesRead == BufferSize) Result = S_OK;
 
-    if (OutBytesRead) *OutBytesRead = SumBytesRead;
+    if (TotalBytesRead == BufferSize) Result = S_OK;
+
+    if (OutBytesRead) *OutBytesRead = TotalBytesRead;
+
+    return Result;
+}
+
+HRESULT
+ExtRemoteTypedEx::ReadImageMemory(
+    _In_ ULONG64 BaseAddress,
+    _Out_writes_(BufferSize) PVOID Buffer,
+    _In_ ULONG BufferSize,
+    _Out_opt_ PULONG OutBytesRead
+    )
+/*++
+
+Routine Description:
+
+    Description.
+
+Arguments:
+
+    BaseAddress - 
+    Buffer - 
+    BufferSize - 
+    OutBytesRead - 
+
+Return Value:
+
+    None.
+
+--*/
+{
+    HRESULT Result = S_FALSE;
+    ULONG Index = 0;
+    ULONG TotalBytesRead = 0;
+    ULONG BytesRead = 0;
+    ULONG BytesToRead;
+    BOOL IsOk = TRUE;
+
+    RtlZeroMemory(Buffer, BufferSize);
+
+    for (Index = 0; TotalBytesRead < BufferSize; Index += 1) {
+
+        BytesToRead = min(PAGE_SIZE, BufferSize - TotalBytesRead);
+
+        Result = g_Ext->m_Data->ReadVirtual(BaseAddress + (Index * PAGE_SIZE),
+                                            (PUCHAR)Buffer + (Index * PAGE_SIZE),
+                                            BytesToRead,
+                                            &BytesRead);
+        if (Result != S_OK) {
+
+            IsOk = FALSE;
+
+            //
+            // Check if base address is valid or not.
+            //
+
+            if (Index == 0) goto CleanUp;
+        }
+
+        TotalBytesRead += BytesToRead;
+    }
+
+CleanUp:
+
+    if (TotalBytesRead == BufferSize) {
+
+        Result = (IsOk == FALSE) ? E_ACCESSDENIED : S_OK;
+    }
+
+    if (OutBytesRead) *OutBytesRead = TotalBytesRead;
 
     return Result;
 }

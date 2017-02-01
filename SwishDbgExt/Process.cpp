@@ -1031,10 +1031,11 @@ Return Value:
     RtlZeroMemory(&m_Image, sizeof(m_Image));
 }
 
-ProcessArray GetProcesses(
+ProcessArray
+GetProcesses(
     _In_opt_ ULONG64 Pid,
     _In_ ULONG Flags
-)
+    )
 /*++
 
 Routine Description:
@@ -1184,8 +1185,8 @@ Return Value:
 
 MsProcessObject
 FindProcessByName(
-    _In_ LPSTR ProcessName
-)
+    _In_ PSTR ProcessName
+    )
 /*++
 
 Routine Description:
@@ -1203,37 +1204,34 @@ Return Value:
 --*/
 {
     ProcessIterator Processes;
-    MsProcessObject ProcObject;
 
-    for (Processes.First(); !Processes.IsDone(); Processes.Next())
-    {
-        ProcObject = Processes.Current();
+    for (Processes.First(); !Processes.IsDone(); Processes.Next()) {
 
-        if (_stricmp(ProcObject.m_CcProcessObject.ImageFileName, ProcessName) == 0)
-        {
-            BOOLEAN Result;
+        MsProcessObject ProcessObject = Processes.Current();
+
+        if (0 == _stricmp(ProcessObject.m_CcProcessObject.ImageFileName, ProcessName)) {
 
             //
             // Save, and change the current process.
             //
-            ProcObject.SwitchContext();
 
-            Result = ProcObject.GetInfoFull();
-            // ASSERT(Result);
+            ProcessObject.SwitchContext();
 
-            ProcObject.RestoreContext();
+            ProcessObject.GetInfoFull();
 
-            break;
+            ProcessObject.RestoreContext();
+
+            return ProcessObject;
         }
     }
 
-    return ProcObject;
+    return MsProcessObject();
 }
 
 MsProcessObject
 FindProcessByPid(
     _In_ ULONG64 ProcessId
-)
+    )
 /*++
 
 Routine Description:
@@ -1251,33 +1249,28 @@ Return Value:
 --*/
 {
     ProcessIterator Processes;
-    MsProcessObject ProcObject;
 
-    MsProcessObject Result;
+    for (Processes.First(); !Processes.IsDone(); Processes.Next()) {
 
-    for (Processes.First(); !Processes.IsDone(); Processes.Next())
-    {
-        ProcObject = Processes.Current();
+        MsProcessObject ProcessObject = Processes.Current();
 
-        if (ProcObject.m_CcProcessObject.ProcessId == ProcessId)
-        {
-            Result = Processes.Current();
-            /*
-            BOOLEAN Result;
+        if (ProcessObject.m_CcProcessObject.ProcessId == ProcessId) {
 
-            ProcObject.SwitchContext();
+            //
+            // Save, and change the current process.
+            //
 
-            Result = ProcObject.GetInfoFull();
-            // ASSERT(Result);
+            ProcessObject.SwitchContext();
 
-            ProcObject.RestoreContext();
-            */
+            ProcessObject.GetInfoFull();
 
-            break;
+            ProcessObject.RestoreContext();
+
+            return ProcessObject;
         }
     }
 
-    return Result;
+    return MsProcessObject();
 }
 
 BOOLEAN

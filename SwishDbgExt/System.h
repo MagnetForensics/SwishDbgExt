@@ -41,85 +41,22 @@ Revision History:
 
 typedef struct _SSDT_ENTRY {
     ULONG Index;
-    ULONG64 Address;
+    MsPEImageFile::ADDRESS_INFO Address;
     BOOLEAN InlineHooking;
     BOOLEAN PatchedEntry;
 } SSDT_ENTRY, *PSSDT_ENTRY;
 
 #define SC_SIGNATURE_NT6           0x48726373 // "scrH" in ASCII.
-#define SERVICE_SIGNATURE_NT6      0x48726573 // "serH" in ASCII.
+#define HANDLE_SIGNATURE           0x48726573 // "serH" in ASCII.
 
 #define SC_SIGNATURE_NT5           0x6E4F6373  // "scOn" in ASCII.
-#define SERVICE_SIGNATURE_NT5      0x76724573  // "sErv" in ASCII.
-
-template <class T>
-struct IMAGE_RECORD_T
-{
-    T Prev;
-    T Next;
-    T ImageName;
-    DWORD Pid;
-    DWORD ServiceCount;
-    T ProcessHandle;
-    T ObjectWaitHandle;
-    T TokenHandle;
-    LUID AccountLuid;
-    T ProfileHandle;
-    T AccountName;
-    DWORD ImageFlags;
-};
-
-typedef struct IMAGE_RECORD_T<ULONG32> IMAGE_RECORD_X86, *PIMAGE_RECORD_X86;
-typedef struct IMAGE_RECORD_T<ULONG64> IMAGE_RECORD_X64, *PIMAGE_RECORD_X64;
-
-template <class T>
-struct SERVICE_RECORD_T
-{
-    T Previous;
-    T ServiceName;
-    T DisplayName;
-    ULONG unknown_00;
-    ULONG unknown_01;
-    ULONG UseCount; // <= Used to be SERVICE_SIGNATURE_NT5.
-    USHORT StatusFlag;
-    USHORT ShareProcId;
-    union {
-        T ImageRecord;
-        T ObjectName;
-    };
-    SERVICE_STATUS ServiceStatus;
-    ULONG StartType;
-    ULONG unknown_02;
-    ULONG unknown_03;
-    T unknown_04;
-    T unknown_05;
-    T unknown_06;
-    T SecurityDescriptor;
-    DWORD StartError;
-    DWORD StartState;
-    T Next;
-};
-
-typedef struct SERVICE_RECORD_T<ULONG32> SERVICE_RECORD_X86, *PSERVICE_RECORD_X86;
-typedef struct SERVICE_RECORD_T<ULONG64> SERVICE_RECORD_X64, *PSERVICE_RECORD_X64;
-
-template <class T>
-struct SERVICE_HANDLE_T
-{
-    ULONG Signature;
-    ULONG Flags_u08;
-    ULONG AccessGranted;
-    T ServiceRecord;
-};
-
-typedef struct SERVICE_HANDLE_T<ULONG32> SERVICE_HANDLE_X86, *PSERVICE_HANDLE_X86;
-typedef struct SERVICE_HANDLE_T<ULONG64> SERVICE_HANDLE_X64, *PSERVICE_HANDLE_X64;
+#define SERVICE_SIGNATURE          0x76724573  // "sErv" in ASCII.
 
 typedef struct _SERVICE_ENTRY {
-    WCHAR Name[64];
-    WCHAR Desc[128];
+    WCHAR Name[MAX_PATH];
+    WCHAR Desc[MAX_PATH];
     WCHAR CommandLine[MAX_PATH];
-    WCHAR AccountName[64];
+    WCHAR AccountName[MAX_PATH];
 
     ULONG64 TokenHandle;
     ULONG64 ProcessHandle;
@@ -344,34 +281,48 @@ typedef enum _WORK_QUEUE_TYPE {
 
 vector<VACB_OBJECT>
 GetVacbs(
-);
+    VOID
+    );
 
 vector<KTIMER>
 GetTimers(
-);
+    VOID
+    );
 
 vector<SSDT_ENTRY>
 GetServiceDescriptorTable(
-);
+    VOID
+    );
+
+PSTR
+GetServiceStartType(
+    _In_ ULONG StartType
+    );
+
+PSTR
+GetServiceState(
+    _In_ ULONG State
+    );
 
 vector<SERVICE_ENTRY>
 GetServices(
-);
+    VOID
+    );
 
-LPSTR
+PSTR
 GetPartitionType(
-ULONG Type
-);
+    _In_ ULONG Type
+    );
 
 vector<IDT_OBJECT>
 GetInterrupts(
-ULONG64 InIdtBase
-);
+    _In_opt_ ULONG64 InIdtBase
+    );
 
 vector<GDT_OBJECT>
 GetDescriptors(
-_In_opt_ ULONG64 InGdtBase
-);
+    _In_opt_ ULONG64 InGdtBase
+    );
 
 void
 GetExQueue(

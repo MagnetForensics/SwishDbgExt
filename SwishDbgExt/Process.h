@@ -307,10 +307,21 @@ public:
 
 typedef vector<MsProcessObject> ProcessArray;
 
-ProcessArray GetProcesses(ULONG64 Pid, ULONG Flags);
+ProcessArray
+GetProcesses(
+    _In_opt_ ULONG64 Pid,
+    _In_ ULONG Flags
+    );
 
-MsProcessObject FindProcessByName(LPSTR ProcessName);
-MsProcessObject FindProcessByPid(ULONG64 ProcessId);
+MsProcessObject
+FindProcessByName(
+    _In_ PSTR ProcessName
+    );
+
+MsProcessObject
+FindProcessByPid(
+    _In_ ULONG64 ProcessId
+    );
 
 extern map<PVOID, ULONG> g_References;
 

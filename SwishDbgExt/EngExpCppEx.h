@@ -113,5 +113,14 @@ public:
        _Out_ PULONG OutBytesRead
     );
 
+    static
+    HRESULT
+    ReadImageMemory(
+        _In_ ULONG64 BaseAddress,
+        _Out_writes_(BufferSize) PVOID Buffer,
+        _In_ ULONG BufferSize,
+        _Out_opt_ PULONG OutBytesRead
+        );
+
 private:
 };

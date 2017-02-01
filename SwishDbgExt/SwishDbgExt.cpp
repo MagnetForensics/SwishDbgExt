@@ -114,6 +114,34 @@ public:
     EXT_COMMAND_METHOD(ms_fixit);
 
     EXT_COMMAND_METHOD(ms_lxss);
+
+    HRESULT
+    Initialize(void)
+    {
+        PDEBUG_CLIENT DebugClient;
+        PDEBUG_CONTROL DebugControl;
+        HRESULT Result = S_OK;
+
+        DebugCreate(__uuidof(IDebugClient), (void **)&DebugClient);
+
+        DebugClient->QueryInterface(__uuidof(IDebugControl), (void **)&DebugControl);
+
+        ExtensionApis.nSize = sizeof (ExtensionApis);
+        DebugControl->GetWindbgExtensionApis64(&ExtensionApis);
+
+        dprintf("       SwishDbgExt v%s (%s) - Incident Response & Digital Forensics Debugging Extension\n"
+                "       SwishDbgExt Copyright (C) 2016 Comae Technologies FZE\n"
+                "       SwishDbgExt Copyright (C) 2014-2016 Matthieu Suiche (@msuiche) - http://msuiche.net\n\n"
+                "       This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.\n"
+                "       This is free software, and you are welcome to redistribute it\n"
+                "       under certain conditions; type `show c' for details.\n",
+                EXT_VERSION, __DATE__);
+
+        DebugControl->Release();
+        DebugClient->Release();
+
+        return Result;
+    }
 };
 
 EXT_DECLARE_GLOBALS();
@@ -530,42 +558,45 @@ EXT_COMMAND(ms_services,
     "{;e,o;;}")
 {
     vector<SERVICE_ENTRY> Services = GetServices();
-    UINT i = 0;
-
-    LPSTR ServiceStatus[] = {
-        "SERVICE_NONE",
-        "SERVICE_STOPPED",
-        "SERVICE_START_PENDING",
-        "SERVICE_STOP_PENDING",
-        "SERVICE_RUNNING",
-        "SERVICE_CONTINUE_PENDING",
-        "SERVICE_PAUSE_PENDING",
-        "SERVICE_PAUSED",
-        NULL };
+    UINT Index = 0;
 
     Dml("   Additional information (Registry): <link cmd=\"!reg findkcb %s\">%s</link> (Use KCB addr with \"!ms_readkcb\")\n",
         "\\REGISTRY\\MACHINE\\SYSTEM\\CONTROLSET001\\SERVICES",
         "\\REGISTRY\\MACHINE\\SYSTEM\\CONTROLSET001\\SERVICES");
 
-    for each (SERVICE_ENTRY ServiceEntry in Services)
-    {
-        if (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_KERNEL_DRIVER)
-        {
-            Dml("\n[%3d] | 0x%02X |           | <col fg=\"changed\">%-32S</col> | %-50S | %-16s | %-100S | ",
-                i, ServiceEntry.ServiceStatus.dwServiceType, 
-                ServiceEntry.Name, ServiceEntry.Desc, ServiceStatus[ServiceEntry.ServiceStatus.dwCurrentState], ServiceEntry.CommandLine);
+    for each (SERVICE_ENTRY ServiceEntry in Services) {
+
+        if (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_KERNEL_DRIVER) {
+
+            Dml("\n[%3d] | 0x%02X |           | <col fg=\"changed\">%-32S</col> | %-50S | %-20s | %-16s | %-30S | %-128S",
+                Index,
+                ServiceEntry.ServiceStatus.dwServiceType,
+                ServiceEntry.Name,
+                ServiceEntry.Desc,
+                GetServiceStartType(ServiceEntry.StartType),
+                GetServiceState(ServiceEntry.ServiceStatus.dwCurrentState),
+                ServiceEntry.AccountName,
+                ServiceEntry.CommandLine);
         }
         else if ((ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_OWN_PROCESS) ||
-                 (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_SHARE_PROCESS))
-        {
-            Dml("\n[%3d] | 0x%02X | <link cmd=\"!process %x 1\">Pid=0x%x</link> | <col fg=\"changed\">%-32S</col> | %-50S | %-16s | %-128S | ",
-                i, ServiceEntry.ServiceStatus.dwServiceType,
-                ServiceEntry.ProcessId, ServiceEntry.ProcessId, ServiceEntry.Name,
-                ServiceEntry.Desc, ServiceStatus[ServiceEntry.ServiceStatus.dwCurrentState], ServiceEntry.CommandLine);
+                 (ServiceEntry.ServiceStatus.dwServiceType == SERVICE_WIN32_SHARE_PROCESS)) {
+
+            Dml("\n[%3d] | 0x%02X | <link cmd=\"!process %x 1\">Pid=0x%x</link> | <col fg=\"changed\">%-32S</col> | %-50S | %-20s | %-16s | %-30S | %-128S",
+                Index,
+                ServiceEntry.ServiceStatus.dwServiceType,
+                ServiceEntry.ProcessId,
+                ServiceEntry.ProcessId,
+                ServiceEntry.Name,
+                ServiceEntry.Desc,
+                GetServiceStartType(ServiceEntry.StartType),
+                GetServiceState(ServiceEntry.ServiceStatus.dwCurrentState),
+                ServiceEntry.AccountName,
+                ServiceEntry.CommandLine);
         }
 
-        i += 1;
+        Index += 1;
     }
+
     Dml("\n");
 }
 
@@ -629,7 +660,7 @@ EXT_COMMAND(ms_callbacks,
         // (...)
         ExtRemoteTypedList PnpProfileNotifyList(Offset, "nt!_LIST_ENTRY", "Flink");
 
-        Dml("\n<col fg=\"changed\">[*] PnpProfileNotifyList/:</col>\n");
+        Dml("\n<col fg=\"changed\">[*] PnpProfileNotifyList:</col>\n");
 
         for (PnpProfileNotifyList.StartHead();
             PnpProfileNotifyList.HasNode();
@@ -802,13 +833,13 @@ EXT_COMMAND(ms_callbacks,
         ULONG64 pCmpCallBackCount;
         ULONG Count = 0;
 
+        Dml("\n<col fg=\"changed\">[*] CmpCallBackVector:</col>\n");
+
         pCmpCallBackCount = GetExpression("nt!CmpCallBackCount");
 
         if (pCmpCallBackCount)
         {
             g_Ext->m_Data->ReadVirtual(pCmpCallBackCount, (PUCHAR)&Count, sizeof(Count), NULL);
-
-            Dml("\n<col fg=\"changed\">[*] CmpCallBackVector:</col>\n");
         }
 
         for (ULONG Index = 0;
@@ -1006,7 +1037,7 @@ EXT_COMMAND(ms_callbacks,
             CallbackListHead.HasNode();
             CallbackListHead.Next())
         {
-            GUID Guid;
+            GUID Guid = {0};
             ULONG64 NotificationProc;
             ULONG64 Node = CallbackListHead.GetNodeOffset();
 
@@ -1014,7 +1045,7 @@ EXT_COMMAND(ms_callbacks,
 
             ReadPointer(Node - ProcOffset, &NotificationProc);
 
-            g_Ext->m_Data->ReadVirtual(SIGN_EXTEND(Node - ProcOffset - sizeof(GUID)), (PUCHAR)&Guid, sizeof(GUID), NULL);
+            g_Ext->m_Data->ReadVirtual(Node - ProcOffset - sizeof(GUID), &Guid, sizeof(GUID), NULL);
 
             Dml("     GUID: {%08lX-%04hX-%04hX-%02hhX%02hhX-%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX} "
                 "Procedure: <link cmd = \"u 0x%016I64X L5\">0x%016I64X</link> (%s) \n",
@@ -1122,24 +1153,24 @@ EXT_COMMAND(ms_ssdt,
 {
     vector<SSDT_ENTRY> Table = GetServiceDescriptorTable();
 
-    // Dml("\n<col fg=\"changed\">[*] Service Descriptor Table:</col>\n");
-
     Dml("    |-------|--------------------|--------------------------------------------------------|---------|--------|\n"
         "    | <col fg=\"emphfg\">%-5s</col> | <col fg=\"emphfg\">%-18s</col> | <col fg=\"emphfg\">%-54s</col> | <col fg=\"emphfg\">%-7s</col> | <col fg=\"emphfg\">%-6s</col> |\n"
         "    |-------|--------------------|--------------------------------------------------------|---------|--------|\n",
         "Index", "Address", "Name", "Patched", "Hooked");
 
-    for each (SSDT_ENTRY Entry in Table)
-    {
-        UCHAR Name[512] = { 0 };
+    for each (SSDT_ENTRY Entry in Table) {
 
-        Dml("    | %5d |  <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | %-54s | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col> |\n",
+        CHAR Name[512] = {0};
+
+        Dml((Entry.Address.IsTablePatched || Entry.Address.IsHooked) ?
+            "    | %5d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | <col fg=\"changed\">%-54s</col> | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col> |\n" :
+            "    | %5d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | %-54s | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col> |\n",
             Entry.Index,
-            Entry.Address,
-            Entry.Address,
-            GetNameByOffset(Entry.Address, (PSTR)Name, _countof(Name)),
-            Entry.PatchedEntry ? "Yes" : "",
-            IsPointerHooked(Entry.Address) ? "Yes" : "");
+            Entry.Address.Address,
+            Entry.Address.Address,
+            GetNameByOffset(Entry.Address.Address, (PSTR)Name, _countof(Name)),
+            Entry.Address.IsTablePatched ? "Yes" : "",
+            Entry.Address.IsHooked ? "Yes" : "");
     }
 }
 

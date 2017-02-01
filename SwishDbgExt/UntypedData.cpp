@@ -529,6 +529,212 @@ ExtRemoteUnTyped::TYPED_DATA_FIELD Nt_Misc_AMD64_2600[] = {
     InitField("Time", 0x8, sizeof(ULONG64)), // _ULARGE_INTEGER
 };
 
+//
+// SERVICE_HANDLE
+//
+
+ExtRemoteUnTyped::TYPED_DATA_FIELD Service_Handle_I386_6000[] = {
+    InitField("Signature", 0x0, sizeof(ULONG)),
+    InitField("Flags", 0x4, sizeof(ULONG)),
+    InitField("AccessGranted", 0x8, sizeof(ULONG)),
+    InitField("ServiceRecord", 0xC, sizeof(ULONG)),
+    InitField(NULL, 0, 0)
+};
+
+ExtRemoteUnTyped::TYPED_DATA_FIELD Service_Handle_AMD64_6000[] = {
+    InitField("Signature", 0x0, sizeof(ULONG)),
+    InitField("Flags", 0x4, sizeof(ULONG)),
+    InitField("AccessGranted", 0x8, sizeof(ULONG)),
+    InitField("ServiceRecord", 0x10, sizeof(ULONG64)),
+    InitField(NULL, 0, 0)
+};
+
+//
+// SERVICE_RECORD
+//
+
+ExtRemoteUnTyped::TYPED_DATA_FIELD Service_Record_I386_2600[] = {
+    InitField("Previous", 0x0, sizeof(ULONG)),
+    InitField("ServiceName", 0x4, sizeof(ULONG)),
+    InitField("DisplayName", 0x8, sizeof(ULONG)),
+    InitField("UseCount", 0x18, sizeof(ULONG)),
+    InitField("ImageRecord", 0x20, sizeof(ULONG)),
+    InitField("ObjectName", 0x20, sizeof(ULONG)),
+    InitField("ServiceStatus.dwServiceType", 0x24, sizeof(ULONG)),
+    InitField("ServiceStatus.dwCurrentState", 0x28, sizeof(ULONG)),
+    InitField("StartType", 0x40, sizeof(ULONG)),
+    InitField(NULL, 0, 0)
+};
+
+ExtRemoteUnTyped::TYPED_DATA_FIELD Service_Record_AMD64_2600[] = {
+    InitField("Previous", 0x0, sizeof(ULONG64)),
+    InitField("ServiceName", 0x8, sizeof(ULONG64)),
+    InitField("DisplayName", 0x10, sizeof(ULONG64)),
+    InitField("UseCount", 0x24, sizeof(ULONG)),
+    InitField("ImageRecord", 0x30, sizeof(ULONG64)),
+    InitField("ObjectName", 0x30, sizeof(ULONG64)),
+    InitField("ServiceStatus.dwServiceType", 0x38, sizeof(ULONG)),
+    InitField("ServiceStatus.dwCurrentState", 0x3C, sizeof(ULONG)),
+    InitField("StartType", 0x54, sizeof(ULONG)),
+    InitField(NULL, 0, 0)
+};
+
+ExtRemoteUnTyped::TYPED_DATA_FIELD Service_Record_I386_6000[] = {
+    InitField("Previous", 0x0, sizeof(ULONG)),
+    InitField("ServiceName", 0x4, sizeof(ULONG)),
+    InitField("DisplayName", 0x8, sizeof(ULONG)),
+    InitField("UseCount", 0x14, sizeof(ULONG)),
+    InitField("ImageRecord", 0x1C, sizeof(ULONG)),
+    InitField("ObjectName", 0x1C, sizeof(ULONG)),
+    InitField("ServiceStatus.dwServiceType", 0x20, sizeof(ULONG)),
+    InitField("ServiceStatus.dwCurrentState", 0x24, sizeof(ULONG)),
+    InitField("StartType", 0x3C, sizeof(ULONG)),
+    InitField(NULL, 0, 0)
+};
+
+ExtRemoteUnTyped::TYPED_DATA_FIELD Service_Record_AMD64_6000[] = {
+    InitField("Previous", 0x0, sizeof(ULONG64)),
+    InitField("ServiceName", 0x8, sizeof(ULONG64)),
+    InitField("DisplayName", 0x10, sizeof(ULONG64)),
+    InitField("UseCount", 0x20, sizeof(ULONG)),
+    InitField("ImageRecord", 0x28, sizeof(ULONG64)),
+    InitField("ObjectName", 0x28, sizeof(ULONG64)),
+    InitField("ServiceStatus.dwServiceType", 0x30, sizeof(ULONG)),
+    InitField("ServiceStatus.dwCurrentState", 0x34, sizeof(ULONG)),
+    InitField("StartType", 0x4C, sizeof(ULONG)),
+    InitField(NULL, 0, 0)
+};
+
+ExtRemoteUnTyped::TYPED_DATA_FIELD Service_Record_I386_9200[] = {
+    InitField("Signature", 0x0, sizeof(ULONG)),
+    InitField("Previous", 0x4, sizeof(ULONG)),
+    InitField("ServiceName", 0x8, sizeof(ULONG)),
+    InitField("DisplayName", 0xC, sizeof(ULONG)),
+    InitField("UseCount", 0x18, sizeof(ULONG)),
+    InitField("ImageRecord", 0x24, sizeof(ULONG)),
+    InitField("ObjectName", 0x24, sizeof(ULONG)),
+    InitField("ServiceStatus.dwServiceType", 0x28, sizeof(ULONG)),
+    InitField("ServiceStatus.dwCurrentState", 0x2C, sizeof(ULONG)),
+    InitField("StartType", 0x44, sizeof(ULONG)),
+    InitField(NULL, 0, 0)
+};
+
+ExtRemoteUnTyped::TYPED_DATA_FIELD Service_Record_AMD64_9200[] = {
+    InitField("Signature", 0x0, sizeof(ULONG)),
+    InitField("Previous", 0x8, sizeof(ULONG64)),
+    InitField("ServiceName", 0x10, sizeof(ULONG64)),
+    InitField("DisplayName", 0x18, sizeof(ULONG64)),
+    InitField("UseCount", 0x28, sizeof(ULONG)),
+    InitField("ImageRecord", 0x38, sizeof(ULONG64)),
+    InitField("ObjectName", 0x38, sizeof(ULONG64)),
+    InitField("ServiceStatus.dwServiceType", 0x40, sizeof(ULONG)),
+    InitField("ServiceStatus.dwCurrentState", 0x44, sizeof(ULONG)),
+    InitField("StartType", 0x5C, sizeof(ULONG)),
+    InitField(NULL, 0, 0)
+};
+
+//
+// IMAGE_RECORD
+//
+
+ExtRemoteUnTyped::TYPED_DATA_FIELD Image_Record_I386_2600[] = {
+    InitField("Prev", 0x0, sizeof(ULONG)),
+    InitField("Next", 0x4, sizeof(ULONG)),
+    InitField("ImageName", 0x8, sizeof(ULONG)),
+    InitField("Pid", 0xC, sizeof(ULONG)),
+    InitField("ServiceCount", 0x10, sizeof(ULONG)),
+    InitField("ProcessHandle", 0x18, sizeof(ULONG)),
+    InitField("TokenHandle", 0x20, sizeof(ULONG)),
+    InitField("AccountName", 0x30, sizeof(ULONG)),
+    InitField(NULL, 0, 0)
+};
+
+ExtRemoteUnTyped::TYPED_DATA_FIELD Image_Record_AMD64_2600[] = {
+    InitField("Prev", 0x0, sizeof(ULONG64)),
+    InitField("Next", 0x8, sizeof(ULONG64)),
+    InitField("ImageName", 0x10, sizeof(ULONG64)),
+    InitField("Pid", 0x18, sizeof(ULONG)),
+    InitField("ServiceCount", 0x1C, sizeof(ULONG)),
+    InitField("ProcessHandle", 0x20, sizeof(ULONG)),
+    InitField("TokenHandle", 0x24, sizeof(ULONG)),
+    InitField("AccountName", 0x50, sizeof(ULONG64)),
+    InitField(NULL, 0, 0)
+};
+
+ExtRemoteUnTyped::TYPED_DATA_FIELD Image_Record_I386_6000[] = {
+    InitField("Prev", 0x0, sizeof(ULONG)),
+    InitField("Next", 0x4, sizeof(ULONG)),
+    InitField("ImageName", 0x8, sizeof(ULONG)),
+    InitField("Pid", 0xC, sizeof(ULONG)),
+    InitField("ServiceCount", 0x10, sizeof(ULONG)),
+    InitField("ProcessHandle", 0x18, sizeof(ULONG)),
+    InitField("TokenHandle", 0x20, sizeof(ULONG)),
+    InitField("AccountName", 0x30, sizeof(ULONG)),
+    InitField(NULL, 0, 0)
+};
+
+ExtRemoteUnTyped::TYPED_DATA_FIELD Image_Record_AMD64_6000[] = {
+    InitField("Prev", 0x0, sizeof(ULONG64)),
+    InitField("Next", 0x8, sizeof(ULONG64)),
+    InitField("ImageName", 0x10, sizeof(ULONG64)),
+    InitField("Pid", 0x18, sizeof(ULONG)),
+    InitField("ServiceCount", 0x1C, sizeof(ULONG)),
+    InitField("ProcessHandle", 0x20, sizeof(ULONG)),
+    InitField("TokenHandle", 0x28, sizeof(ULONG)),
+    InitField("AccountName", 0x50, sizeof(ULONG64)),
+    InitField(NULL, 0, 0)
+};
+
+ExtRemoteUnTyped::TYPED_DATA_FIELD Image_Record_I386_7600[] = {
+    InitField("Prev", 0x0, sizeof(ULONG)),
+    InitField("Next", 0x4, sizeof(ULONG)),
+    InitField("ImageName", 0x8, sizeof(ULONG)),
+    InitField("Pid", 0xC, sizeof(ULONG)),
+    InitField("ServiceCount", 0x10, sizeof(ULONG)),
+    InitField("ProcessHandle", 0x14, sizeof(ULONG)),
+    InitField("TokenHandle", 0x1C, sizeof(ULONG)),
+    InitField("AccountName", 0x2C, sizeof(ULONG)),
+    InitField(NULL, 0, 0)
+};
+
+ExtRemoteUnTyped::TYPED_DATA_FIELD Image_Record_AMD64_7600[] = {
+    InitField("Prev", 0x0, sizeof(ULONG64)),
+    InitField("Next", 0x8, sizeof(ULONG64)),
+    InitField("ImageName", 0x10, sizeof(ULONG64)),
+    InitField("Pid", 0x18, sizeof(ULONG)),
+    InitField("ServiceCount", 0x1C, sizeof(ULONG)),
+    InitField("ProcessHandle", 0x20, sizeof(ULONG)),
+    InitField("TokenHandle", 0x30, sizeof(ULONG)),
+    InitField("AccountName", 0x48, sizeof(ULONG64)),
+    InitField(NULL, 0, 0)
+};
+
+ExtRemoteUnTyped::TYPED_DATA_FIELD Image_Record_I386_9200[] = {
+    InitField("Signature", 0x0, sizeof(ULONG)),
+    InitField("ServiceName", 0x4, sizeof(ULONG)),
+    InitField("DisplayName", 0x8, sizeof(ULONG)),
+    InitField("ImageName", 0xC, sizeof(ULONG)),
+    InitField("Pid", 0x10, sizeof(ULONG)),
+    InitField("ServiceCount", 0x14, sizeof(ULONG)),
+    InitField("ProcessHandle", 0x18, sizeof(ULONG)),
+    InitField("TokenHandle", 0x20, sizeof(ULONG)),
+    InitField("AccountName", 0x30, sizeof(ULONG)),
+    InitField(NULL, 0, 0)
+};
+
+ExtRemoteUnTyped::TYPED_DATA_FIELD Image_Record_AMD64_9200[] = {
+    InitField("Signature", 0x0, sizeof(ULONG)),
+    InitField("ServiceName", 0x8, sizeof(ULONG64)),
+    InitField("DisplayName", 0x10, sizeof(ULONG64)),
+    InitField("ImageName", 0x18, sizeof(ULONG64)),
+    InitField("Pid", 0x20, sizeof(ULONG)),
+    InitField("ServiceCount", 0x24, sizeof(ULONG)),
+    InitField("ProcessHandle", 0x28, sizeof(ULONG)),
+    InitField("TokenHandle", 0x38, sizeof(ULONG)),
+    InitField("AccountName", 0x50, sizeof(ULONG64)),
+    InitField(NULL, 0, 0)
+};
+
 ExtRemoteUnTyped::TYPED_DATA_VERSION Conhost_ConsoleInformation[] = {
     InitPlatform(IMAGE_FILE_MACHINE_AMD64, 7600, 15, 0, 0x400 /* Unknown */, &Conhost_ConsoleInformation_AMD64_7600),
     InitPlatform(IMAGE_FILE_MACHINE_I386, 7600, 15, 0, 0x400 /* Unknonw */, &Conhost_ConsoleInformation_I386_7600),
@@ -542,6 +748,58 @@ ExtRemoteUnTyped::TYPED_DATA_VERSION Nt_Misc[] = {
     InitPlatform(IMAGE_FILE_MACHINE_I386, 2600, 15, 0, 0x10, &Nt_Misc_I386_2600),
     InitPlatform(IMAGE_FILE_MACHINE_AMD64, 2600, 15, 0, 0x18, &Nt_Misc_AMD64_2600),
 
+    InitPlatform(0, 0, 0, 0, 0, NULL)
+};
+
+ExtRemoteUnTyped::TYPED_DATA_VERSION Service_Handle[] = {
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 6000, 15, 0, 0x400, &Service_Handle_AMD64_6000),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  6000, 15, 0, 0x400, &Service_Handle_I386_6000),
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 7600, 15, 0, 0x400, &Service_Handle_AMD64_6000),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  7600, 15, 0, 0x400, &Service_Handle_I386_6000),
+    InitPlatform(0, 0, 0, 0, 0, NULL)
+};
+
+ExtRemoteUnTyped::TYPED_DATA_VERSION Service_Record[] = {
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 14393, 15, 0, 0x400, &Service_Record_AMD64_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  14393, 15, 0, 0x400, &Service_Record_I386_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 10586, 15, 0, 0x400, &Service_Record_AMD64_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  10586, 15, 0, 0x400, &Service_Record_I386_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 10240, 15, 0, 0x400, &Service_Record_AMD64_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  10240, 15, 0, 0x400, &Service_Record_I386_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 9600, 15, 0, 0x400, &Service_Record_AMD64_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  9600, 15, 0, 0x400, &Service_Record_I386_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 9200, 15, 0, 0x400, &Service_Record_AMD64_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  9200, 15, 0, 0x400, &Service_Record_I386_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 7600, 15, 0, 0x400, &Service_Record_AMD64_6000),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  7600, 15, 0, 0x400, &Service_Record_I386_6000),
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 6000, 15, 0, 0x400, &Service_Record_AMD64_6000),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  6000, 15, 0, 0x400, &Service_Record_I386_6000),
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 3790, 15, 0, 0x400, &Service_Record_AMD64_2600),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  3790, 15, 0, 0x400, &Service_Record_I386_2600),
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 2600, 15, 0, 0x400, &Service_Record_AMD64_2600),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  2600, 15, 0, 0x400, &Service_Record_I386_2600),
+    InitPlatform(0, 0, 0, 0, 0, NULL)
+};
+
+ExtRemoteUnTyped::TYPED_DATA_VERSION Image_Record[] = {
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 14393, 15, 0, 0x400, &Image_Record_AMD64_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  14393, 15, 0, 0x400, &Image_Record_I386_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 10586, 15, 0, 0x400, &Image_Record_AMD64_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  10586, 15, 0, 0x400, &Image_Record_I386_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 10240, 15, 0, 0x400, &Image_Record_AMD64_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  10240, 15, 0, 0x400, &Image_Record_I386_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 9600, 15, 0, 0x400, &Image_Record_AMD64_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  9600, 15, 0, 0x400, &Image_Record_I386_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 9200, 15, 0, 0x400, &Image_Record_AMD64_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  9200, 15, 0, 0x400, &Image_Record_I386_9200),
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 7600, 15, 0, 0x400, &Image_Record_AMD64_7600),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  7600, 15, 0, 0x400, &Image_Record_I386_7600),
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 6000, 15, 0, 0x400, &Image_Record_AMD64_6000),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  6000, 15, 0, 0x400, &Image_Record_I386_6000),
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 3790, 15, 0, 0x400, &Image_Record_AMD64_2600),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  3790, 15, 0, 0x400, &Image_Record_I386_2600),
+    InitPlatform(IMAGE_FILE_MACHINE_AMD64, 2600, 15, 0, 0x400, &Image_Record_AMD64_2600),
+    InitPlatform(IMAGE_FILE_MACHINE_I386,  2600, 15, 0, 0x400, &Image_Record_I386_2600),
     InitPlatform(0, 0, 0, 0, 0, NULL)
 };
 
@@ -559,6 +817,9 @@ ExtRemoteUnTyped::TYPED_DATA g_UntypedData[] = {
     InitType("lx!_LX_PROCESSGROUP", &Nt_LX),
     InitType("lx!_LX_THREADGROUP", &Nt_LX),
     InitType("lx!_LX_PROCESS", &Nt_LX),
+    InitType("services!_SERVICE_HANDLE", &Service_Handle),
+    InitType("services!_SERVICE_RECORD", &Service_Record),
+    InitType("services!_IMAGE_RECORD", &Image_Record),
     InitType(NULL, NULL)
 };
 
