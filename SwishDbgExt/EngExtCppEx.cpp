@@ -449,16 +449,23 @@ Return Value:
 
 --*/
 {
-    ULONG BytesRead;
+    CHAR DisplacementString[MAX_PATH];
     ULONG64 Displacement;
+    ULONG BytesRead;
 
     Buffer[0] = '\0';
 
     if (Offset) {
 
-        // TODO: GetOffsetSymbol()
+        if (g_Ext->m_Symbols->GetNameByOffset(Offset, (PSTR)Buffer, Length, &BytesRead, &Displacement) == S_OK) {
 
-        g_Ext->m_Symbols->GetNameByOffset(Offset, (PSTR)Buffer, Length, &BytesRead, &Displacement);
+            if (Displacement != 0) {
+
+                StringCchPrintf(DisplacementString, _countof(DisplacementString), "+0x%x", Displacement);
+
+                StringCchCat(Buffer, Length - _tcslen(Buffer), DisplacementString);
+            }
+        }
     }
 
     return Buffer;

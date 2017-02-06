@@ -774,7 +774,7 @@ CleanUp:
     return Vacbs;
 }
 
-vector<IDT_OBJECT>
+vector<IDT_ENTRY>
 GetInterrupts(
     _In_opt_ ULONG64 InIdtBase
     )
@@ -794,14 +794,15 @@ Return Value:
 
 --*/
 {
-    vector<IDT_OBJECT> Idts;
-    vector<ULONG64> IdtBases;
+    vector<IDT_TABLE> IdtTables;
+    vector<IDT_ENTRY> IdtEntries;
     PULONG64 KiProcessorBlock;
-    ULONG64 InterruptAddress;
     ULONG64 Address;
+    ULONG64 InterruptAddress;
     ULONG ActualMachine;
     ULONG DispatchCodeOffset;
     ULONG CoreIndex = 0;
+    PSTR IdtEntryString;
     BYTE KeNumberProcessors;
 
     ActualMachine = g_Ext->m_ActualMachine;
@@ -836,7 +837,12 @@ Return Value:
 
                         if (IdtBase) {
 
-                            IdtBases.push_back(IdtBase);
+                            IDT_TABLE IdtTable;
+
+                            IdtTable.IdtAddress = IdtBase;
+                            IdtTable.PrcbAddress = KiProcessorBlock[i];
+
+                            IdtTables.push_back(IdtTable);
                         }
                     }
                 }
@@ -847,18 +853,31 @@ Return Value:
     }
     else {
 
-        IdtBases.push_back(InIdtBase);
+        PROCESSORINFO ProcessorInfo;
+        IDT_TABLE IdtTable = {0};
+        ULONG64 PrcbAddress;
+
+        GetKdContext(&ProcessorInfo);
+
+        IdtTable.IdtAddress = InIdtBase;
+
+        if (g_Ext->m_Data4->ReadProcessorSystemData(ProcessorInfo.Processor, DEBUG_DATA_KPRCB_OFFSET, &PrcbAddress, sizeof(PrcbAddress), NULL) == S_OK) {
+
+            IdtTable.PrcbAddress = PrcbAddress;
+        }
+
+        IdtTables.push_back(IdtTable);
     }
+
+    IdtEntryString = (ActualMachine == IMAGE_FILE_MACHINE_I386) ? "(nt!_KIDTENTRY *)@$extin" : "(nt!_KIDTENTRY64 *)@$extin";
 
     if (0 == GetFieldOffset("nt!_KINTERRUPT", "DispatchCode", &DispatchCodeOffset)) {
 
-        PSTR IdtEntryString = (ActualMachine == IMAGE_FILE_MACHINE_I386) ? "(nt!_KIDTENTRY *)@$extin" : "(nt!_KIDTENTRY64 *)@$extin";
+        for each (IDT_TABLE IdtTable in IdtTables) {
 
-        for each (ULONG64 IdtBase in IdtBases) {
+            IDT_ENTRY IdtEntry = {0};
 
-            IDT_OBJECT IdtEntry = {0};
-
-            ExtRemoteTyped Idt(IdtEntryString, IdtBase);
+            ExtRemoteTyped Idt(IdtEntryString, IdtTable.IdtAddress);
 
             for (ULONG i = 0; i < 256; i++) {
 
@@ -898,7 +917,7 @@ Return Value:
                             IdtEntry.Index = i;
                             IdtEntry.CoreIndex = CoreIndex;
 
-                            Idts.push_back(IdtEntry);
+                            IdtEntries.push_back(IdtEntry);
 
                             ExtRemoteTypedList InterruptList(Interrupt.Field("InterruptListEntry").GetPointerTo().GetPtr(), "nt!_KINTERRUPT", "InterruptListEntry");
 
@@ -908,7 +927,7 @@ Return Value:
                                 IdtEntry.Index = i;
                                 IdtEntry.CoreIndex = CoreIndex;
 
-                                Idts.push_back(IdtEntry);
+                                IdtEntries.push_back(IdtEntry);
                             }
                         }
                         else {
@@ -917,7 +936,101 @@ Return Value:
                             IdtEntry.Index = i;
                             IdtEntry.CoreIndex = CoreIndex;
 
-                            Idts.push_back(IdtEntry);
+                            IdtEntries.push_back(IdtEntry);
+                        }
+                    }
+                }
+                catch (...) {
+
+                }
+            }
+
+            CoreIndex++;
+        }
+    }
+    else {
+
+        for each (IDT_TABLE IdtTable in IdtTables) {
+
+            IDT_ENTRY IdtEntry = {0};
+
+            ExtRemoteTyped Idt(IdtEntryString, IdtTable.IdtAddress);
+
+            for (ULONG i = 0; i < 256; i++) {
+
+                try {
+
+                    ExtRemoteTyped InterruptObject;
+
+                    ExtRemoteTyped Prcb("(nt!_KPRCB *)@$extin", IdtTable.PrcbAddress);
+
+                    if (ActualMachine == IMAGE_FILE_MACHINE_I386) {
+
+                        InterruptObject = Prcb.Field("VectorToInterruptObject").GetPointerTo();
+
+                        USHORT Access = Idt.ArrayElement(i).Field("Access").GetUshort();
+
+                        IdtEntry.Dpl = (Access & IDT_ACCESS_DPL_MASK) >> 13;
+                        IdtEntry.Type = (Access & IDT_ACCESS_TYPE_MASK) >> 8;
+                        IdtEntry.Present = (Access & IDT_ACCESS_PRESENT_MASK) >> 15;
+
+                        Address = (Idt.ArrayElement(i).Field("ExtendedOffset").GetUshort() << 16) |
+                                  (Idt.ArrayElement(i).Field("Offset").GetUshort());
+                    }
+                    else {
+
+                        InterruptObject = Prcb.Field("InterruptObject").GetPointerTo();
+
+                        IdtEntry.Dpl = Idt.ArrayElement(i).Field("Dpl").GetUshort();
+                        IdtEntry.Type = Idt.ArrayElement(i).Field("Type").GetUshort();
+                        IdtEntry.Present = Idt.ArrayElement(i).Field("Present").GetUshort();
+
+                        Address = (((ULONG64)Idt.ArrayElement(i).Field("OffsetHigh").GetUlong() << 32) |
+                                   ((ULONG64)Idt.ArrayElement(i).Field("OffsetMiddle").GetUshort() << 16) |
+                                   ((ULONG64)Idt.ArrayElement(i).Field("OffsetLow").GetUshort()));
+                    }
+
+                    if (Address) {
+
+                        if (i >= 0x30) {
+
+                            ULONG InterruptIndex = (ActualMachine == IMAGE_FILE_MACHINE_I386) ?  i - 0x30 : i;
+
+                            InterruptAddress = InterruptObject.ArrayElement(InterruptIndex).GetPtr();
+                        }
+                        else {
+
+                            InterruptAddress = NULL;
+                        }
+
+                        ExtRemoteTyped Interrupt("(nt!_KINTERRUPT *)@$extin", InterruptAddress);
+
+                        if (IsValid(InterruptAddress) && (Interrupt.Field("Type").GetUshort() == INTERRUPT_OBJECT_TYPE)) {
+
+                            IdtEntry.Address = Interrupt.Field("ServiceRoutine").GetPtr();
+                            IdtEntry.Index = i;
+                            IdtEntry.CoreIndex = CoreIndex;
+
+                            IdtEntries.push_back(IdtEntry);
+
+                            ExtRemoteTypedList InterruptList(Interrupt.Field("InterruptListEntry").GetPointerTo().GetPtr(), "nt!_KINTERRUPT", "InterruptListEntry");
+
+                            for (InterruptList.StartHead(); InterruptList.HasNode(); InterruptList.Next()) {
+
+                                IdtEntry.Address = InterruptList.GetTypedNode().Field("ServiceRoutine").GetPtr();
+                                IdtEntry.Index = i;
+                                IdtEntry.CoreIndex = CoreIndex;
+
+                                IdtEntries.push_back(IdtEntry);
+                            }
+                        }
+                        else {
+
+                            IdtEntry.Address = Address;
+                            IdtEntry.Index = i;
+                            IdtEntry.CoreIndex = CoreIndex;
+
+                            IdtEntries.push_back(IdtEntry);
                         }
                     }
                 }
@@ -930,7 +1043,7 @@ Return Value:
         }
     }
 
-    return Idts;
+    return IdtEntries;
 }
 
 vector<GDT_OBJECT>

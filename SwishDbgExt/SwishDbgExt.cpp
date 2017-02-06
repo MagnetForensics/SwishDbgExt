@@ -1648,27 +1648,27 @@ EXT_COMMAND(ms_idt,
     "{base;ed,o;base;Display information for a given idt}")
 {
     ULONG64 IdtBase = GetArgU64("base", FALSE);
-    vector<IDT_OBJECT> Idts = GetInterrupts(IdtBase);
+    vector<IDT_ENTRY> IdtEntries = GetInterrupts(IdtBase);
 
     Dml("    |-----|-----|--------------------|--------------------------------------------------------|---------|--------|\n"
         "    | <col fg=\"emphfg\">%-3s</col> | <col fg=\"emphfg\">%-3s</col> | <col fg=\"emphfg\">%-18s</col> | <col fg=\"emphfg\">%-54s</col> | <col fg=\"emphfg\">%-7s</col> | <col fg=\"emphfg\">%-6s</col> |\n"
         "    |-----|-----|--------------------|--------------------------------------------------------|---------|--------|\n",
         "Cre", "Idx", "Address", "Name", "Patched", "Hooked");
 
-    for each (IDT_OBJECT Idt in Idts) {
+    for each (IDT_ENTRY IdtEntry in IdtEntries) {
 
         CHAR Name[MAX_PATH] = {0};
 
-        if (Idt.Address) {
+        if (IdtEntry.Address) {
 
             Dml("    | %3d | %3d | <link cmd = \"u 0x%016I64X L5\">0x%016I64X</link> | %-54s | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col> |\n",
-                Idt.CoreIndex,
-                Idt.Index,
-                Idt.Address,
-                Idt.Address,
-                GetNameByOffset(Idt.Address, (PSTR)Name, _countof(Name)),
-                Idt.Address ? "" : "",
-                IsPointerHooked(Idt.Address) ? "Yes" : "");
+                IdtEntry.CoreIndex,
+                IdtEntry.Index,
+                IdtEntry.Address,
+                IdtEntry.Address,
+                GetNameByOffset(IdtEntry.Address, (PSTR)Name, _countof(Name)),
+                IdtEntry.Address ? "" : "",
+                IsPointerHooked(IdtEntry.Address) ? "Yes" : "");
         }
     }
 }

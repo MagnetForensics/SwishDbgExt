@@ -102,8 +102,7 @@ typedef struct _VACB_OBJECT
     ULONG64 SharedCacheMap;
 } VACB_OBJECT, *PVACB_OBJECT;
 
-typedef struct _IDT_OBJECT
-{
+typedef struct _IDT_ENTRY {
     ULONG CoreIndex;
     ULONG Index;
     ULONG64 Address;
@@ -111,7 +110,12 @@ typedef struct _IDT_OBJECT
     USHORT Dpl;
     USHORT Present;
     USHORT Type;
-} IDT_OBJECT, *PIDT_OBJECT;
+} IDT_ENTRY, *PIDT_ENTRY;
+
+typedef struct _IDT_TABLE {
+    ULONG64 IdtAddress;
+    ULONG64 PrcbAddress;
+} IDT_TABLE, *PIDT_TABLE;
 
 typedef struct _GDT_OBJECT
 {
@@ -302,7 +306,7 @@ GetPartitionType(
     _In_ ULONG Type
     );
 
-vector<IDT_OBJECT>
+vector<IDT_ENTRY>
 GetInterrupts(
     _In_opt_ ULONG64 InIdtBase
     );
