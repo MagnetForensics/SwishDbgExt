@@ -41,12 +41,12 @@ IsValid(
     ULONG64 Pointer
 );
 
-LPSTR
+PSTR
 GetNameByOffset(
-    ULONG64 Offset,
-    LPSTR Name,
-    ULONG NameSize
-);
+    _In_ ULONG64 Offset,
+    _Out_writes_(Length) PSTR Buffer,
+    _In_ ULONG Length
+    );
 
 BOOLEAN
 IsPointerHooked(

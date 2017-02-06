@@ -52,6 +52,12 @@ typedef struct _SSDT_ENTRY {
 #define SC_SIGNATURE_NT5           0x6E4F6373  // "scOn" in ASCII.
 #define SERVICE_SIGNATURE          0x76724573  // "sErv" in ASCII.
 
+#define INTERRUPT_OBJECT_TYPE      22
+
+#define IDT_ACCESS_TYPE_MASK       0x0F00
+#define IDT_ACCESS_DPL_MASK        0x6000
+#define IDT_ACCESS_PRESENT_MASK    0x8000
+
 typedef struct _SERVICE_ENTRY {
     WCHAR Name[MAX_PATH];
     WCHAR Desc[MAX_PATH];
@@ -100,7 +106,7 @@ typedef struct _IDT_OBJECT
 {
     ULONG CoreIndex;
     ULONG Index;
-    ULONG64 Entry;
+    ULONG64 Address;
 
     USHORT Dpl;
     USHORT Present;
@@ -161,24 +167,6 @@ typedef struct _KTIMER {
     ULONG Period;
     ULONG64 DeferredRoutine;
 } KTIMER, *PKTIMER;
-
-typedef union _KIDTENTRY64
-{
-    struct
-    {
-        USHORT OffsetLow;
-        USHORT Selector;
-        USHORT IstIndex : 3;
-        USHORT Reserved0 : 5;
-        USHORT Type : 5;
-        USHORT Dpl : 2;
-        USHORT Present : 1;
-        USHORT OffsetMiddle;
-        ULONG OffsetHigh;
-        ULONG Reserved1;
-    };
-    UINT64 Alignment;
-} KIDTENTRY64, *PKIDTENTRY64;
 
 typedef union _KGDTENTRY64
 {

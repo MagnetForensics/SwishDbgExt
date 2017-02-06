@@ -1655,20 +1655,20 @@ EXT_COMMAND(ms_idt,
         "    |-----|-----|--------------------|--------------------------------------------------------|---------|--------|\n",
         "Cre", "Idx", "Address", "Name", "Patched", "Hooked");
 
-    for each (IDT_OBJECT Idt in Idts)
-    {
-        UCHAR Name[512] = { 0 };
+    for each (IDT_OBJECT Idt in Idts) {
 
-        if (Idt.Entry)
-        {
+        CHAR Name[MAX_PATH] = {0};
+
+        if (Idt.Address) {
+
             Dml("    | %3d | %3d | <link cmd = \"u 0x%016I64X L5\">0x%016I64X</link> | %-54s | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col> |\n",
                 Idt.CoreIndex,
                 Idt.Index,
-                Idt.Entry,
-                Idt.Entry,
-                GetNameByOffset(Idt.Entry, (PSTR)Name, _countof(Name)),
-                Idt.Entry ? "" : "",
-                IsPointerHooked(Idt.Entry) ? "Yes" : "No");
+                Idt.Address,
+                Idt.Address,
+                GetNameByOffset(Idt.Address, (PSTR)Name, _countof(Name)),
+                Idt.Address ? "" : "",
+                IsPointerHooked(Idt.Address) ? "Yes" : "");
         }
     }
 }
