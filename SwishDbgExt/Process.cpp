@@ -498,6 +498,9 @@ Return Value:
             for (Dlls.First(); !Dlls.IsDone(); Dlls.Next()) {
 
                 MsDllObject Object = Dlls.Current();
+
+                Object.mm_CcDllObject.LoadTime.QuadPart = 0;
+
                 m_DllList.push_back(Object);
             }
         }
