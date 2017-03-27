@@ -49,6 +49,15 @@ BOOLEAN g_Verbose = FALSE;
 #endif
 
 
+ULONG64 KeNumberProcessorsAddress;
+ULONG64 KiProcessorBlockAddress;
+ULONG64 ObpRootDirectoryObjectAddress;
+ULONG64 ObTypeIndexTableAddress;
+ULONG64 ObHeaderCookieAddress;
+ULONG64 CmpRegistryRootObjectAddress;
+ULONG64 CmpMasterHiveAddress;
+
+
 class EXT_CLASS : public ExtExtension
 {
 public:
@@ -136,6 +145,16 @@ public:
                 "       This is free software, and you are welcome to redistribute it\n"
                 "       under certain conditions; type `show c' for details.\n",
                 EXT_VERSION, __DATE__);
+
+        KeNumberProcessorsAddress = GetExpression("nt!KeNumberProcessors");
+        KiProcessorBlockAddress = GetExpression("nt!KiProcessorBlock");
+
+        ObpRootDirectoryObjectAddress = GetExpression("nt!ObpRootDirectoryObject");
+        ObTypeIndexTableAddress = GetExpression("nt!ObTypeIndexTable");
+        ObHeaderCookieAddress = GetExpression("nt!ObHeaderCookie");
+
+        CmpRegistryRootObjectAddress = GetExpression("nt!CmpRegistryRootObject");
+        CmpMasterHiveAddress = GetExpression("nt!CmpMasterHive");
 
         DebugControl->Release();
         DebugClient->Release();

@@ -593,12 +593,12 @@ Return Value:
     }
     else
     {
-        if (g_Ext->m_Data->ReadVirtual(GetExpression("nt!KeNumberProcessors"), &KeNumberProcessors, sizeof(KeNumberProcessors), NULL) != S_OK) goto CleanUp;
+        if (g_Ext->m_Data->ReadVirtual(KeNumberProcessorsAddress, &KeNumberProcessors, sizeof(KeNumberProcessors), NULL) != S_OK) goto CleanUp;
 
         KiProcessorBlock = (PULONG64)malloc(KeNumberProcessors * sizeof(ULONG64));
         if (!KiProcessorBlock) goto CleanUp;
 
-        if (ReadPointersVirtual(KeNumberProcessors, GetExpression("nt!KiProcessorBlock"), KiProcessorBlock) != S_OK) goto CleanUp;
+        if (ReadPointersVirtual(KeNumberProcessors, KiProcessorBlockAddress, KiProcessorBlock) != S_OK) goto CleanUp;
 
         for (UINT i = 0; KiProcessorBlock[i] && (i < KeNumberProcessors); i += 1)
         {
@@ -809,13 +809,13 @@ Return Value:
 
     if (!InIdtBase) {
 
-        if (g_Ext->m_Data->ReadVirtual(GetExpression("nt!KeNumberProcessors"), &KeNumberProcessors, sizeof(KeNumberProcessors), NULL) == S_OK) {
+        if (g_Ext->m_Data->ReadVirtual(KeNumberProcessorsAddress, &KeNumberProcessors, sizeof(KeNumberProcessors), NULL) == S_OK) {
 
             KiProcessorBlock = (PULONG64)calloc(KeNumberProcessors, sizeof(ULONG64));
 
             if (KiProcessorBlock) {
 
-                if (ReadPointersVirtual(KeNumberProcessors, GetExpression("nt!KiProcessorBlock"), KiProcessorBlock) == S_OK) {
+                if (ReadPointersVirtual(KeNumberProcessors, KiProcessorBlockAddress, KiProcessorBlock) == S_OK) {
 
                     ULONG64 IdtBase;
                     ULONG PrcbOffset;
@@ -1074,12 +1074,12 @@ Return Value:
 
     if (!InGdtBase)
     {
-        if (g_Ext->m_Data->ReadVirtual(GetExpression("nt!KeNumberProcessors"), &KeNumberProcessors, sizeof(KeNumberProcessors), NULL) != S_OK) goto CleanUp;
+        if (g_Ext->m_Data->ReadVirtual(KeNumberProcessorsAddress, &KeNumberProcessors, sizeof(KeNumberProcessors), NULL) != S_OK) goto CleanUp;
 
         KiProcessorBlock = (PULONG64)malloc(KeNumberProcessors * sizeof(ULONG64));
         if (!KiProcessorBlock) goto CleanUp;
 
-        if (ReadPointersVirtual(KeNumberProcessors, GetExpression("nt!KiProcessorBlock"), KiProcessorBlock) != S_OK) goto CleanUp;
+        if (ReadPointersVirtual(KeNumberProcessors, KiProcessorBlockAddress, KiProcessorBlock) != S_OK) goto CleanUp;
 
         ULONG PrcbOffset;
 

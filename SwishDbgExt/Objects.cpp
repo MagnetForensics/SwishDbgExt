@@ -78,7 +78,7 @@ Return Value:
 
         if (!ObTypeInit)
         {
-            ObjTypeTable = ExtRemoteTyped("(nt!_OBJECT_TYPE **)@$extin", GetExpression("nt!ObTypeIndexTable"));
+            ObjTypeTable = ExtRemoteTyped("(nt!_OBJECT_TYPE **)@$extin", ObTypeIndexTableAddress);
             ObTypeInit = TRUE;
         }
 
@@ -95,7 +95,7 @@ Return Value:
 
             HandleObj->ObjectTypeIndex = ObjHeader.Field("TypeIndex").GetUchar();
 
-            if (g_Ext->m_Data->ReadVirtual(GetExpression("nt!ObHeaderCookie"), &HeaderCookie, sizeof(HeaderCookie), NULL) == S_OK) {
+            if (g_Ext->m_Data->ReadVirtual(ObHeaderCookieAddress, &HeaderCookie, sizeof(HeaderCookie), NULL) == S_OK) {
 
                 HandleObj->ObjectTypeIndex = (((ObjHeaderAddr >> 8) & 0xff) ^ HandleObj->ObjectTypeIndex) ^ HeaderCookie;
             }
@@ -230,7 +230,7 @@ Return Value:
 
     if (!ObjectDir)
     {
-        ReadPointer(GetExpression("nt!ObpRootDirectoryObject"), &ObjectDir);
+        ReadPointer(ObpRootDirectoryObjectAddress, &ObjectDir);
     }
 
     Directory = ExtRemoteTyped("(nt!_OBJECT_DIRECTORY *)@$extin", ObjectDir);

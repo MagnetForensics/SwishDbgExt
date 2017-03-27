@@ -110,6 +110,13 @@ extern "C" {
 //
 
 extern BOOLEAN g_Verbose;
+extern ULONG64 KeNumberProcessorsAddress;
+extern ULONG64 KiProcessorBlockAddress;
+extern ULONG64 ObpRootDirectoryObjectAddress;
+extern ULONG64 ObTypeIndexTableAddress;
+extern ULONG64 ObHeaderCookieAddress;
+extern ULONG64 CmpRegistryRootObjectAddress;
+extern ULONG64 CmpMasterHiveAddress;
 
 VOID
 ReleaseObjectTypeTable(
