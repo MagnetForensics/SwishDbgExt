@@ -425,12 +425,12 @@ Return Value:
     // return SIGN_EXTEND(Pointer);
 }
 
-LPSTR
+PSTR
 GetNameByOffset(
     _In_ ULONG64 Offset,
-    _Out_writes_(NameSize) LPSTR Name,
-    _In_ ULONG NameSize
-)
+    _Out_writes_(Length) PSTR Buffer,
+    _In_ ULONG Length
+    )
 /*++
 
 Routine Description:
@@ -449,20 +449,26 @@ Return Value:
 
 --*/
 {
-    HRESULT hResult;
-    RtlZeroMemory(Name, NameSize);
+    CHAR DisplacementString[MAX_PATH];
+    ULONG64 Displacement;
+    ULONG BytesRead;
 
-    if (Offset)
-    {
-        // TODO: GetOffsetSymbol()
-        hResult = g_Ext->m_Symbols->GetNameByOffset(Offset, (PSTR)Name, NameSize, NULL, NULL);
-        if (hResult != S_OK)
-        {
-            strcpy_s((LPSTR)Name, NameSize, "*UNKNOWN*");
+    Buffer[0] = '\0';
+
+    if (Offset) {
+
+        if (g_Ext->m_Symbols->GetNameByOffset(Offset, (PSTR)Buffer, Length, &BytesRead, &Displacement) == S_OK) {
+
+            if (Displacement != 0) {
+
+                StringCchPrintf(DisplacementString, _countof(DisplacementString), "+0x%x", Displacement);
+
+                StringCchCat(Buffer, Length - _tcslen(Buffer), DisplacementString);
+            }
         }
     }
 
-    return Name;
+    return Buffer;
 }
 
 BOOLEAN

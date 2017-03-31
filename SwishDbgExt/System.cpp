@@ -593,12 +593,12 @@ Return Value:
     }
     else
     {
-        if (g_Ext->m_Data->ReadVirtual(GetExpression("nt!KeNumberProcessors"), &KeNumberProcessors, sizeof(KeNumberProcessors), NULL) != S_OK) goto CleanUp;
+        if (g_Ext->m_Data->ReadVirtual(KeNumberProcessorsAddress, &KeNumberProcessors, sizeof(KeNumberProcessors), NULL) != S_OK) goto CleanUp;
 
         KiProcessorBlock = (PULONG64)malloc(KeNumberProcessors * sizeof(ULONG64));
         if (!KiProcessorBlock) goto CleanUp;
 
-        if (ReadPointersVirtual(KeNumberProcessors, GetExpression("nt!KiProcessorBlock"), KiProcessorBlock) != S_OK) goto CleanUp;
+        if (ReadPointersVirtual(KeNumberProcessors, KiProcessorBlockAddress, KiProcessorBlock) != S_OK) goto CleanUp;
 
         for (UINT i = 0; KiProcessorBlock[i] && (i < KeNumberProcessors); i += 1)
         {
@@ -774,10 +774,10 @@ CleanUp:
     return Vacbs;
 }
 
-vector<IDT_OBJECT>
+vector<IDT_ENTRY>
 GetInterrupts(
     _In_opt_ ULONG64 InIdtBase
-)
+    )
 /*++
 
 Routine Description:
@@ -794,104 +794,256 @@ Return Value:
 
 --*/
 {
-    vector<IDT_OBJECT> Idts;
-    ULONG KeNumberProcessors;
+    vector<IDT_TABLE> IdtTables;
+    vector<IDT_ENTRY> IdtEntries;
     PULONG64 KiProcessorBlock;
+    ULONG64 Address;
+    ULONG64 InterruptAddress;
+    ULONG ActualMachine;
+    ULONG DispatchCodeOffset;
+    ULONG CoreIndex = 0;
+    PSTR IdtEntryString;
+    BYTE KeNumberProcessors;
 
-    vector<ULONG64> IdtBases;
+    ActualMachine = g_Ext->m_ActualMachine;
 
-    if (!InIdtBase)
-    {
-        if (g_Ext->m_Data->ReadVirtual(GetExpression("nt!KeNumberProcessors"), &KeNumberProcessors, sizeof(KeNumberProcessors), NULL) != S_OK) goto CleanUp;
+    if (!InIdtBase) {
 
-        KiProcessorBlock = (PULONG64)malloc(KeNumberProcessors * sizeof(ULONG64));
-        if (!KiProcessorBlock) goto CleanUp;
+        if (g_Ext->m_Data->ReadVirtual(KeNumberProcessorsAddress, &KeNumberProcessors, sizeof(KeNumberProcessors), NULL) == S_OK) {
 
-        if (ReadPointersVirtual(KeNumberProcessors, GetExpression("nt!KiProcessorBlock"), KiProcessorBlock) != S_OK) goto CleanUp;
+            KiProcessorBlock = (PULONG64)calloc(KeNumberProcessors, sizeof(ULONG64));
 
-        ULONG PrcbOffset = 0;
+            if (KiProcessorBlock) {
 
-        if (GetFieldOffset("nt!_KPCR", "PrcbData", &PrcbOffset) != S_OK) GetFieldOffset("nt!_KPCR", "Prcb", &PrcbOffset);
+                if (ReadPointersVirtual(KeNumberProcessors, KiProcessorBlockAddress, KiProcessorBlock) == S_OK) {
 
-        for (UINT i = 0; KiProcessorBlock[i] && (i < KeNumberProcessors); i += 1)
-        {
-            ULONG64 IdtBase;
-            ULONG IdtOffset;
-            ExtRemoteTyped Pcr("(nt!_KPCR *)@$extin", (ULONG64)KiProcessorBlock[i] - PrcbOffset);
+                    ULONG64 IdtBase;
+                    ULONG PrcbOffset;
+                    ULONG IdtOffset;
 
-            // g_Ext->Dml("KPCR = %I64X offset = %x\n", KiProcessorBlock[i], PrcbOffset);
-            // Pcr.OutFullValue();
+                    if (GetFieldOffset("nt!_KPCR", "PrcbData", &PrcbOffset) != S_OK) {
 
-            if (GetFieldOffset("nt!_KPCR", "IdtBase", &IdtOffset) != S_OK) GetFieldOffset("nt!_KPCR", "IDT", &IdtOffset);
+                        GetFieldOffset("nt!_KPCR", "Prcb", &PrcbOffset);
+                    }
 
-            ReadPointer(KiProcessorBlock[i] - PrcbOffset + IdtOffset, &IdtBase);
+                    if (GetFieldOffset("nt!_KPCR", "IDT", &IdtOffset) != S_OK) {
 
-            // if (Pcr.HasField("IdtBase")) IdtBase = Pcr.Field("IdtBase").GetPtr();
-            // else if (Pcr.HasField("IDT")) IdtBase = Pcr.Field("IDT").GetPtr();
+                        GetFieldOffset("nt!_KPCR", "IdtBase", &IdtOffset);
+                    }
 
-            if (!IdtBase) continue;
+                    for (UINT i = 0; KiProcessorBlock[i] && (i < KeNumberProcessors); i++) {
 
-            IdtBases.push_back(IdtBase);
-        }
-    }
-    else
-    {
-        IdtBases.push_back(InIdtBase);
-    }
+                        ReadPointer(KiProcessorBlock[i] - PrcbOffset + IdtOffset, &IdtBase);
 
-    UINT i = 0;
-    for each (ULONG64 IdtBase in IdtBases)
-    {
-        if (g_Ext->m_ActualMachine == IMAGE_FILE_MACHINE_I386)
-        {
-            IDT_OBJECT IdtEntry = { 0 };
-            ExtRemoteTyped Idt("(nt!_KIDTENTRY *)@$extin", IdtBase);
+                        if (IdtBase) {
 
-            for (UINT j = 0; j < 256; j += 1)
-            {
-                ULONG64 Entry = (Idt.ArrayElement(j).Field("ExtendedOffset").GetUshort() << 16) |
-                    (Idt.ArrayElement(j).Field("Offset").GetUshort());
+                            IDT_TABLE IdtTable;
 
-                IdtEntry.Entry = Entry;
-                IdtEntry.Index = j;
-                IdtEntry.CoreIndex = i;
+                            IdtTable.IdtAddress = IdtBase;
+                            IdtTable.PrcbAddress = KiProcessorBlock[i];
 
-                Idts.push_back(IdtEntry);
+                            IdtTables.push_back(IdtTable);
+                        }
+                    }
+                }
+
+                free(KiProcessorBlock);
             }
         }
-        else
-        {
-            for (UINT j = 0; j < 256; j += 1)
-            {
-                KIDTENTRY64 IdtEntry64 = { 0 };
-                IDT_OBJECT IdtEntry = { 0 };
+    }
+    else {
 
-                if (g_Ext->m_Data->ReadVirtual(IdtBase + j * sizeof(KIDTENTRY64),
-                                               &IdtEntry64,
-                                               sizeof(IdtEntry64), NULL) != S_OK) goto CleanUp;
+        PROCESSORINFO ProcessorInfo;
+        IDT_TABLE IdtTable = {0};
+        ULONG64 PrcbAddress;
 
-                ULONG64 Entry = IdtEntry64.OffsetHigh;
-                Entry <<= 32;
-                Entry |= IdtEntry64.OffsetMiddle << 16;
-                Entry |= IdtEntry64.OffsetLow;
+        GetKdContext(&ProcessorInfo);
 
-                IdtEntry.Entry = Entry;
-                IdtEntry.Dpl = IdtEntry64.Dpl;
-                IdtEntry.Present = IdtEntry64.Present;
-                IdtEntry.Type = IdtEntry64.Type;
+        IdtTable.IdtAddress = InIdtBase;
 
-                IdtEntry.Index = j;
-                IdtEntry.CoreIndex = i;
+        if (g_Ext->m_Data4->ReadProcessorSystemData(ProcessorInfo.Processor, DEBUG_DATA_KPRCB_OFFSET, &PrcbAddress, sizeof(PrcbAddress), NULL) == S_OK) {
 
-                Idts.push_back(IdtEntry);
-            }
+            IdtTable.PrcbAddress = PrcbAddress;
         }
 
-        i += 1;
+        IdtTables.push_back(IdtTable);
     }
 
-CleanUp:
-    return Idts;
+    IdtEntryString = (ActualMachine == IMAGE_FILE_MACHINE_I386) ? "(nt!_KIDTENTRY *)@$extin" : "(nt!_KIDTENTRY64 *)@$extin";
+
+    if (0 == GetFieldOffset("nt!_KINTERRUPT", "DispatchCode", &DispatchCodeOffset)) {
+
+        for each (IDT_TABLE IdtTable in IdtTables) {
+
+            IDT_ENTRY IdtEntry = {0};
+
+            ExtRemoteTyped Idt(IdtEntryString, IdtTable.IdtAddress);
+
+            for (ULONG i = 0; i < 256; i++) {
+
+                try {
+
+                    if (ActualMachine == IMAGE_FILE_MACHINE_I386) {
+
+                        USHORT Access = Idt.ArrayElement(i).Field("Access").GetUshort();
+
+                        IdtEntry.Dpl = (Access & IDT_ACCESS_DPL_MASK) >> 13;
+                        IdtEntry.Type = (Access & IDT_ACCESS_TYPE_MASK) >> 8;
+                        IdtEntry.Present = (Access & IDT_ACCESS_PRESENT_MASK) >> 15;
+
+                        Address = (Idt.ArrayElement(i).Field("ExtendedOffset").GetUshort() << 16) |
+                                  (Idt.ArrayElement(i).Field("Offset").GetUshort());
+                    }
+                    else {
+
+                        IdtEntry.Dpl = Idt.ArrayElement(i).Field("Dpl").GetUshort();
+                        IdtEntry.Type = Idt.ArrayElement(i).Field("Type").GetUshort();
+                        IdtEntry.Present = Idt.ArrayElement(i).Field("Present").GetUshort();
+
+                        Address = (((ULONG64)Idt.ArrayElement(i).Field("OffsetHigh").GetUlong() << 32) |
+                                   ((ULONG64)Idt.ArrayElement(i).Field("OffsetMiddle").GetUshort() << 16) |
+                                   ((ULONG64)Idt.ArrayElement(i).Field("OffsetLow").GetUshort()));
+                    }
+
+                    if (Address) {
+
+                        InterruptAddress = Address - DispatchCodeOffset;
+
+                        ExtRemoteTyped Interrupt("(nt!_KINTERRUPT *)@$extin", InterruptAddress);
+
+                        if (IsValid(InterruptAddress) && (Interrupt.Field("Type").GetUshort() == INTERRUPT_OBJECT_TYPE)) {
+
+                            IdtEntry.Address = Interrupt.Field("ServiceRoutine").GetPtr();
+                            IdtEntry.Index = i;
+                            IdtEntry.CoreIndex = CoreIndex;
+
+                            IdtEntries.push_back(IdtEntry);
+
+                            ExtRemoteTypedList InterruptList(Interrupt.Field("InterruptListEntry").GetPointerTo().GetPtr(), "nt!_KINTERRUPT", "InterruptListEntry");
+
+                            for (InterruptList.StartHead(); InterruptList.HasNode(); InterruptList.Next()) {
+
+                                IdtEntry.Address = InterruptList.GetTypedNode().Field("ServiceRoutine").GetPtr();
+                                IdtEntry.Index = i;
+                                IdtEntry.CoreIndex = CoreIndex;
+
+                                IdtEntries.push_back(IdtEntry);
+                            }
+                        }
+                        else {
+
+                            IdtEntry.Address = Address;
+                            IdtEntry.Index = i;
+                            IdtEntry.CoreIndex = CoreIndex;
+
+                            IdtEntries.push_back(IdtEntry);
+                        }
+                    }
+                }
+                catch (...) {
+
+                }
+            }
+
+            CoreIndex++;
+        }
+    }
+    else {
+
+        for each (IDT_TABLE IdtTable in IdtTables) {
+
+            IDT_ENTRY IdtEntry = {0};
+
+            ExtRemoteTyped Idt(IdtEntryString, IdtTable.IdtAddress);
+
+            for (ULONG i = 0; i < 256; i++) {
+
+                try {
+
+                    ExtRemoteTyped InterruptObject;
+
+                    ExtRemoteTyped Prcb("(nt!_KPRCB *)@$extin", IdtTable.PrcbAddress);
+
+                    if (ActualMachine == IMAGE_FILE_MACHINE_I386) {
+
+                        InterruptObject = Prcb.Field("VectorToInterruptObject").GetPointerTo();
+
+                        USHORT Access = Idt.ArrayElement(i).Field("Access").GetUshort();
+
+                        IdtEntry.Dpl = (Access & IDT_ACCESS_DPL_MASK) >> 13;
+                        IdtEntry.Type = (Access & IDT_ACCESS_TYPE_MASK) >> 8;
+                        IdtEntry.Present = (Access & IDT_ACCESS_PRESENT_MASK) >> 15;
+
+                        Address = (Idt.ArrayElement(i).Field("ExtendedOffset").GetUshort() << 16) |
+                                  (Idt.ArrayElement(i).Field("Offset").GetUshort());
+                    }
+                    else {
+
+                        InterruptObject = Prcb.Field("InterruptObject").GetPointerTo();
+
+                        IdtEntry.Dpl = Idt.ArrayElement(i).Field("Dpl").GetUshort();
+                        IdtEntry.Type = Idt.ArrayElement(i).Field("Type").GetUshort();
+                        IdtEntry.Present = Idt.ArrayElement(i).Field("Present").GetUshort();
+
+                        Address = (((ULONG64)Idt.ArrayElement(i).Field("OffsetHigh").GetUlong() << 32) |
+                                   ((ULONG64)Idt.ArrayElement(i).Field("OffsetMiddle").GetUshort() << 16) |
+                                   ((ULONG64)Idt.ArrayElement(i).Field("OffsetLow").GetUshort()));
+                    }
+
+                    if (Address) {
+
+                        if (i >= 0x30) {
+
+                            ULONG InterruptIndex = (ActualMachine == IMAGE_FILE_MACHINE_I386) ?  i - 0x30 : i;
+
+                            InterruptAddress = InterruptObject.ArrayElement(InterruptIndex).GetPtr();
+                        }
+                        else {
+
+                            InterruptAddress = NULL;
+                        }
+
+                        ExtRemoteTyped Interrupt("(nt!_KINTERRUPT *)@$extin", InterruptAddress);
+
+                        if (IsValid(InterruptAddress) && (Interrupt.Field("Type").GetUshort() == INTERRUPT_OBJECT_TYPE)) {
+
+                            IdtEntry.Address = Interrupt.Field("ServiceRoutine").GetPtr();
+                            IdtEntry.Index = i;
+                            IdtEntry.CoreIndex = CoreIndex;
+
+                            IdtEntries.push_back(IdtEntry);
+
+                            ExtRemoteTypedList InterruptList(Interrupt.Field("InterruptListEntry").GetPointerTo().GetPtr(), "nt!_KINTERRUPT", "InterruptListEntry");
+
+                            for (InterruptList.StartHead(); InterruptList.HasNode(); InterruptList.Next()) {
+
+                                IdtEntry.Address = InterruptList.GetTypedNode().Field("ServiceRoutine").GetPtr();
+                                IdtEntry.Index = i;
+                                IdtEntry.CoreIndex = CoreIndex;
+
+                                IdtEntries.push_back(IdtEntry);
+                            }
+                        }
+                        else {
+
+                            IdtEntry.Address = Address;
+                            IdtEntry.Index = i;
+                            IdtEntry.CoreIndex = CoreIndex;
+
+                            IdtEntries.push_back(IdtEntry);
+                        }
+                    }
+                }
+                catch (...) {
+
+                }
+            }
+
+            CoreIndex++;
+        }
+    }
+
+    return IdtEntries;
 }
 
 vector<GDT_OBJECT>
@@ -922,12 +1074,12 @@ Return Value:
 
     if (!InGdtBase)
     {
-        if (g_Ext->m_Data->ReadVirtual(GetExpression("nt!KeNumberProcessors"), &KeNumberProcessors, sizeof(KeNumberProcessors), NULL) != S_OK) goto CleanUp;
+        if (g_Ext->m_Data->ReadVirtual(KeNumberProcessorsAddress, &KeNumberProcessors, sizeof(KeNumberProcessors), NULL) != S_OK) goto CleanUp;
 
         KiProcessorBlock = (PULONG64)malloc(KeNumberProcessors * sizeof(ULONG64));
         if (!KiProcessorBlock) goto CleanUp;
 
-        if (ReadPointersVirtual(KeNumberProcessors, GetExpression("nt!KiProcessorBlock"), KiProcessorBlock) != S_OK) goto CleanUp;
+        if (ReadPointersVirtual(KeNumberProcessors, KiProcessorBlockAddress, KiProcessorBlock) != S_OK) goto CleanUp;
 
         ULONG PrcbOffset;
 

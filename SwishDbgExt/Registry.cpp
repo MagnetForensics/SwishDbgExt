@@ -224,8 +224,8 @@ GetKeyNode(
 
     try {
 
-        ReadPointer(GetExpression("nt!CmpMasterHive"), &CmpMasterHive);
-        ReadPointer(GetExpression("nt!CmpRegistryRootObject"), &CmpRegistryRootObject);
+        ReadPointer(CmpMasterHiveAddress, &CmpMasterHive);
+        ReadPointer(CmpRegistryRootObjectAddress, &CmpRegistryRootObject);
 
         ExtRemoteTyped KeyHive("(nt!_HHIVE *)@$extin", CmpMasterHive);
         ExtRemoteTyped KeyBody("(nt!_CM_KEY_BODY *)@$extin", CmpRegistryRootObject);
