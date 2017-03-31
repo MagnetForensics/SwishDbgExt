@@ -177,20 +177,26 @@ Return Value:
 
 --*/
 {
-    RtlZeroMemory(&mm_CcDllObject, sizeof(mm_CcDllObject));
+    try {
 
-    if (m_TypedObject.GetPtr()) {
+        RtlZeroMemory(&mm_CcDllObject, sizeof(mm_CcDllObject));
 
-        m_ImageBase = m_TypedObject.Field("DllBase").GetPtr();
-        m_ImageSize = m_TypedObject.Field("SizeOfImage").GetUlong();
+        if (m_TypedObject.GetPtr()) {
 
-        if (m_TypedObject.HasField("LoadTime")) {
+            m_ImageBase = m_TypedObject.Field("DllBase").GetPtr();
+            m_ImageSize = m_TypedObject.Field("SizeOfImage").GetUlong();
 
-            mm_CcDllObject.LoadTime.QuadPart = m_TypedObject.Field("LoadTime.QuadPart").GetUlong64();
+            ExtRemoteTypedEx::GetUnicodeString(m_TypedObject.Field("FullDllName"), (PWSTR)&mm_CcDllObject.FullDllName, sizeof(mm_CcDllObject.FullDllName));
+            ExtRemoteTypedEx::GetUnicodeString(m_TypedObject.Field("BaseDllName"), (PWSTR)&mm_CcDllObject.DllName, sizeof(mm_CcDllObject.DllName));
+
+            if (m_TypedObject.HasField("LoadTime")) {
+
+                mm_CcDllObject.LoadTime.QuadPart = m_TypedObject.Field("LoadTime.QuadPart").GetUlong64();
+            }
         }
+    }
+    catch (...) {
 
-        ExtRemoteTypedEx::GetUnicodeString(m_TypedObject.Field("FullDllName"), (PWSTR)&mm_CcDllObject.FullDllName, sizeof(mm_CcDllObject.FullDllName));
-        ExtRemoteTypedEx::GetUnicodeString(m_TypedObject.Field("BaseDllName"), (PWSTR)&mm_CcDllObject.DllName, sizeof(mm_CcDllObject.DllName));
     }
 }
 
