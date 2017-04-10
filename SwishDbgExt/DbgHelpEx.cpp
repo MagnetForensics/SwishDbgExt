@@ -43,6 +43,21 @@ Revision History:
 //
 
 
+BOOL
+MsPEImageFile::IsValidAddress(
+    _In_ ULONG_PTR Address
+    )
+{
+    ULONG_PTR ImageBase = (ULONG_PTR)m_Image.Image;
+
+    if (Address >= ImageBase && Address < (ImageBase + m_ImageSize)) {
+
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
 VOID
 MsPEImageFile::GetAddressInfo(
     _In_ ULONG64 Address,
@@ -232,7 +247,7 @@ Return Value:
 
             ImageImportDescriptor = (PIMAGE_IMPORT_DESCRIPTOR)(ImageBase + m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
 
-            if ((ULONG_PTR)ImageImportDescriptor >= ImageBase && (ULONG_PTR)ImageImportDescriptor < (ImageBase + m_ImageSize)) {
+            if (IsValidAddress((ULONG_PTR)ImageImportDescriptor)) {
 
                 try {
 
@@ -244,10 +259,20 @@ Return Value:
 
                         IMPORT_DESCRIPTOR ImportDescriptor;
                         IMPORT_INFO ImportInfo = {0};
+                        ULONG_PTR DllNameAddress;
                         ULONG64 DllImageBase = 0;
                         ULONG64 DllImageEnd = 0;
 
-                        StringCchPrintfW(DllName, _countof(DllName), L"%S", (PSTR)(ImageBase + ImageImportDescriptor->Name));
+                        if (!IsValidAddress(ImageBase + ImageImportDescriptor->Name) ||
+                            !IsValidAddress(ImageBase + ImageImportDescriptor->FirstThunk) ||
+                            !IsValidAddress(ImageBase + ImageImportDescriptor->OriginalFirstThunk)) {
+
+                            break;
+                        }
+
+                        DllNameAddress = ImageBase + ImageImportDescriptor->Name;
+
+                        StringCchPrintfW(DllName, _countof(DllName), L"%S", (PSTR)DllNameAddress);
 
                         if (wcslen(DllName)) {
 
@@ -269,7 +294,7 @@ Return Value:
                                 }
                             }
 
-                            StringCchCopy(ImportDescriptor.DllName, _countof(ImportDescriptor.DllName), (PSTR)(ImageBase + ImageImportDescriptor->Name));
+                            StringCchCopy(ImportDescriptor.DllName, _countof(ImportDescriptor.DllName), (PSTR)DllNameAddress);
                         }
                         else {
 
@@ -313,7 +338,10 @@ Return Value:
 
                                             PIMAGE_IMPORT_BY_NAME ImageImportByName = (PIMAGE_IMPORT_BY_NAME)(ImageBase + ImageThunkData32->u1.AddressOfData);
 
-                                            StringCchCopy(ImportInfo.Name, _countof(ImportInfo.Name), ImageImportByName->Name);
+                                            if (IsValidAddress((ULONG_PTR)ImageImportByName)) {
+
+                                                StringCchCopy(ImportInfo.Name, _countof(ImportInfo.Name), ImageImportByName->Name);
+                                            }
                                         }
                                     }
 
@@ -357,7 +385,10 @@ Return Value:
 
                                             PIMAGE_IMPORT_BY_NAME ImageImportByName = (PIMAGE_IMPORT_BY_NAME)(ImageBase + ImageThunkData64->u1.AddressOfData);
 
-                                            StringCchCopy(ImportInfo.Name, _countof(ImportInfo.Name), ImageImportByName->Name);
+                                            if (IsValidAddress((ULONG_PTR)ImageImportByName)) {
+
+                                                StringCchCopy(ImportInfo.Name, _countof(ImportInfo.Name), ImageImportByName->Name);
+                                            }
                                         }
                                     }
 

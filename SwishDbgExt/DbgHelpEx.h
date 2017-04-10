@@ -199,6 +199,11 @@ public:
     GetInfoFull(
     );
 
+    BOOL
+    IsValidAddress(
+        _In_ ULONG_PTR Address
+        );
+
     void Free(void);
 
 protected:
