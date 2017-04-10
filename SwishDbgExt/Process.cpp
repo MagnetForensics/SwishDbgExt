@@ -1290,68 +1290,76 @@ MsProcessObject::MmGetFirstVad(
     ULONG64 First, LeftChild = 0;
     ExtRemoteTyped MmVad;
 
-    if (m_TypedObject.Field("VadRoot").GetTypeSize() > GetPtrSize())
-    {
-        First = m_TypedObject.Field("VadRoot.BalancedRoot.RightChild").GetPtr();
-        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] VadRoot.BalancedRoot.RightChild = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
-        if (!First) return FALSE;
-    }
-    else
-    {
-        if (m_TypedObject.Field("VadRoot").HasField("Root")) {
-            First = m_TypedObject.Field("VadRoot").Field("Root").GetPtr();
-        } else {
-            First = m_TypedObject.Field("VadRoot").GetPtr();
+    try {
+
+        if (m_TypedObject.Field("VadRoot").GetTypeSize() > GetPtrSize())
+        {
+            First = m_TypedObject.Field("VadRoot.BalancedRoot.RightChild").GetPtr();
+            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] VadRoot.BalancedRoot.RightChild = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
+            if (!First) return FALSE;
         }
-        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] VadRoot = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
-        if (!First) return FALSE;
-    }
+        else
+        {
+            if (m_TypedObject.Field("VadRoot").HasField("Root")) {
+                First = m_TypedObject.Field("VadRoot").Field("Root").GetPtr();
+            } else {
+                First = m_TypedObject.Field("VadRoot").GetPtr();
+            }
+            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] VadRoot = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
+            if (!First) return FALSE;
+        }
 
-    while (First)
-    {
-        LeftChild = First;
+        while (First)
+        {
+            LeftChild = First;
 
-        MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", LeftChild);
+            MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", LeftChild);
 
-        if (MmVad.HasField("Core")) {
+            if (MmVad.HasField("Core")) {
 
-            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] [Left] LeftChild = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
+                if (g_Verbose) g_Ext->Dml("[%s!%S!%d] [Left] LeftChild = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
 
-            if (MmVad.Field("Core").Field("VadNode").HasField("LeftChild")) {
+                if (MmVad.Field("Core").Field("VadNode").HasField("LeftChild")) {
 
-                First = MmVad.Field("Core").Field("VadNode").Field("LeftChild").GetPtr();
+                    First = MmVad.Field("Core").Field("VadNode").Field("LeftChild").GetPtr();
+                }
+                else {
+
+                    First = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+                }
             }
             else {
 
-                First = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+                First = MmVad.Field("LeftChild").GetPtr();
             }
+
+            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] VadRoot.First = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
+        }
+
+        First = LeftChild;
+        VadInfo->FirstNode = First;
+        VadInfo->CurrentNode = VadInfo->FirstNode;
+
+        MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
+
+        if (MmVad.HasField("Core")) {
+
+            VadInfo->StartingVpn = MmVad.Field("Core").Field("StartingVpn").GetUlong();
+            VadInfo->EndingVpn = MmVad.Field("Core").Field("EndingVpn").GetUlong();
         }
         else {
-
-            First = MmVad.Field("LeftChild").GetPtr();
+            VadInfo->StartingVpn = MmVad.Field("StartingVpn").GetPtr();
+            VadInfo->EndingVpn = MmVad.Field("EndingVpn").GetPtr();
         }
+        VadInfo->EndingVpn += 1;
 
-        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] VadRoot.First = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
+        return TRUE;
+    }
+    catch (...) {
+
     }
 
-    First = LeftChild;
-    VadInfo->FirstNode = First;
-    VadInfo->CurrentNode = VadInfo->FirstNode;
-
-    MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
-
-    if (MmVad.HasField("Core")) {
-
-        VadInfo->StartingVpn = MmVad.Field("Core").Field("StartingVpn").GetUlong();
-        VadInfo->EndingVpn = MmVad.Field("Core").Field("EndingVpn").GetUlong();
-    }
-    else {
-        VadInfo->StartingVpn = MmVad.Field("StartingVpn").GetPtr();
-        VadInfo->EndingVpn = MmVad.Field("EndingVpn").GetPtr();
-    }
-    VadInfo->EndingVpn += 1;
-
-    return TRUE;
+    return FALSE;
 }
 
 BOOLEAN
@@ -1376,216 +1384,226 @@ Return Value:
 {
     ULONG64 Parent, Next;
     ULONG64 LeftChild = 0, RightChild;
-
     ExtRemoteTyped MmVad;
 
-     if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Entering...\n", __FILE__, __FUNCTIONW__, __LINE__);
+    try {
 
-    VadInfo->StartingVpn = 0;
-    VadInfo->EndingVpn = 0;
-    VadInfo->FileObject = 0;
-    if (!VadInfo->CurrentNode) {
-        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] CurrentNode is null. Exiting.\n", __FILE__, __FUNCTIONW__, __LINE__);
-        return FALSE;
-    }
+        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Entering...\n", __FILE__, __FUNCTIONW__, __LINE__);
 
-    Next = VadInfo->CurrentNode;
+        VadInfo->StartingVpn = 0;
+        VadInfo->EndingVpn = 0;
+        VadInfo->FileObject = 0;
 
-    MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
+        if (!VadInfo->CurrentNode) {
 
-    if (MmVad.HasField("Core")) {
+            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] CurrentNode is null. Exiting.\n", __FILE__, __FUNCTIONW__, __LINE__);
+            return FALSE;
+        }
 
-        if (MmVad.Field("Core").Field("VadNode").HasField("RightChild")) {
+        Next = VadInfo->CurrentNode;
 
-            RightChild = MmVad.Field("Core").Field("VadNode").Field("RightChild").GetPtr();
+        MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
+
+        if (MmVad.HasField("Core")) {
+
+            if (MmVad.Field("Core").Field("VadNode").HasField("RightChild")) {
+
+                RightChild = MmVad.Field("Core").Field("VadNode").Field("RightChild").GetPtr();
+            }
+            else {
+
+                RightChild = MmVad.Field("Core").Field("VadNode").Field("Right").GetPtr();
+            }
         }
         else {
 
-            RightChild = MmVad.Field("Core").Field("VadNode").Field("Right").GetPtr();
+            RightChild = MmVad.Field("RightChild").GetPtr();
         }
-    }
-    else {
 
-        RightChild = MmVad.Field("RightChild").GetPtr();
-    }
-
-    if (!RightChild)
-    {
-        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Looking for parent node.\n", __FILE__, __FUNCTIONW__, __LINE__);
-        while (TRUE)
+        if (!RightChild)
         {
-            if (MmVad.HasField("u1.Parent"))
+            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Looking for parent node.\n", __FILE__, __FUNCTIONW__, __LINE__);
+
+            while (TRUE)
             {
-                Parent = MmVad.Field("u1.Parent").GetPtr();
-            }
-            else if (MmVad.HasField("Parent"))
-            {
-                Parent = MmVad.Field("Parent").GetPtr();
-            }
-            else if (MmVad.HasField("Core.VadNode.u1.Parent")) {
+                if (MmVad.HasField("u1.Parent"))
+                {
+                    Parent = MmVad.Field("u1.Parent").GetPtr();
+                }
+                else if (MmVad.HasField("Parent"))
+                {
+                    Parent = MmVad.Field("Parent").GetPtr();
+                }
+                else if (MmVad.HasField("Core.VadNode.u1.Parent")) {
 
-                Parent = MmVad.Field("Core").Field("VadNode.u1.Parent").GetPtr();
-            }
-            else if (MmVad.HasField("Core.VadNode.ParentValue")) {
+                    Parent = MmVad.Field("Core").Field("VadNode.u1.Parent").GetPtr();
+                }
+                else if (MmVad.HasField("Core.VadNode.ParentValue")) {
 
-                Parent = MmVad.Field("Core").Field("VadNode.ParentValue").GetPtr();
-            }
-            else return FALSE;
+                    Parent = MmVad.Field("Core").Field("VadNode.ParentValue").GetPtr();
+                }
+                else return FALSE;
 
-            //
-            // Sanitize
-            //
-            Parent &= ~0x3;
-            if (!Parent) return FALSE;
+                //
+                // Sanitize
+                //
+                Parent &= ~0x3;
+                if (!Parent) return FALSE;
 
-            if (Parent == Next)
-            {
-                VadInfo->CurrentNode = 0;
-                return FALSE;
-            }
+                if (Parent == Next)
+                {
+                    VadInfo->CurrentNode = 0;
+                    return FALSE;
+                }
 
-            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access VadInfo->CurrentNode = 0x%llx\n",
-                __FILE__, __FUNCTIONW__, __LINE__, VadInfo->CurrentNode);
+                if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access VadInfo->CurrentNode = 0x%llx\n",
+                    __FILE__, __FUNCTIONW__, __LINE__, VadInfo->CurrentNode);
 
-            MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", Parent);
+                MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", Parent);
 
-            if (MmVad.HasField("Core")) {
+                if (MmVad.HasField("Core")) {
 
-                if (MmVad.Field("Core").Field("VadNode").HasField("LeftChild")) {
+                    if (MmVad.Field("Core").Field("VadNode").HasField("LeftChild")) {
 
-                    LeftChild = MmVad.Field("Core").Field("VadNode").Field("LeftChild").GetPtr();
+                        LeftChild = MmVad.Field("Core").Field("VadNode").Field("LeftChild").GetPtr();
+                    }
+                    else {
+
+                        LeftChild = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+                    }
                 }
                 else {
 
-                    LeftChild = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+                    LeftChild = MmVad.Field("LeftChild").GetPtr();
                 }
-            }
-            else {
 
-                LeftChild = MmVad.Field("LeftChild").GetPtr();
-            }
+                if (LeftChild == Next)
+                {
+                    VadInfo->CurrentNode = Parent;
+                    break;
+                }
 
-            if (LeftChild == Next)
-            {
-                VadInfo->CurrentNode = Parent;
-                break;
+                Next = Parent;
             }
-
-            Next = Parent;
         }
-    }
-    else
-    {
-        Next = RightChild;
-
-        while (Next)
+        else
         {
-            LeftChild = Next;
-            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access [0x%llX] Node\n",
-                __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
+            Next = RightChild;
 
-            if (!IsValid(LeftChild)) {
-                g_Ext->Err("[%s!%S!%d] Unable to get LeftChild of nt!_MMVAD_SHORT at 0x%llX\n", __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
-                return FALSE;
-            }
+            while (Next)
+            {
+                LeftChild = Next;
+                if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access [0x%llX] Node\n",
+                    __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
 
-            MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", LeftChild);
+                if (!IsValid(LeftChild)) {
+                    g_Ext->Err("[%s!%S!%d] Unable to get LeftChild of nt!_MMVAD_SHORT at 0x%llX\n", __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
+                    return FALSE;
+                }
 
-            if (MmVad.HasField("Core")) {
+                MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", LeftChild);
 
-                if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access [0x%llX].Core.VadNode.Left\n", __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
+                if (MmVad.HasField("Core")) {
 
-                if (MmVad.Field("Core").Field("VadNode").HasField("LeftChild")) {
+                    if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access [0x%llX].Core.VadNode.Left\n", __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
 
-                    Next = MmVad.Field("Core").Field("VadNode").Field("LeftChild").GetPtr();
+                    if (MmVad.Field("Core").Field("VadNode").HasField("LeftChild")) {
+
+                        Next = MmVad.Field("Core").Field("VadNode").Field("LeftChild").GetPtr();
+                    }
+                    else {
+
+                        Next = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+                    }
                 }
                 else {
 
-                    Next = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+                    Next = MmVad.Field("LeftChild").GetPtr();
                 }
             }
-            else {
 
-                Next = MmVad.Field("LeftChild").GetPtr();
+            VadInfo->CurrentNode = LeftChild;
+
+            if (!LeftChild) return FALSE;
+        }
+
+        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Current Node [0x%llX]\n", __FILE__, __FUNCTIONW__, __LINE__, VadInfo->CurrentNode);
+
+        MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
+
+        if (MmVad.HasField("Core")) {
+
+            VadInfo->StartingVpn = MmVad.Field("Core").Field("StartingVpn").GetUlong();
+            VadInfo->EndingVpn = MmVad.Field("Core").Field("EndingVpn").GetUlong();
+
+            VadInfo->VadType = (ULONG)MmVad.Field("Core").Field("u.VadFlags.VadType").GetUlong();
+            VadInfo->Protection = (ULONG)MmVad.Field("Core").Field("u.VadFlags.Protection").GetUlong();
+            VadInfo->PrivateMemory = (ULONG)MmVad.Field("Core").Field("u.VadFlags.PrivateMemory").GetUlong();
+            VadInfo->MemCommit = (ULONG)MmVad.Field("Core").Field("u1.VadFlags1.MemCommit").GetUlong();
+
+            if (MmVad.HasField("Core.StartingVpnHigh") && MmVad.HasField("Core.EndingVpnHigh")) {
+
+                ULONG64 StartingVpnHigh;
+                ULONG64 EndingVpnHigh;
+
+                StartingVpnHigh = MmVad.Field("Core").Field("StartingVpnHigh").GetUchar();
+                EndingVpnHigh = MmVad.Field("Core").Field("EndingVpnHigh").GetUchar();
+
+                VadInfo->StartingVpn = VadInfo->StartingVpn | (StartingVpnHigh << 32);
+                VadInfo->EndingVpn = VadInfo->EndingVpn | (EndingVpnHigh << 32);
             }
         }
+        else {
+            VadInfo->StartingVpn = MmVad.Field("StartingVpn").GetPtr();
+            VadInfo->EndingVpn = MmVad.Field("EndingVpn").GetPtr();
 
-        VadInfo->CurrentNode = LeftChild;
-
-        if (!LeftChild) return FALSE;
-    }
-
-    if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Current Node [0x%llX]\n", __FILE__, __FUNCTIONW__, __LINE__, VadInfo->CurrentNode);
-
-    MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
-
-    if (MmVad.HasField("Core")) {
-
-        VadInfo->StartingVpn = MmVad.Field("Core").Field("StartingVpn").GetUlong();
-        VadInfo->EndingVpn = MmVad.Field("Core").Field("EndingVpn").GetUlong();
-
-        VadInfo->VadType = (ULONG)MmVad.Field("Core").Field("u.VadFlags.VadType").GetUlong();
-        VadInfo->Protection = (ULONG)MmVad.Field("Core").Field("u.VadFlags.Protection").GetUlong();
-        VadInfo->PrivateMemory = (ULONG)MmVad.Field("Core").Field("u.VadFlags.PrivateMemory").GetUlong();
-        VadInfo->MemCommit = (ULONG)MmVad.Field("Core").Field("u1.VadFlags1.MemCommit").GetUlong();
-
-        if (MmVad.HasField("Core.StartingVpnHigh") && MmVad.HasField("Core.EndingVpnHigh")) {
-
-            ULONG64 StartingVpnHigh;
-            ULONG64 EndingVpnHigh;
-
-            StartingVpnHigh = MmVad.Field("Core").Field("StartingVpnHigh").GetUchar();
-            EndingVpnHigh = MmVad.Field("Core").Field("EndingVpnHigh").GetUchar();
-
-            VadInfo->StartingVpn = VadInfo->StartingVpn | (StartingVpnHigh << 32);
-            VadInfo->EndingVpn = VadInfo->EndingVpn | (EndingVpnHigh << 32);
-        }
-    }
-    else {
-        VadInfo->StartingVpn = MmVad.Field("StartingVpn").GetPtr();
-        VadInfo->EndingVpn = MmVad.Field("EndingVpn").GetPtr();
-
-        if (MmVad.HasField("u.VadFlags.VadType"))
-        {
-            VadInfo->VadType = (ULONG)MmVad.Field("u.VadFlags.VadType").GetPtr();
-        }
-        VadInfo->Protection = (ULONG)MmVad.Field("u.VadFlags.Protection").GetPtr();
-        VadInfo->PrivateMemory = (ULONG)MmVad.Field("u.VadFlags.PrivateMemory").GetPtr();
-        VadInfo->MemCommit = (ULONG)MmVad.Field("u.VadFlags.MemCommit").GetPtr();
-    }
-    VadInfo->EndingVpn += 1;
-
-    if (MmVad.HasField("ControlArea"))
-    {
-        // NT 5
-        ULONG64 ControlArea = 0;
-        ULONG64 FilePointer = 0;
-
-        ControlArea = MmVad.Field("ControlArea").GetPtr();
-        if (ControlArea && IsValid(ControlArea)) FilePointer = MmVad.Field("ControlArea").Field("FilePointer").GetPtr();
-
-        VadInfo->FileObject = FilePointer;
-    }
-    else if (MmVad.HasField("Subsection"))
-    {
-        ULONG64 Subsection = MmVad.Field("Subsection").GetPtr();
-        if (Subsection && !VadInfo->PrivateMemory)
-        {
-            ExtRemoteTyped MmSubSection("(nt!_SUBSECTION *)@$extin", Subsection);
-
-            if (MmSubSection.Field("ControlArea").GetPtr())
+            if (MmVad.HasField("u.VadFlags.VadType"))
             {
-                VadInfo->FileObject = MmSubSection.Field("ControlArea").Field("FilePointer").Field("Object").GetPtr();
+                VadInfo->VadType = (ULONG)MmVad.Field("u.VadFlags.VadType").GetPtr();
+            }
+            VadInfo->Protection = (ULONG)MmVad.Field("u.VadFlags.Protection").GetPtr();
+            VadInfo->PrivateMemory = (ULONG)MmVad.Field("u.VadFlags.PrivateMemory").GetPtr();
+            VadInfo->MemCommit = (ULONG)MmVad.Field("u.VadFlags.MemCommit").GetPtr();
+        }
+        VadInfo->EndingVpn += 1;
+
+        if (MmVad.HasField("ControlArea"))
+        {
+            // NT 5
+            ULONG64 ControlArea = 0;
+            ULONG64 FilePointer = 0;
+
+            ControlArea = MmVad.Field("ControlArea").GetPtr();
+            if (ControlArea && IsValid(ControlArea)) FilePointer = MmVad.Field("ControlArea").Field("FilePointer").GetPtr();
+
+            VadInfo->FileObject = FilePointer;
+        }
+        else if (MmVad.HasField("Subsection"))
+        {
+            ULONG64 Subsection = MmVad.Field("Subsection").GetPtr();
+            if (Subsection && !VadInfo->PrivateMemory)
+            {
+                ExtRemoteTyped MmSubSection("(nt!_SUBSECTION *)@$extin", Subsection);
+
+                if (MmSubSection.Field("ControlArea").GetPtr())
+                {
+                    VadInfo->FileObject = MmSubSection.Field("ControlArea").Field("FilePointer").Field("Object").GetPtr();
+                }
             }
         }
+
+        if (GetPtrSize() == sizeof(ULONG64))  VadInfo->FileObject &= ~0xF;
+        else if (GetPtrSize() == sizeof(ULONG32)) VadInfo->FileObject &= ~0x7;
+
+        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Leaving.\n", __FILE__, __FUNCTIONW__, __LINE__);
+
+        return TRUE;
+    }
+    catch (...) {
+
     }
 
-    if (GetPtrSize() == sizeof(ULONG64))  VadInfo->FileObject &= ~0xF;
-    else if (GetPtrSize() == sizeof(ULONG32)) VadInfo->FileObject &= ~0x7;
-
-    if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Leaving.\n", __FILE__, __FUNCTIONW__, __LINE__);
-
-    return TRUE;
+    return FALSE;
 }
 
 BOOLEAN
