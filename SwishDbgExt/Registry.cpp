@@ -134,7 +134,9 @@ GetSubKeys(
 
                             CHAR Name[MAX_PATH] = {0};
 
-                            ChildKeyNode.Field("Name").GetString(Name, NameLength, sizeof(Name) - 1);
+                            Address = ChildKeyNode.Field("Name").GetPointerTo().GetPtr();
+
+                            ExtRemoteTypedEx::ReadVirtual(Address, Name, min(NameLength, sizeof(Name) - 1), NULL);
 
                             StringCchPrintfW(SubKey.Name, _countof(SubKey.Name), L"%S", Name);
 
@@ -193,7 +195,9 @@ GetSubKeys(
 
                             CHAR Name[MAX_PATH] = {0};
 
-                            ChildKeyNode.Field("Name").GetString(Name, NameLength, sizeof(Name) - 1);
+                            Address = ChildKeyNode.Field("Name").GetPointerTo().GetPtr();
+
+                            ExtRemoteTypedEx::ReadVirtual(Address, Name, min(NameLength, sizeof(Name) - 1), NULL);
 
                             StringCchPrintfW(SubKey.Name, _countof(SubKey.Name), L"%S", Name);
 
@@ -356,7 +360,9 @@ RegGetKeyValue(
 
                             ZeroMemory(ValueNameAnsi, sizeof(ValueNameAnsi));
 
-                            KeyValue.Field("Name").GetString(ValueNameAnsi, NameLength, sizeof(ValueNameAnsi) - 1);
+                            ULONG64 NameAddress = KeyValue.Field("Name").GetPointerTo().GetPtr();
+
+                            ExtRemoteTypedEx::ReadVirtual(NameAddress, ValueNameAnsi, min(NameLength, sizeof(ValueNameAnsi) - 1), NULL);
 
                             StringCchPrintfW(ValueNameWide, _countof(ValueNameWide), L"%S", ValueNameAnsi);
 
@@ -525,6 +531,8 @@ Return Value:
     ULONG64 SubKeysStableTableAddress;
     ULONG64 SubKeysVolatileTableAddress;
     ULONG64 ValuesTableAddress;
+    ULONG64 NameAddress;
+    USHORT NameLength;
 
     if (KeyNode.Field("Signature").GetUshort() == CM_LINK_NODE_SIGNATURE) {
 
@@ -543,8 +551,17 @@ Return Value:
 
     RtlZeroMemory(Name, sizeof(Name));
 
+    NameLength = KeyNode.Field("NameLength").GetUshort();
+
+    if (NameLength) {
+
+        NameAddress = KeyNode.Field("Name").GetPointerTo().GetPtr();
+
+        ExtRemoteTypedEx::ReadVirtual(NameAddress, Name, min(NameLength, sizeof(Name) - 1), NULL);
+    }
+
     g_Ext->Dml(" Key node <col fg=\"changed\">%s</col> contains %d key values and %d subkeys.\n\n",
-               KeyNode.Field("Name").GetString(Name, KeyNode.Field("NameLength").GetUshort(), sizeof(Name)),
+               Name,
                ValuesCount,
                SubKeysStableCount + SubKeysVolatileCount);
 
@@ -591,12 +608,21 @@ Return Value:
 
                         RtlZeroMemory(Name, sizeof(Name));
 
+                        NameLength = LocalKeyNode.Field("NameLength").GetUshort();
+
+                        if (NameLength) {
+
+                            NameAddress = LocalKeyNode.Field("Name").GetPointerTo().GetPtr();
+
+                            ExtRemoteTypedEx::ReadVirtual(NameAddress, Name, min(NameLength, sizeof(Name) - 1), NULL);
+                        }
+
                         g_Ext->Dml("   [%2d] <link cmd=\"!ms_readknode 0x%I64X 0x%I64X\">0x%I64X</link> | <col fg=\"changed\">%-50s</col> | LastWriteTime: %s\n",
                                    i,
                                    KeyHive.GetPtr(),
                                    Address,
                                    Address,
-                                   LocalKeyNode.Field("Name").GetString(Name, LocalKeyNode.Field("NameLength").GetUshort(), sizeof(Name)),
+                                   Name,
                                    GetLastWriteTime(&LastWriteTime, TimeBuffer, sizeof(TimeBuffer)));
                     }
                     catch (...) {
@@ -645,12 +671,21 @@ Return Value:
 
                         RtlZeroMemory(Name, sizeof(Name));
 
+                        NameLength = LocalKeyNode.Field("NameLength").GetUshort();
+
+                        if (NameLength) {
+
+                            NameAddress = LocalKeyNode.Field("Name").GetPointerTo().GetPtr();
+
+                            ExtRemoteTypedEx::ReadVirtual(NameAddress, Name, min(NameLength, sizeof(Name) - 1), NULL);
+                        }
+
                         g_Ext->Dml("   [%2d] <link cmd=\"!ms_readknode 0x%I64X 0x%I64X\">0x%I64X</link> | <col fg=\"changed\">%-32s</col>\n",
                                    i,
                                    KeyHive.GetPtr(),
                                    Address,
                                    Address,
-                                   LocalKeyNode.Field("Name").GetString(Name, LocalKeyNode.Field("NameLength").GetUshort(), sizeof(Name)));
+                                   Name);
                     }
                     catch (...) {
 
@@ -684,18 +719,28 @@ Return Value:
 
                         ExtRemoteTyped KeyValue("(nt!_CM_KEY_VALUE *)@$extin", Address);
 
+                        NameLength = 0;
+
                         RtlZeroMemory(Name, sizeof(Name));
 
-                        USHORT NameLength = 0;
+                        if (KeyValue.GetPtr()) {
 
-                        if (KeyValue.GetPtr()) NameLength = KeyValue.Field("NameLength").GetUshort();
+                            NameLength = KeyValue.Field("NameLength").GetUshort();
+
+                            if (NameLength) {
+
+                                NameAddress = KeyValue.Field("Name").GetPointerTo().GetPtr();
+
+                                ExtRemoteTypedEx::ReadVirtual(NameAddress, Name, min(NameLength, sizeof(Name) - 1), NULL);
+                            }
+                        }
 
                         g_Ext->Dml("   [%2d] <link cmd=\"!ms_readkvalue 0x%I64X 0x%I64X\">0x%I64X</link> | <col fg=\"changed\">%-32s</col> | ",
                                    i,
                                    KeyHive.GetPtr(),
                                    Address,
                                    Address,
-                                   NameLength ? KeyValue.Field("Name").GetString(Name, NameLength, sizeof(Name)) : "(Default)");
+                                   NameLength ? Name : "(Default)");
 
                         g_Ext->Dml("        ");
 
