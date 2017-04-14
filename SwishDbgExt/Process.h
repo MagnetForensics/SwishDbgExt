@@ -228,6 +228,8 @@ public:
         ULONG64 ParentProcessId;
         ULONG64 ProcessId;
 
+        ULONG64 Token;
+
         ULONG64 VirtualSize;
 
         //

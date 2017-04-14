@@ -816,6 +816,7 @@ Return Value:
 
     m_CcProcessObject.ProcessId = m_TypedObject.Field("UniqueProcessId").GetPtr();
     m_CcProcessObject.ParentProcessId = m_TypedObject.Field("InheritedFromUniqueProcessId").GetPtr();
+    m_CcProcessObject.Token = GetFastRefPointer(m_TypedObject.Field("Token.Object").GetPtr());
     m_ImageBase = m_TypedObject.Field("SectionBaseAddress").GetPtr();
 
     if ((m_ImageBase == 0ULL) && (m_CcProcessObject.ProcessId == 4)) {
