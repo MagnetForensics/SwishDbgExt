@@ -1663,36 +1663,48 @@ Return Value:
 
     ExtRemoteTypedList ThreadList(ThreadListHead, "nt!_ETHREAD", "ThreadListEntry");
 
-    for (ThreadList.StartHead(); ThreadList.HasNode(); ThreadList.Next())
-    {
-        THREAD_OBJECT ThreadObject = { 0 };
+    try {
 
-        ThreadObject.CrossThreadFlags = ThreadList.GetTypedNode().Field("CrossThreadFlags").GetUlong();
-        if (ThreadList.GetTypedNode().HasField("Tcb.ThreadFlags"))
-        {
-            ThreadObject.ThreadFlags = ThreadList.GetTypedNode().Field("Tcb.ThreadFlags").GetUlong();
+        for (ThreadList.StartHead(); ThreadList.HasNode(); ThreadList.Next()) {
+
+            THREAD_OBJECT ThreadObject = {0};
+
+            if (ThreadList.GetTypedNode().Field("Tcb.Header.Type").GetUchar() != 6) {
+
+                break;
+            }
+
+            ThreadObject.CrossThreadFlags = ThreadList.GetTypedNode().Field("CrossThreadFlags").GetUlong();
+
+            if (ThreadList.GetTypedNode().HasField("Tcb.ThreadFlags")) {
+
+                ThreadObject.ThreadFlags = ThreadList.GetTypedNode().Field("Tcb.ThreadFlags").GetUlong();
+            }
+
+            ThreadObject.StartAddress = ThreadList.GetTypedNode().Field("StartAddress").GetPtr();
+            ThreadObject.Win32StartAddress = ThreadList.GetTypedNode().Field("Win32StartAddress").GetPtr();
+
+            if (!ThreadObject.Win32StartAddress) {
+
+                ThreadObject.Win32StartAddress = ThreadObject.StartAddress;
+            }
+
+            ThreadObject.ProcessId = ThreadList.GetTypedNode().Field("Cid.UniqueProcess").GetPtr();
+            ThreadObject.ThreadId = ThreadList.GetTypedNode().Field("Cid.UniqueThread").GetPtr();
+
+            ThreadObject.CreateTime.QuadPart = ThreadList.GetTypedNode().Field("CreateTime.QuadPart").GetUlong64();
+            ThreadObject.ExitTime.QuadPart = ThreadList.GetTypedNode().Field("ExitTime.QuadPart").GetUlong64();
+
+            if (ThreadList.GetTypedNode().HasField("Tcb.ServiceTable")) {
+
+                ThreadObject.ServiceTable = ThreadList.GetTypedNode().Field("Tcb.ServiceTable").GetPtr();
+            }
+
+            m_Threads.push_back(ThreadObject);
         }
+    }
+    catch (...) {
 
-        ThreadObject.StartAddress = ThreadList.GetTypedNode().Field("StartAddress").GetPtr();
-        ThreadObject.Win32StartAddress = ThreadList.GetTypedNode().Field("Win32StartAddress").GetPtr();
-
-        if (!ThreadObject.Win32StartAddress) {
-
-            ThreadObject.Win32StartAddress = ThreadObject.StartAddress;
-        }
-
-        ThreadObject.ProcessId = ThreadList.GetTypedNode().Field("Cid.UniqueProcess").GetPtr();
-        ThreadObject.ThreadId = ThreadList.GetTypedNode().Field("Cid.UniqueThread").GetPtr();
-
-        ThreadObject.CreateTime.QuadPart = ThreadList.GetTypedNode().Field("CreateTime.QuadPart").GetUlong64();
-        ThreadObject.ExitTime.QuadPart = ThreadList.GetTypedNode().Field("ExitTime.QuadPart").GetUlong64();
-
-        if (ThreadList.GetTypedNode().HasField("Tcb.ServiceTable"))
-        {
-            ThreadObject.ServiceTable = ThreadList.GetTypedNode().Field("Tcb.ServiceTable").GetPtr();
-        }
-
-        m_Threads.push_back(ThreadObject);
     }
 
     return TRUE;
