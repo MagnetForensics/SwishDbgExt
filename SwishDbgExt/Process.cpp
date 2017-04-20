@@ -1626,15 +1626,23 @@ Return Value:
 
 --*/
 {
-    VAD_OBJECT VadInfo = { 0 };
-
+    VAD_OBJECT VadInfo = {0};
+    ULONG64 PreviousVpn;
     BOOLEAN Result;
 
     Result = MmGetFirstVad(&VadInfo);
-    while (Result)
-    {
+
+    while (Result) {
+
+        PreviousVpn = VadInfo.StartingVpn;
+
         m_Vads.push_back(VadInfo);
         Result = MmGetNextVad(&VadInfo);
+
+        if (PreviousVpn >= VadInfo.StartingVpn) {
+
+            break;
+        }
     }
 
     return TRUE;
