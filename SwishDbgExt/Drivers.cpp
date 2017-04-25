@@ -208,5 +208,21 @@ Return Value:
         Drivers.push_back(Driver);
     }
 
+    DriverObjects = ObOpenObjectDirectory(ObGetFileSystemObject());
+
+    for each (HANDLE_OBJECT DriverObject in DriverObjects) {
+
+        if (0 == wcscmp(DriverObject.Type, L"Driver")) {
+
+            MsDriverObject Driver(DriverObject.ObjectPtr);
+
+            Driver.GetInfoFull();
+            Driver.RtlGetExports();
+            Driver.RtlGetImports(DllList);
+
+            Drivers.push_back(Driver);
+        }
+    }
+
     return Drivers;
 }

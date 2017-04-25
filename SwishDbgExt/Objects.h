@@ -61,4 +61,9 @@ ULONG64
 ObGetDriverObject(
 );
 
+ULONG64
+ObGetFileSystemObject(
+    VOID
+    );
+
 #endif
