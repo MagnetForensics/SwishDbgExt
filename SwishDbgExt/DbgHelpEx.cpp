@@ -783,7 +783,7 @@ Return Value:
         {
             NtHeader64 = (PIMAGE_NT_HEADERS64)NtHeader32;
             NtHeader32 = NULL;
-            m_ImageSize = NtHeader64->OptionalHeader.SizeOfImage;;
+            m_ImageSize = NtHeader64->OptionalHeader.SizeOfImage;
         }
         else
         {
@@ -838,6 +838,8 @@ Return Value:
     {
         goto CleanUp;
     }
+
+	m_IsSigned = ((PIMAGE_DATA_DIRECTORY)m_Image.DataDirectory)[IMAGE_DIRECTORY_ENTRY_SECURITY].VirtualAddress ? TRUE : FALSE;
 
 #if VERBOSE_MODE
     g_Ext->Dml("m_Image = %p\n"

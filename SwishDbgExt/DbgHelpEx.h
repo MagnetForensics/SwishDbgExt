@@ -136,6 +136,7 @@ public:
     ULONG m_ImageSize;
 
     BOOL m_IsPagedOut;
+	BOOL m_IsSigned;
 
     vector<CACHED_SECTION_INFO> m_CcSections;
     FILE_VERSION m_FileVersion;
