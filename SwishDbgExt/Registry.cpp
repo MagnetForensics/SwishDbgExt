@@ -429,6 +429,72 @@ RegGetKeyValue(
     return Status;
 }
 
+vector<KEY_NAME>
+RegGetKeyValuesNames(
+    _In_ PWSTR FullKeyPath
+    )
+{
+    vector<KEY_NAME> KeyValuesNames;
+    KEY_NAME ValueName;
+    BOOL Status = FALSE;
+
+    try {
+
+        ExtRemoteTyped CmHive = GetHive(FullKeyPath);
+        ExtRemoteTyped KeyNode = GetKeyNode(FullKeyPath);
+
+        ULONG ValuesCount = KeyNode.Field("ValueList").Field("Count").GetUlong();
+
+        if (ValuesCount) {
+
+            PULONG ValuesTable = (PULONG)calloc(ValuesCount, sizeof(ULONG));
+
+            if (ValuesTable) {
+
+                ULONG ValuesIndex = KeyNode.Field("ValueList").Field("List").GetUlong();
+                ULONG64 ValuesTableAddress = RegGetCellPaged(CmHive, ValuesIndex);
+
+                if (ExtRemoteTypedEx::ReadVirtual(ValuesTableAddress, ValuesTable, ValuesCount * sizeof(ULONG), NULL) == S_OK) {
+
+                    CHAR ValueNameAnsi[MAX_VALUE_NAME];
+                    WCHAR ValueNameWide[MAX_VALUE_NAME];
+
+                    for (UINT j = 0; j < ValuesCount; j++) {
+
+                        ULONG64 KeyValueAddress = RegGetCellPaged(CmHive, ValuesTable[j]);
+
+                        ExtRemoteTyped KeyValue("(nt!_CM_KEY_VALUE *)@$extin", KeyValueAddress);
+
+                        USHORT NameLength = KeyValue.Field("NameLength").GetUshort();
+
+                        if (NameLength) {
+
+                            ZeroMemory(ValueNameAnsi, sizeof(ValueNameAnsi));
+
+                            ULONG64 NameAddress = KeyValue.Field("Name").GetPointerTo().GetPtr();
+
+                            ExtRemoteTypedEx::ReadVirtual(NameAddress, ValueNameAnsi, min(NameLength, sizeof(ValueNameAnsi) - 1), NULL);
+
+                            StringCchPrintfW(ValueNameWide, _countof(ValueNameWide), L"%S", ValueNameAnsi);
+
+                            StringCchCopyW(ValueName.Name, _countof(ValueName.Name), ValueNameWide);
+
+                            KeyValuesNames.push_back(ValueName);
+                        }
+                    }
+                }
+
+                free(ValuesTable);
+            }
+        }
+    }
+    catch (...) {
+
+    }
+
+    return KeyValuesNames;
+}
+
 vector<KEY_NODE>
 RegGetSubKeys(
     _In_ PWSTR FullKeyPath

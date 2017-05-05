@@ -141,6 +141,11 @@ RegGetKeyValue(
     _In_ ULONG DataLength
     );
 
+vector<KEY_NAME>
+RegGetKeyValuesNames(
+    _In_ PWSTR FullKeyPath
+    );
+
 vector<KEY_NODE>
 RegGetSubKeys(
     _In_ PWSTR FullKeyPath
