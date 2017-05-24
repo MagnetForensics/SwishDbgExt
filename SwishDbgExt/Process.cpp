@@ -1290,6 +1290,7 @@ MsProcessObject::MmGetFirstVad(
 {
     ULONG64 First, LeftChild = 0;
     ExtRemoteTyped MmVad;
+    ULONG MaxIter = 0;
 
     try {
 
@@ -1312,6 +1313,11 @@ MsProcessObject::MmGetFirstVad(
 
         while (First)
         {
+            if (MaxIter++ > 1000) {
+
+                return FALSE;
+            }
+
             LeftChild = First;
 
             MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", LeftChild);
@@ -1386,6 +1392,7 @@ Return Value:
     ULONG64 Parent, Next;
     ULONG64 LeftChild = 0, RightChild;
     ExtRemoteTyped MmVad;
+    ULONG MaxIter;
 
     try {
 
@@ -1421,12 +1428,19 @@ Return Value:
             RightChild = MmVad.Field("RightChild").GetPtr();
         }
 
+        MaxIter = 0;
+
         if (!RightChild)
         {
             if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Looking for parent node.\n", __FILE__, __FUNCTIONW__, __LINE__);
 
             while (TRUE)
             {
+                if (MaxIter++ > 1000) {
+
+                    return FALSE;
+                }
+
                 if (MmVad.HasField("u1.Parent"))
                 {
                     Parent = MmVad.Field("u1.Parent").GetPtr();
@@ -1493,6 +1507,11 @@ Return Value:
 
             while (Next)
             {
+                if (MaxIter++ > 1000) {
+
+                    return FALSE;
+                }
+
                 LeftChild = Next;
                 if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access [0x%llX] Node\n",
                     __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
