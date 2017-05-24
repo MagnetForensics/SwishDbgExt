@@ -225,36 +225,41 @@ Return Value:
     vector<HANDLE_OBJECT> Handles;
     HANDLE_OBJECT Handle = {0};
     ExtRemoteTyped Directory;
-
     ULONG64 ObjectDir = InputObject;
 
-    if (!ObjectDir)
-    {
-        ReadPointer(ObpRootDirectoryObjectAddress, &ObjectDir);
-    }
+    try {
 
-    Directory = ExtRemoteTyped("(nt!_OBJECT_DIRECTORY *)@$extin", ObjectDir);
-
-    ObReadObject(ObjectDir, &Handle);
-
-    for (UINT i = 0; i < 37; i += 1)
-    {
-        ULONG64 Entry = Directory.Field("HashBuckets").ArrayElement(i).GetPointerTo().GetPtr();
-        if (!Entry) continue;
-
-        //
-        // ExtRemoteTypedList requires a POINTER to the first entry. Not the offset of the first entry.
-        //
-        ExtRemoteTypedList EntryList(Entry, "nt!_OBJECT_DIRECTORY_ENTRY", "ChainLink");
-
-        for (EntryList.StartHead(); EntryList.HasNode(); EntryList.Next())
+        if (!ObjectDir)
         {
-            ULONG64 Object = EntryList.GetTypedNode().Field("Object").GetPtr();
-
-            ObReadObject(Object, &Handle);
-
-            Handles.push_back(Handle);
+            ReadPointer(ObpRootDirectoryObjectAddress, &ObjectDir);
         }
+
+        Directory = ExtRemoteTyped("(nt!_OBJECT_DIRECTORY *)@$extin", ObjectDir);
+
+        ObReadObject(ObjectDir, &Handle);
+
+        for (UINT i = 0; i < 37; i += 1)
+        {
+            ULONG64 Entry = Directory.Field("HashBuckets").ArrayElement(i).GetPointerTo().GetPtr();
+            if (!Entry) continue;
+
+            //
+            // ExtRemoteTypedList requires a POINTER to the first entry. Not the offset of the first entry.
+            //
+            ExtRemoteTypedList EntryList(Entry, "nt!_OBJECT_DIRECTORY_ENTRY", "ChainLink");
+
+            for (EntryList.StartHead(); EntryList.HasNode(); EntryList.Next())
+            {
+                ULONG64 Object = EntryList.GetTypedNode().Field("Object").GetPtr();
+
+                ObReadObject(Object, &Handle);
+
+                Handles.push_back(Handle);
+            }
+        }
+    }
+    catch (...) {
+
     }
 
     return Handles;

@@ -59,13 +59,22 @@ Return Value:
 --*/
 {
     LPWSTR String = NULL;
+    USHORT MaxLen = 0;
+    USHORT Len = 0;
 
 #if VERBOSE_MODE
     // TypedObject.OutFullValue();
 #endif
 
-    USHORT MaxLen = TypedObject.Field("MaximumLength").GetUshort();
-    USHORT Len = TypedObject.Field("Length").GetUshort();
+    try {
+
+        MaxLen = TypedObject.Field("MaximumLength").GetUshort();
+        Len = TypedObject.Field("Length").GetUshort();
+    }
+    catch (...) {
+
+    }
+
     if ((MaxLen == 0) || (Len == 0)) return NULL;
 
     MaxLen = max(MaxLen, Len);
@@ -105,31 +114,37 @@ Return Value:
 
     RtlZeroMemory(Buffer, MaxChars);
 
-    SavedUnicodeString.Length = TypedObject.Field("Length").GetUshort();
-    SavedUnicodeString.MaxLength = TypedObject.Field("MaximumLength").GetUshort();
-    SavedUnicodeString.Buffer = TypedObject.Field("Buffer").GetPtr();
+    try {
 
-    if (SavedUnicodeString.Buffer && IsValid(SavedUnicodeString.Buffer) && SavedUnicodeString.Length)
-    {
-        if (SavedUnicodeString.Length > MaxChars)
-        {
-            /*
-            g_Ext->ThrowRemote(HRESULT_FROM_WIN32(ERROR_BUFFER_OVERFLOW),
-                               "(%s): String at %I64X overflows buffer, need 0x%x (Max = 0x%x) chars",
-                               __FUNCTION__, TypedObject.m_Offset, SavedUnicodeString.Length, MaxChars);
-            */
-            SavedUnicodeString.Length = (USHORT)MaxChars;
-            SavedUnicodeString.MaxLength = (USHORT)MaxChars;
-        }
+        SavedUnicodeString.Length = TypedObject.Field("Length").GetUshort();
+        SavedUnicodeString.MaxLength = TypedObject.Field("MaximumLength").GetUshort();
+        SavedUnicodeString.Buffer = TypedObject.Field("Buffer").GetPtr();
 
-        if (g_Ext->m_Data->ReadVirtual(SavedUnicodeString.Buffer,
-                                       (PWSTR)Buffer,
-                                       SavedUnicodeString.Length,
-                                       NULL) != S_OK)
+        if (SavedUnicodeString.Buffer && IsValid(SavedUnicodeString.Buffer) && SavedUnicodeString.Length)
         {
-            // g_Ext->Dml("Error: Can't read buffer at 0x%I64X\n", SavedUnicodeString.Buffer);
-            wcscpy_s(Buffer, MaxChars / sizeof(Buffer[0]), L"#ERROR#"); // _countof
+            if (SavedUnicodeString.Length > MaxChars)
+            {
+                /*
+                g_Ext->ThrowRemote(HRESULT_FROM_WIN32(ERROR_BUFFER_OVERFLOW),
+                                   "(%s): String at %I64X overflows buffer, need 0x%x (Max = 0x%x) chars",
+                                   __FUNCTION__, TypedObject.m_Offset, SavedUnicodeString.Length, MaxChars);
+                */
+                SavedUnicodeString.Length = (USHORT)MaxChars;
+                SavedUnicodeString.MaxLength = (USHORT)MaxChars;
+            }
+
+            if (g_Ext->m_Data->ReadVirtual(SavedUnicodeString.Buffer,
+                                           (PWSTR)Buffer,
+                                           SavedUnicodeString.Length,
+                                           NULL) != S_OK)
+            {
+                // g_Ext->Dml("Error: Can't read buffer at 0x%I64X\n", SavedUnicodeString.Buffer);
+                wcscpy_s(Buffer, MaxChars / sizeof(Buffer[0]), L"#ERROR#"); // _countof
+            }
         }
+    }
+    catch (...) {
+
     }
 
     return Buffer;

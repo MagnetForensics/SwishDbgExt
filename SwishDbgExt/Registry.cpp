@@ -436,7 +436,6 @@ RegGetKeyValuesNames(
 {
     vector<KEY_NAME> KeyValuesNames;
     KEY_NAME ValueName;
-    BOOL Status = FALSE;
 
     try {
 
@@ -1036,44 +1035,50 @@ Return Value:
 
     ExtRemoteTypedList HiveList(CmpHiveListHead, "nt!_CMHIVE", "HiveList");
 
-    for (HiveList.StartHead(); HiveList.HasNode(); HiveList.Next()) {
+    try {
 
-        HIVE_OBJECT HiveObject = {0};
+        for (HiveList.StartHead(); HiveList.HasNode(); HiveList.Next()) {
 
-        if (HiveList.GetTypedNode().Field("Hive.Signature").GetUlong() != CM_HIVE_SIGNATURE) break;
+            HIVE_OBJECT HiveObject = {0};
 
-        ExtRemoteTypedEx::GetUnicodeString(HiveList.GetTypedNode().Field("FileUserName"), (PWSTR)&HiveObject.FileUserName, sizeof(HiveObject.FileUserName));
-        ExtRemoteTypedEx::GetUnicodeString(HiveList.GetTypedNode().Field("HiveRootPath"), (PWSTR)&HiveObject.HiveRootPath, sizeof(HiveObject.HiveRootPath));
+            if (HiveList.GetTypedNode().Field("Hive.Signature").GetUlong() != CM_HIVE_SIGNATURE) break;
 
-        HiveObject.HivePtr = HiveList.GetNodeOffset();
-        HiveObject.KeyNodePtr = GetKeyNode(HiveObject.HiveRootPath).m_Data;
-        HiveObject.GetCellRoutine = HiveList.GetTypedNode().Field("Hive.GetCellRoutine").GetPtr();
-        HiveObject.Allocate = HiveList.GetTypedNode().Field("Hive.Allocate").GetPtr();
-        HiveObject.Free = HiveList.GetTypedNode().Field("Hive.Free").GetPtr();
-        HiveObject.FileWrite = HiveList.GetTypedNode().Field("Hive.FileWrite").GetPtr();
-        HiveObject.FileRead = HiveList.GetTypedNode().Field("Hive.FileRead").GetPtr();
+            ExtRemoteTypedEx::GetUnicodeString(HiveList.GetTypedNode().Field("FileUserName"), (PWSTR)&HiveObject.FileUserName, sizeof(HiveObject.FileUserName));
+            ExtRemoteTypedEx::GetUnicodeString(HiveList.GetTypedNode().Field("HiveRootPath"), (PWSTR)&HiveObject.HiveRootPath, sizeof(HiveObject.HiveRootPath));
 
-        if (HiveList.GetTypedNode().HasField("Flags")) {
+            HiveObject.HivePtr = HiveList.GetNodeOffset();
+            HiveObject.KeyNodePtr = GetKeyNode(HiveObject.HiveRootPath).m_Data;
+            HiveObject.GetCellRoutine = HiveList.GetTypedNode().Field("Hive.GetCellRoutine").GetPtr();
+            HiveObject.Allocate = HiveList.GetTypedNode().Field("Hive.Allocate").GetPtr();
+            HiveObject.Free = HiveList.GetTypedNode().Field("Hive.Free").GetPtr();
+            HiveObject.FileWrite = HiveList.GetTypedNode().Field("Hive.FileWrite").GetPtr();
+            HiveObject.FileRead = HiveList.GetTypedNode().Field("Hive.FileRead").GetPtr();
 
-            HiveObject.Flags = HiveList.GetTypedNode().Field("Flags").GetUlong();
+            if (HiveList.GetTypedNode().HasField("Flags")) {
+
+                HiveObject.Flags = HiveList.GetTypedNode().Field("Flags").GetUlong();
+            }
+
+            if (HiveList.GetTypedNode().HasField("Hive.ReleaseCellRoutine")) {
+
+                HiveObject.ReleaseCellRoutine = HiveList.GetTypedNode().Field("Hive.ReleaseCellRoutine").GetPtr();
+            }
+
+            if (HiveList.GetTypedNode().HasField("Hive.FileSetSize")) {
+
+                HiveObject.FileSetSize = HiveList.GetTypedNode().Field("Hive.FileSetSize").GetPtr();
+            }
+
+            if (HiveList.GetTypedNode().HasField("Hive.FileFlush")) {
+
+                HiveObject.FileFlush = HiveList.GetTypedNode().Field("Hive.FileFlush").GetPtr();
+            }
+
+            Hives.push_back(HiveObject);
         }
+    }
+    catch (...) {
 
-        if (HiveList.GetTypedNode().HasField("Hive.ReleaseCellRoutine")) {
-
-            HiveObject.ReleaseCellRoutine = HiveList.GetTypedNode().Field("Hive.ReleaseCellRoutine").GetPtr();
-        }
-
-        if (HiveList.GetTypedNode().HasField("Hive.FileSetSize")) {
-
-            HiveObject.FileSetSize = HiveList.GetTypedNode().Field("Hive.FileSetSize").GetPtr();
-        }
-
-        if (HiveList.GetTypedNode().HasField("Hive.FileFlush")) {
-
-            HiveObject.FileFlush = HiveList.GetTypedNode().Field("Hive.FileFlush").GetPtr();
-        }
-
-        Hives.push_back(HiveObject);
     }
 
     return Hives;

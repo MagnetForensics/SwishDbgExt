@@ -188,12 +188,18 @@ Return Value:
 
     if (IsValid(Head)) {
 
-        ModuleIterator Dlls(Head);
+        try {
 
-        for (Dlls.First(); !Dlls.IsDone(); Dlls.Next()) {
+            ModuleIterator Dlls(Head);
 
-            MsDllObject DllObject = Dlls.Current();
-            DllList.push_back(DllObject);
+            for (Dlls.First(); !Dlls.IsDone(); Dlls.Next()) {
+
+                MsDllObject DllObject = Dlls.Current();
+                DllList.push_back(DllObject);
+            }
+        }
+        catch (...) {
+
         }
     }
 

@@ -451,77 +451,82 @@ Return Value:
     PUSHORT AddressOfNameOrdinals;
     PULONG AddressOfFunctions;
     ULONG NumberOfHookedAPIs = 0;
-
     UINT i;
 
-    ASSERTDBG(m_Image.Initialized);
-    if (!m_Image.Initialized) goto CleanUp;
+    try {
 
-    DirRva = m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;
-    DirSize = m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].Size;
+        ASSERTDBG(m_Image.Initialized);
+        if (!m_Image.Initialized) goto CleanUp;
 
-    if (!DirRva || (m_ImageSize && (DirRva > m_ImageSize))) goto CleanUp;
+        DirRva = m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;
+        DirSize = m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].Size;
 
-    PUCHAR Image = ((PUCHAR)m_Image.Image);
+        if (!DirRva || (m_ImageSize && (DirRva > m_ImageSize))) goto CleanUp;
 
-    if (!DirSize || !DirRva) goto CleanUp;
+        PUCHAR Image = ((PUCHAR)m_Image.Image);
 
-    ExportDir = (PIMAGE_EXPORT_DIRECTORY)(Image + DirRva);
+        if (!DirSize || !DirRva) goto CleanUp;
 
-    if ((ExportDir->AddressOfNames >= (DirRva + DirSize)) ||
-        (ExportDir->AddressOfNameOrdinals >= (DirRva + DirSize)) ||
-        (ExportDir->AddressOfFunctions >= (DirRva + DirSize)))
-    {
-        goto CleanUp;
-    }
+        ExportDir = (PIMAGE_EXPORT_DIRECTORY)(Image + DirRva);
 
-    AddressOfNames = (PULONG)(Image + (ULONG)ExportDir->AddressOfNames);
-    AddressOfNameOrdinals = (PUSHORT)(Image + (ULONG)ExportDir->AddressOfNameOrdinals);
-    AddressOfFunctions = (PULONG)(Image + (ULONG)ExportDir->AddressOfFunctions);
+        if ((ExportDir->AddressOfNames >= (DirRva + DirSize)) ||
+            (ExportDir->AddressOfNameOrdinals >= (DirRva + DirSize)) ||
+            (ExportDir->AddressOfFunctions >= (DirRva + DirSize)))
+        {
+            goto CleanUp;
+        }
+
+        AddressOfNames = (PULONG)(Image + (ULONG)ExportDir->AddressOfNames);
+        AddressOfNameOrdinals = (PUSHORT)(Image + (ULONG)ExportDir->AddressOfNameOrdinals);
+        AddressOfFunctions = (PULONG)(Image + (ULONG)ExportDir->AddressOfFunctions);
 
 #if VERBOSE_MODE
     g_Ext->Dml("(%s) ExportDir->NumberOfName: %d, ExportDir->NumberOfFunctions: %d\n",
-               m_PdbInfo.PdbName, ExportDir->NumberOfNames, ExportDir->NumberOfFunctions);
+                m_PdbInfo.PdbName, ExportDir->NumberOfNames, ExportDir->NumberOfFunctions);
 #endif
 
-    m_NumberOfExportedFunctions = ExportDir->NumberOfNames;
+        m_NumberOfExportedFunctions = ExportDir->NumberOfNames;
 
-    for (i = 0; i < ExportDir->NumberOfNames && i < 5000; i += 1) {
+        for (i = 0; i < ExportDir->NumberOfNames && i < 5000; i += 1) {
 
-        EXPORT_INFO ExportInfo = {0};
+            EXPORT_INFO ExportInfo = {0};
 
-        if (AddressOfNameOrdinals[i] >= ExportDir->NumberOfNames) {
+            if (AddressOfNameOrdinals[i] >= ExportDir->NumberOfNames) {
 
-            continue;
-        }
+                continue;
+            }
 
-        ExportInfo.Index = i;
-        ExportInfo.Ordinal = AddressOfNameOrdinals[i];
+            ExportInfo.Index = i;
+            ExportInfo.Ordinal = AddressOfNameOrdinals[i];
 
-        GetAddressInfo(m_ImageBase + AddressOfFunctions[AddressOfNameOrdinals[i]], &ExportInfo.AddressInfo);
+            GetAddressInfo(m_ImageBase + AddressOfFunctions[AddressOfNameOrdinals[i]], &ExportInfo.AddressInfo);
 
-        if (ExportInfo.AddressInfo.IsTablePatched || ExportInfo.AddressInfo.IsHooked) {
+            if (ExportInfo.AddressInfo.IsTablePatched || ExportInfo.AddressInfo.IsHooked) {
         
-            NumberOfHookedAPIs++;
+                NumberOfHookedAPIs++;
+            }
+
+            ULONG Len = (ULONG)strnlen_s((LPSTR)(Image + AddressOfNames[i]), sizeof(ExportInfo.Name) - 1);
+
+            if ((AddressOfNames[i] <= (DirRva + DirSize)) && Len) {
+
+                memcpy_s(ExportInfo.Name, sizeof(ExportInfo.Name), (LPSTR)(Image + AddressOfNames[i]), Len);
+            }
+            else {
+
+                strcpy_s(ExportInfo.Name, sizeof(ExportInfo.Name), "*unreadable*");
+            }
+
+            m_Exports.push_back(ExportInfo);
         }
 
-        ULONG Len = (ULONG)strnlen_s((LPSTR)(Image + AddressOfNames[i]), sizeof(ExportInfo.Name) - 1);
+        m_NumberOfHookedAPIs = NumberOfHookedAPIs;
 
-        if ((AddressOfNames[i] <= (DirRva + DirSize)) && Len) {
-
-            memcpy_s(ExportInfo.Name, sizeof(ExportInfo.Name), (LPSTR)(Image + AddressOfNames[i]), Len);
-        }
-        else {
-
-            strcpy_s(ExportInfo.Name, sizeof(ExportInfo.Name), "*unreadable*");
-        }
-
-        m_Exports.push_back(ExportInfo);
+        Result = TRUE;
     }
+    catch (...) {
 
-    m_NumberOfHookedAPIs = NumberOfHookedAPIs;
-
-    Result = TRUE;
+    }
 
 CleanUp:
     return Result;
@@ -749,97 +754,99 @@ Return Value:
     BOOLEAN Result = FALSE;
     HRESULT Status;
 
-    if (m_Image.Initialized)
-    {
-        // g_Ext->Dml("b_Initialized already set to TRUE\n");
-        Result = TRUE;
-        goto CleanUp;
-    }
+    try {
 
-    if (!m_ImageSize)
-    {
-        Header = (PIMAGE_DOS_HEADER)malloc(PAGE_SIZE);
-        if (Header == NULL) goto CleanUp;
-        RtlZeroMemory(Header, PAGE_SIZE);
-
-        if (g_Ext->m_Data->ReadVirtual(BaseImageAddress, Header, PAGE_SIZE, &BytesRead) != S_OK)
+        if (m_Image.Initialized)
         {
+            // g_Ext->Dml("b_Initialized already set to TRUE\n");
+            Result = TRUE;
+            goto CleanUp;
+        }
+
+        if (!m_ImageSize)
+        {
+            Header = (PIMAGE_DOS_HEADER)malloc(PAGE_SIZE);
+            if (Header == NULL) goto CleanUp;
+            RtlZeroMemory(Header, PAGE_SIZE);
+
+            if (g_Ext->m_Data->ReadVirtual(BaseImageAddress, Header, PAGE_SIZE, &BytesRead) != S_OK)
+            {
 #if VERBOSE_MODE
             g_Ext->Dml("Error: Can't read 0x%I64x bytes at %I64x.\n", PAGE_SIZE, BaseImageAddress);
 #endif
-            goto CleanUp;
-        }
+                goto CleanUp;
+            }
 
-        BaseImage = ExtRemoteTyped("(nt!_IMAGE_DOS_HEADER *)@$extin", BaseImageAddress);
-        if (BaseImage.Field("e_magic").GetUshort() != IMAGE_DOS_SIGNATURE) goto CleanUp;
+            BaseImage = ExtRemoteTyped("(nt!_IMAGE_DOS_HEADER *)@$extin", BaseImageAddress);
+            if (BaseImage.Field("e_magic").GetUshort() != IMAGE_DOS_SIGNATURE) goto CleanUp;
 
-        NtHeader32 = (PIMAGE_NT_HEADERS32)((PUCHAR)Header + BaseImage.Field("e_lfanew").GetUlong());
+            NtHeader32 = (PIMAGE_NT_HEADERS32)((PUCHAR)Header + BaseImage.Field("e_lfanew").GetUlong());
 
-        if (NtHeader32->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-        {
-            m_ImageSize = NtHeader32->OptionalHeader.SizeOfImage;
-        }
-        else if (NtHeader32->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-        {
-            NtHeader64 = (PIMAGE_NT_HEADERS64)NtHeader32;
-            NtHeader32 = NULL;
-            m_ImageSize = NtHeader64->OptionalHeader.SizeOfImage;
-        }
-        else
-        {
+            if (NtHeader32->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+            {
+                m_ImageSize = NtHeader32->OptionalHeader.SizeOfImage;
+            }
+            else if (NtHeader32->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+            {
+                NtHeader64 = (PIMAGE_NT_HEADERS64)NtHeader32;
+                NtHeader32 = NULL;
+                m_ImageSize = NtHeader64->OptionalHeader.SizeOfImage;
+            }
+            else
+            {
 #if VERBOSE_MODE
             g_Ext->Dml("Error: Invalid signature.\n");
 #endif
-            goto CleanUp;
+                goto CleanUp;
+            }
         }
-    }
 
-    Image = malloc(m_ImageSize);
-    if (Image == NULL) goto CleanUp;
-    RtlZeroMemory(Image, (ULONG)m_ImageSize);
+        Image = malloc(m_ImageSize);
+        if (Image == NULL) goto CleanUp;
+        RtlZeroMemory(Image, (ULONG)m_ImageSize);
 
-    Status = ExtRemoteTypedEx::ReadImageMemory(BaseImageAddress, Image, (ULONG)m_ImageSize, &BytesRead);
+        Status = ExtRemoteTypedEx::ReadImageMemory(BaseImageAddress, Image, (ULONG)m_ImageSize, &BytesRead);
 
-    if (Status == E_ACCESSDENIED) {
+        if (Status == E_ACCESSDENIED) {
 
-        m_IsPagedOut = TRUE;
-    }
-    else if (Status != S_OK)
-    {
+            m_IsPagedOut = TRUE;
+        }
+        else if (Status != S_OK)
+        {
 #if VERBOSE_MODE
         g_Ext->Dml("Error: Can't read 0x%I64x bytes at %I64x.\n", m_ImageSize, BaseImageAddress);
 #endif
-        goto CleanUp;
-    }
+            goto CleanUp;
+        }
 
-    m_Image.Image = (PIMAGE_DOS_HEADER)Image;
-    REF_POINTER(m_Image.Image);
+        m_Image.Image = (PIMAGE_DOS_HEADER)Image;
+        REF_POINTER(m_Image.Image);
 
-    m_Image.NtHeader32 = (PIMAGE_NT_HEADERS32)((PUCHAR)Image + m_Image.Image->e_lfanew);
-    NtHeader32 = m_Image.NtHeader32;
+        m_Image.NtHeader32 = (PIMAGE_NT_HEADERS32)((PUCHAR)Image + m_Image.Image->e_lfanew);
+        NtHeader32 = m_Image.NtHeader32;
 
-    if (NtHeader32->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
-    {
-        m_Image.NtHeader32 = NULL;
-        m_Image.NtHeader64 = (PIMAGE_NT_HEADERS64)((PUCHAR)Image + m_Image.Image->e_lfanew);
-        m_Image.DataDirectory = (PIMAGE_DATA_DIRECTORY)m_Image.NtHeader64->OptionalHeader.DataDirectory;
-        m_Image.Sections = (PIMAGE_SECTION_HEADER)(m_Image.NtHeader64 + 1);
+        if (NtHeader32->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC)
+        {
+            m_Image.NtHeader32 = NULL;
+            m_Image.NtHeader64 = (PIMAGE_NT_HEADERS64)((PUCHAR)Image + m_Image.Image->e_lfanew);
+            m_Image.DataDirectory = (PIMAGE_DATA_DIRECTORY)m_Image.NtHeader64->OptionalHeader.DataDirectory;
+            m_Image.Sections = (PIMAGE_SECTION_HEADER)(m_Image.NtHeader64 + 1);
 
-        m_Image.NumberOfSections = m_Image.NtHeader64->FileHeader.NumberOfSections;
-    }
-    else if (NtHeader32->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
-    {
-        m_Image.NtHeader64 = NULL;
-        m_Image.DataDirectory = (PIMAGE_DATA_DIRECTORY)m_Image.NtHeader32->OptionalHeader.DataDirectory;
-        m_Image.Sections = (PIMAGE_SECTION_HEADER)(m_Image.NtHeader32 + 1);
-        m_Image.NumberOfSections = m_Image.NtHeader32->FileHeader.NumberOfSections;
-    }
-    else
-    {
-        goto CleanUp;
-    }
+            m_Image.NumberOfSections = m_Image.NtHeader64->FileHeader.NumberOfSections;
+        }
+        else if (NtHeader32->OptionalHeader.Magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC)
+        {
+            m_Image.NtHeader64 = NULL;
+            m_Image.DataDirectory = (PIMAGE_DATA_DIRECTORY)m_Image.NtHeader32->OptionalHeader.DataDirectory;
+            m_Image.Sections = (PIMAGE_SECTION_HEADER)(m_Image.NtHeader32 + 1);
+            m_Image.NumberOfSections = m_Image.NtHeader32->FileHeader.NumberOfSections;
+        }
+        else
+        {
+            goto CleanUp;
+        }
 
-	m_IsSigned = ((PIMAGE_DATA_DIRECTORY)m_Image.DataDirectory)[IMAGE_DIRECTORY_ENTRY_SECURITY].VirtualAddress ? TRUE : FALSE;
+	    m_IsSigned = ((PIMAGE_DATA_DIRECTORY)m_Image.DataDirectory)[IMAGE_DIRECTORY_ENTRY_SECURITY].VirtualAddress ? TRUE : FALSE;
 
 #if VERBOSE_MODE
     g_Ext->Dml("m_Image = %p\n"
@@ -850,7 +857,11 @@ Return Value:
     g_Ext->Dml("m_NumberOfSections = %x\n", m_Image.NumberOfSections);
 #endif
 
-    Result = TRUE;
+        Result = TRUE;
+    }
+    catch (...) {
+
+    }
 
 CleanUp:
     if (Header) free(Header);

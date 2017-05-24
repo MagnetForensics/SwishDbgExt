@@ -499,84 +499,102 @@ Return Value:
 
         if (IsValid(Head)) {
 
-            ModuleIterator Dlls(Head);
-
-            for (Dlls.First(); !Dlls.IsDone(); Dlls.Next()) {
-
-                MsDllObject Object = Dlls.Current();
-
-                Object.mm_CcDllObject.LoadTime.QuadPart = 0;
-
-                m_DllList.push_back(Object);
-            }
-        }
-    }
-    else {
-
-        ULONG64 Peb = m_TypedObject.Field("Peb").GetPtr();
-
-        if (Peb && IsValid(Peb) && IsValid(m_TypedObject.Field("Peb").Field("Ldr").GetPtr())) {
-
-            ULONG64 Head = m_TypedObject.Field("Peb").Field("Ldr").Field("InLoadOrderModuleList").GetPointerTo().GetPtr();
-
-            if (IsValid(Head)) {
+            try {
 
                 ModuleIterator Dlls(Head);
 
                 for (Dlls.First(); !Dlls.IsDone(); Dlls.Next()) {
 
                     MsDllObject Object = Dlls.Current();
+
+                    Object.mm_CcDllObject.LoadTime.QuadPart = 0;
+
                     m_DllList.push_back(Object);
                 }
             }
+            catch (...) {
+
+            }
+        }
+    }
+    else {
+
+        try {
+
+            ULONG64 Peb = m_TypedObject.Field("Peb").GetPtr();
+
+            if (Peb && IsValid(Peb) && IsValid(m_TypedObject.Field("Peb").Field("Ldr").GetPtr())) {
+
+                ULONG64 Head = m_TypedObject.Field("Peb").Field("Ldr").Field("InLoadOrderModuleList").GetPointerTo().GetPtr();
+
+                if (IsValid(Head)) {
+
+                    ModuleIterator Dlls(Head);
+
+                    for (Dlls.First(); !Dlls.IsDone(); Dlls.Next()) {
+
+                        MsDllObject Object = Dlls.Current();
+                        m_DllList.push_back(Object);
+                    }
+                }
+            }
+        }
+        catch (...) {
+
         }
 
         //
         // Wow64
         //
+        
+        try {
 
-        if (m_TypedObject.HasField("Wow64Process") && (m_TypedObject.Field("Wow64Process").GetPtr() != 0)) {
+            if (m_TypedObject.HasField("Wow64Process") && (m_TypedObject.Field("Wow64Process").GetPtr() != 0)) {
 
-            PEB_LDR_DATA PebLdrData = {0};
-            LDR_DATA_TABLE_ENTRY32 LdrDataTableEntry = {0};
-            ExtRemoteTyped Peb32("(nt!_PEB32 *)@$extin", m_TypedObject.Field("Wow64Process").GetPtr());
+                PEB_LDR_DATA PebLdrData = {0};
+                LDR_DATA_TABLE_ENTRY32 LdrDataTableEntry = {0};
+                ExtRemoteTyped Peb32("(nt!_PEB32 *)@$extin", m_TypedObject.Field("Wow64Process").GetPtr());
 
-            if (IsValid(Peb32.GetPtr())) {
+                if (IsValid(Peb32.GetPtr())) {
 
-                ULONG64 Ldr = Peb32.Field("Ldr").GetUlong();
+                    ULONG64 Ldr = Peb32.Field("Ldr").GetUlong();
 
-                if (g_Ext->m_Data->ReadVirtual(Ldr, &PebLdrData, sizeof(PebLdrData), NULL) != S_OK) goto CleanUp;
+                    if (g_Ext->m_Data->ReadVirtual(Ldr, &PebLdrData, sizeof(PebLdrData), NULL) != S_OK) goto CleanUp;
 
-                if (g_Ext->m_Data->ReadVirtual(PebLdrData.InLoadOrderModuleList.Flink, &LdrDataTableEntry, sizeof(LdrDataTableEntry), NULL) != S_OK) goto CleanUp;
+                    if (g_Ext->m_Data->ReadVirtual(PebLdrData.InLoadOrderModuleList.Flink, &LdrDataTableEntry, sizeof(LdrDataTableEntry), NULL) != S_OK) goto CleanUp;
 
-                while (PebLdrData.InLoadOrderModuleList.Flink != LdrDataTableEntry.InLoadOrderLinks.Flink)
-                {
-                    MsDllObject Object;
+                    while (PebLdrData.InLoadOrderModuleList.Flink != LdrDataTableEntry.InLoadOrderLinks.Flink)
+                    {
+                        MsDllObject Object;
 
-                    if (LdrDataTableEntry.InLoadOrderLinks.Flink == 0) break;
-                    if (LdrDataTableEntry.DllBase == 0) break;
-                    if (LdrDataTableEntry.SizeOfImage == 0) break;
+                        if (LdrDataTableEntry.InLoadOrderLinks.Flink == 0) break;
+                        if (LdrDataTableEntry.DllBase == 0) break;
+                        if (LdrDataTableEntry.SizeOfImage == 0) break;
 
-                    Object.mm_CcDllObject.IsWow64 = TRUE;
+                        Object.mm_CcDllObject.IsWow64 = TRUE;
 
-                    Object.m_ImageBase = LdrDataTableEntry.DllBase;
-                    Object.m_ImageSize = LdrDataTableEntry.SizeOfImage;
+                        Object.m_ImageBase = LdrDataTableEntry.DllBase;
+                        Object.m_ImageSize = LdrDataTableEntry.SizeOfImage;
 
-                    if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.BaseDllName.Buffer,
-                                                   (PWSTR)&Object.mm_CcDllObject.DllName,
-                                                   LdrDataTableEntry.BaseDllName.Length,
-                                                   NULL) != S_OK) break;
+                        if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.BaseDllName.Buffer,
+                                                       (PWSTR)&Object.mm_CcDllObject.DllName,
+                                                       LdrDataTableEntry.BaseDllName.Length,
+                                                       NULL) != S_OK) break;
 
-                    if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.FullDllName.Buffer,
-                                                   (PWSTR)&Object.mm_CcDllObject.FullDllName,
-                                                   LdrDataTableEntry.FullDllName.Length,
-                                                   NULL) != S_OK) break;
+                        if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.FullDllName.Buffer,
+                                                       (PWSTR)&Object.mm_CcDllObject.FullDllName,
+                                                       LdrDataTableEntry.FullDllName.Length,
+                                                       NULL) != S_OK) break;
 
-                    m_DllList.push_back(Object);
+                        m_DllList.push_back(Object);
 
-                    if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.InLoadOrderLinks.Flink, &LdrDataTableEntry, sizeof(LdrDataTableEntry), NULL) != S_OK) goto CleanUp;
+                        if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.InLoadOrderLinks.Flink, &LdrDataTableEntry, sizeof(LdrDataTableEntry), NULL) != S_OK) goto CleanUp;
+                    }
                 }
             }
+        }
+        catch (...) {
+
         }
     }
 
@@ -814,88 +832,94 @@ Return Value:
 
     RtlZeroMemory(&m_CcProcessObject, sizeof(m_CcProcessObject));
 
-    m_CcProcessObject.ProcessId = m_TypedObject.Field("UniqueProcessId").GetPtr();
-    m_CcProcessObject.ParentProcessId = m_TypedObject.Field("InheritedFromUniqueProcessId").GetPtr();
-    m_CcProcessObject.Token = GetFastRefPointer(m_TypedObject.Field("Token.Object").GetPtr());
-    m_ImageBase = m_TypedObject.Field("SectionBaseAddress").GetPtr();
+    try {
 
-    if ((m_ImageBase == 0ULL) && (m_CcProcessObject.ProcessId == 4)) {
+        m_CcProcessObject.ProcessId = m_TypedObject.Field("UniqueProcessId").GetPtr();
+        m_CcProcessObject.ParentProcessId = m_TypedObject.Field("InheritedFromUniqueProcessId").GetPtr();
+        m_CcProcessObject.Token = GetFastRefPointer(m_TypedObject.Field("Token.Object").GetPtr());
+        m_ImageBase = m_TypedObject.Field("SectionBaseAddress").GetPtr();
 
-        //
-        // System Process
-        //
+        if ((m_ImageBase == 0ULL) && (m_CcProcessObject.ProcessId == 4)) {
 
-        m_ImageBase = ExtNtOsInformation::GetNtDebuggerData(DEBUG_DATA_KernBase, "nt", 0);
-    }
+            //
+            // System Process
+            //
 
-    m_CcProcessObject.ProcessObjectPtr = m_TypedObject.GetPtr();
+            m_ImageBase = ExtNtOsInformation::GetNtDebuggerData(DEBUG_DATA_KernBase, "nt", 0);
+        }
 
-    m_TypedObject.Field("ImageFileName").GetString((PTSTR)&m_CcProcessObject.ImageFileName, sizeof(m_CcProcessObject.ImageFileName));
+        m_CcProcessObject.ProcessObjectPtr = m_TypedObject.GetPtr();
 
-    ExtRemoteTypedEx::GetUnicodeString(m_TypedObject.Field("SeAuditProcessCreationInfo.ImageFileName").Field("Name"),
-                                       (PWSTR)&m_CcProcessObject.FullPath,
-                                       sizeof(m_CcProcessObject.FullPath));
+        m_TypedObject.Field("ImageFileName").GetString((PTSTR)&m_CcProcessObject.ImageFileName, sizeof(m_CcProcessObject.ImageFileName));
 
-    m_CcProcessObject.CreateTime.QuadPart = m_TypedObject.Field("CreateTime.QuadPart").GetUlong64();
-    m_CcProcessObject.ExitTime.QuadPart = m_TypedObject.Field("ExitTime.QuadPart").GetUlong64();
+        ExtRemoteTypedEx::GetUnicodeString(m_TypedObject.Field("SeAuditProcessCreationInfo.ImageFileName").Field("Name"),
+                                           (PWSTR)&m_CcProcessObject.FullPath,
+                                           sizeof(m_CcProcessObject.FullPath));
 
-    Peb = m_TypedObject.Field("Peb").GetPtr();
+        m_CcProcessObject.CreateTime.QuadPart = m_TypedObject.Field("CreateTime.QuadPart").GetUlong64();
+        m_CcProcessObject.ExitTime.QuadPart = m_TypedObject.Field("ExitTime.QuadPart").GetUlong64();
 
-    if (Peb)
-    {
-        ULONG64 ProcessParameters;
+        Peb = m_TypedObject.Field("Peb").GetPtr();
 
-        SwitchContext();
-
-        if (IsValid(Peb))
+        if (Peb)
         {
-            ProcessParameters = m_TypedObject.Field("Peb").Field("ProcessParameters").GetPtr();
+            ULONG64 ProcessParameters;
 
-            if (ProcessParameters && IsValid(ProcessParameters))
+            SwitchContext();
+
+            if (IsValid(Peb))
             {
-                ULONG EnvironmentSize;
+                ProcessParameters = m_TypedObject.Field("Peb").Field("ProcessParameters").GetPtr();
 
-                m_CcProcessObject.DllPath = ExtRemoteTypedEx::GetUnicodeString2(m_TypedObject.Field("Peb").Field("ProcessParameters").Field("DllPath"));
-                REF_POINTER(m_CcProcessObject.DllPath);
-
-                m_CcProcessObject.ImagePathName = ExtRemoteTypedEx::GetUnicodeString2(m_TypedObject.Field("Peb").Field("ProcessParameters").Field("ImagePathName"));
-                REF_POINTER(m_CcProcessObject.ImagePathName);
-
-                m_CcProcessObject.CommandLine = ExtRemoteTypedEx::GetUnicodeString2(m_TypedObject.Field("Peb").Field("ProcessParameters").Field("CommandLine"));
-                REF_POINTER(m_CcProcessObject.CommandLine);
-
-                ULONG64 Environment = m_TypedObject.Field("Peb").Field("ProcessParameters").Field("Environment").GetPtr();
-                if (m_TypedObject.Field("Peb").Field("ProcessParameters").HasField("EnvironmentSize"))
+                if (ProcessParameters && IsValid(ProcessParameters))
                 {
-                    EnvironmentSize = (ULONG)m_TypedObject.Field("Peb").Field("ProcessParameters").Field("EnvironmentSize").GetPtr();
-                }
-                else
-                {
-                    EnvironmentSize = 0x1000;
-                }
+                    ULONG EnvironmentSize;
 
-                m_EnvVarsBuffer = (LPWSTR)calloc(EnvironmentSize, sizeof(BYTE));
-                REF_POINTER(m_EnvVarsBuffer);
+                    m_CcProcessObject.DllPath = ExtRemoteTypedEx::GetUnicodeString2(m_TypedObject.Field("Peb").Field("ProcessParameters").Field("DllPath"));
+                    REF_POINTER(m_CcProcessObject.DllPath);
 
-                if (g_Ext->m_Data->ReadVirtual(Environment, m_EnvVarsBuffer, EnvironmentSize, NULL) == S_OK)
-                {
-                    for (UINT Index = 0; Index < (EnvironmentSize / sizeof(WCHAR)); Index += 1)
+                    m_CcProcessObject.ImagePathName = ExtRemoteTypedEx::GetUnicodeString2(m_TypedObject.Field("Peb").Field("ProcessParameters").Field("ImagePathName"));
+                    REF_POINTER(m_CcProcessObject.ImagePathName);
+
+                    m_CcProcessObject.CommandLine = ExtRemoteTypedEx::GetUnicodeString2(m_TypedObject.Field("Peb").Field("ProcessParameters").Field("CommandLine"));
+                    REF_POINTER(m_CcProcessObject.CommandLine);
+
+                    ULONG64 Environment = m_TypedObject.Field("Peb").Field("ProcessParameters").Field("Environment").GetPtr();
+                    if (m_TypedObject.Field("Peb").Field("ProcessParameters").HasField("EnvironmentSize"))
                     {
-                        ENV_VAR_OBJECT EnvVar = {0};
+                        EnvironmentSize = (ULONG)m_TypedObject.Field("Peb").Field("ProcessParameters").Field("EnvironmentSize").GetPtr();
+                    }
+                    else
+                    {
+                        EnvironmentSize = 0x1000;
+                    }
 
-                        if (m_EnvVarsBuffer[Index] == L'\0') continue;
+                    m_EnvVarsBuffer = (LPWSTR)calloc(EnvironmentSize, sizeof(BYTE));
+                    REF_POINTER(m_EnvVarsBuffer);
 
-                        ULONG Len = (ULONG)wcslen(&m_EnvVarsBuffer[Index]);
+                    if (g_Ext->m_Data->ReadVirtual(Environment, m_EnvVarsBuffer, EnvironmentSize, NULL) == S_OK)
+                    {
+                        for (UINT Index = 0; Index < (EnvironmentSize / sizeof(WCHAR)); Index += 1)
+                        {
+                            ENV_VAR_OBJECT EnvVar = {0};
 
-                        EnvVar.Variable = &m_EnvVarsBuffer[Index];
-                        m_EnvVars.push_back(EnvVar);
-                        Index += Len;
+                            if (m_EnvVarsBuffer[Index] == L'\0') continue;
+
+                            ULONG Len = (ULONG)wcslen(&m_EnvVarsBuffer[Index]);
+
+                            EnvVar.Variable = &m_EnvVarsBuffer[Index];
+                            m_EnvVars.push_back(EnvVar);
+                            Index += Len;
+                        }
                     }
                 }
             }
-        }
 
-        RestoreContext();
+            RestoreContext();
+        }
+    }
+    catch (...) {
+
     }
 }
 
@@ -1065,32 +1089,43 @@ Return Value:
 {
     ProcessArray ProcessList;
     ProcessArray MmProcessList;
-
     ProcessIterator Processes;
 
     if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Entering...\n", __FILE__, __FUNCTIONW__, __LINE__);
 
-    for (Processes.First(); !Processes.IsDone(); Processes.Next())
-    {
-        MsProcessObject ProcObject = Processes.Current();
+    try {
 
-        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Current process %s\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObject.m_CcProcessObject.ImageFileName);
-
-        if (!Pid || (Pid == ProcObject.m_CcProcessObject.ProcessId))
+        for (Processes.First(); !Processes.IsDone(); Processes.Next())
         {
-            ProcessList.push_back(ProcObject);
+            MsProcessObject ProcObject = Processes.Current();
+
+            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Current process %s\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObject.m_CcProcessObject.ImageFileName);
+
+            if (!Pid || (Pid == ProcObject.m_CcProcessObject.ProcessId))
+            {
+                ProcessList.push_back(ProcObject);
+            }
         }
+    }
+    catch (...) {
+
     }
 
     if (!Pid)
     {
-        ProcessIterator MmProcesses(ProcessLinksMmType);
+        try {
 
-        for (MmProcesses.First(); !MmProcesses.IsDone(); MmProcesses.Next())
-        {
-            MsProcessObject ProcObject = MmProcesses.Current();
+            ProcessIterator MmProcesses(ProcessLinksMmType);
 
-            MmProcessList.push_back(MmProcesses.Current());
+            for (MmProcesses.First(); !MmProcesses.IsDone(); MmProcesses.Next())
+            {
+                MsProcessObject ProcObject = MmProcesses.Current();
+
+                MmProcessList.push_back(MmProcesses.Current());
+            }
+        }
+        catch (...) {
+
         }
 
         //
@@ -1213,26 +1248,32 @@ Return Value:
 
 --*/
 {
-    ProcessIterator Processes;
+    try {
 
-    for (Processes.First(); !Processes.IsDone(); Processes.Next()) {
+        ProcessIterator Processes;
 
-        MsProcessObject ProcessObject = Processes.Current();
+        for (Processes.First(); !Processes.IsDone(); Processes.Next()) {
 
-        if (0 == _stricmp(ProcessObject.m_CcProcessObject.ImageFileName, ProcessName)) {
+            MsProcessObject ProcessObject = Processes.Current();
 
-            //
-            // Save, and change the current process.
-            //
+            if (0 == _stricmp(ProcessObject.m_CcProcessObject.ImageFileName, ProcessName)) {
 
-            ProcessObject.SwitchContext();
+                //
+                // Save, and change the current process.
+                //
 
-            ProcessObject.GetInfoFull();
+                ProcessObject.SwitchContext();
 
-            ProcessObject.RestoreContext();
+                ProcessObject.GetInfoFull();
 
-            return ProcessObject;
+                ProcessObject.RestoreContext();
+
+                return ProcessObject;
+            }
         }
+    }
+    catch (...) {
+
     }
 
     return MsProcessObject();
@@ -1258,26 +1299,32 @@ Return Value:
 
 --*/
 {
-    ProcessIterator Processes;
+    try {
 
-    for (Processes.First(); !Processes.IsDone(); Processes.Next()) {
+        ProcessIterator Processes;
 
-        MsProcessObject ProcessObject = Processes.Current();
+        for (Processes.First(); !Processes.IsDone(); Processes.Next()) {
 
-        if (ProcessObject.m_CcProcessObject.ProcessId == ProcessId) {
+            MsProcessObject ProcessObject = Processes.Current();
 
-            //
-            // Save, and change the current process.
-            //
+            if (ProcessObject.m_CcProcessObject.ProcessId == ProcessId) {
 
-            ProcessObject.SwitchContext();
+                //
+                // Save, and change the current process.
+                //
 
-            ProcessObject.GetInfoFull();
+                ProcessObject.SwitchContext();
 
-            ProcessObject.RestoreContext();
+                ProcessObject.GetInfoFull();
 
-            return ProcessObject;
+                ProcessObject.RestoreContext();
+
+                return ProcessObject;
+            }
         }
+    }
+    catch (...) {
+
     }
 
     return MsProcessObject();
