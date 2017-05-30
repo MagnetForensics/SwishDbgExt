@@ -473,6 +473,40 @@ CleanUp:
 }
 
 BOOLEAN
+MsProcessObject::GetEnvironmentVariableValue(
+    _In_ PWSTR Buffer,
+    _In_ SIZE_T BufferSize,
+    _In_ PWSTR VariableName
+    )
+{
+    PWSTR Name;
+    PWSTR Value;
+
+    Buffer[0] = L'\0';
+
+    for (size_t i = 0; i < m_EnvVars.size(); i++) {
+
+        if (m_EnvVars[i].Variable) {
+
+            Name = m_EnvVars[i].Variable;
+            Value = wcschr(m_EnvVars[i].Variable, L'=');
+
+            if (Value && (Value != Name)) {
+
+                if (0 == _wcsnicmp(Name, VariableName, Value - Name)) {
+
+                    StringCchCopyW(Buffer, BufferSize, Value + 1);
+
+                    return TRUE;
+                }
+            }
+        }
+    }
+
+    return FALSE;
+}
+
+BOOLEAN
 MsProcessObject::GetDlls(
 )
 /*++
@@ -829,6 +863,9 @@ Return Value:
 --*/
 {
     ULONG64 Peb;
+    ULONG64 Address;
+    WCHAR UserName[MAX_PATH];
+    WCHAR DomainName[MAX_PATH];
 
     RtlZeroMemory(&m_CcProcessObject, sizeof(m_CcProcessObject));
 
@@ -916,6 +953,69 @@ Return Value:
             }
 
             RestoreContext();
+        }
+
+        if (m_CcProcessObject.Token) {
+
+            ExtRemoteTyped Token("(nt!_TOKEN *)@$extin", m_CcProcessObject.Token);
+
+            Address = Token.Field("UserAndGroups").GetPtr();
+
+            if (Address) {
+
+                ExtRemoteTyped SidAndAttributes("(nt!_SID_AND_ATTRIBUTES *)@$extin", Address);
+
+                Address = SidAndAttributes.Field("Sid").GetPtr();
+
+                if (Address) {
+
+                    ExtRemoteTyped Sid("(nt!_SID *)@$extin", Address);
+
+                    ULONG SubAuthorityOffset = Sid.GetFieldOffset("SubAuthority");
+                    UCHAR SubAuthorityCount = Sid.Field("SubAuthorityCount").GetUchar();
+
+                    if (SubAuthorityOffset && SubAuthorityCount) {
+
+                        ULONG BufferSize = SubAuthorityOffset + SubAuthorityCount * sizeof(ULONG);
+
+                        PBYTE Buffer = (PBYTE)calloc(BufferSize, sizeof(BYTE));
+
+                        if (Buffer) {
+
+                            if (g_Ext->m_Data->ReadVirtual(Address, Buffer, BufferSize, NULL) == S_OK) {
+
+                                ULONG UserNameLength = _countof(UserName);
+                                ULONG DomainNameLength = _countof(DomainName);
+                                SID_NAME_USE SidNameUse;
+
+                                if (LookupAccountSidW(NULL, Buffer, UserName, &UserNameLength, DomainName, &DomainNameLength, &SidNameUse)) {
+
+                                    StringCchPrintfW(m_CcProcessObject.UserName, _countof(m_CcProcessObject.UserName), L"%s\\%s", DomainName, UserName);
+                                }
+                            }
+
+                            free(Buffer);
+                        }
+                    }
+                }
+            }
+
+            if (!wcslen(m_CcProcessObject.UserName)) {
+
+                ExtRemoteTypedEx::GetUnicodeString(Token.Field("LogonSession").Field("AccountName"), UserName, sizeof(UserName));
+                ExtRemoteTypedEx::GetUnicodeString(Token.Field("LogonSession").Field("AuthorityName"), DomainName, sizeof(DomainName));
+
+                StringCchPrintfW(m_CcProcessObject.UserName, _countof(m_CcProcessObject.UserName), L"%s\\%s", DomainName, UserName);
+            }
+        }
+
+        if (!wcslen(m_CcProcessObject.UserName)) {
+
+            if (GetEnvironmentVariableValue(DomainName, _countof(DomainName), L"USERDOMAIN") &&
+                GetEnvironmentVariableValue(UserName, _countof(UserName), L"USERNAME")) {
+
+                StringCchPrintfW(m_CcProcessObject.UserName, _countof(m_CcProcessObject.UserName), L"%s\\%s", DomainName, UserName);
+            }
         }
     }
     catch (...) {

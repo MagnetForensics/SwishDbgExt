@@ -242,6 +242,7 @@ public:
 
         CHAR ImageFileName[16];
         WCHAR FullPath[MAX_PATH + 1];
+        WCHAR UserName[MAX_PATH];
 
         LPWSTR CommandLine;
         WCHAR WindowTitle[256];
@@ -279,6 +280,13 @@ public:
 
     BOOLEAN GetDlls();
     BOOLEAN GetHandles(ULONG64 InTableCode);
+
+    BOOLEAN
+    MsProcessObject::GetEnvironmentVariableValue(
+        _In_ PWSTR Buffer,
+        _In_ SIZE_T BufferSize,
+        _In_ PWSTR VariableName
+    );
 
     BOOLEAN SwitchContext(VOID);
     BOOLEAN RestoreContext(VOID);
