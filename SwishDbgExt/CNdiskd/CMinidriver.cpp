@@ -93,11 +93,11 @@ PWSTR WINAPI CMinidriver::GetMDriverName()
 
         if (drvName != NULL)
         {
-            wcscpy_s(m_drivername, MAX_MINIDRV_NAME, drvName + 1);
+            StringCchCopyW(m_drivername, MAX_MINIDRV_NAME, drvName + 1);
         }
         else
         {
-            wcscpy_s(m_drivername, MAX_MINIDRV_NAME, wDriverName);
+            StringCchCopyW(m_drivername, MAX_MINIDRV_NAME, wDriverName);
         }
     }
     // NDIS5.X
@@ -115,11 +115,11 @@ PWSTR WINAPI CMinidriver::GetMDriverName()
 
         if (drvName != NULL)
         {
-            wcscpy_s(m_drivername, MAX_MINIDRV_NAME, drvName + 1);
+            StringCchCopyW(m_drivername, MAX_MINIDRV_NAME, drvName + 1);
         }
         else
         {
-            wcscpy_s(m_drivername, MAX_MINIDRV_NAME, wRegPath);
+            StringCchCopyW(m_drivername, MAX_MINIDRV_NAME, wRegPath);
         }
 
     }

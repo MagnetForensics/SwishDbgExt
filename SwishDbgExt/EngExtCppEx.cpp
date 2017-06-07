@@ -139,7 +139,7 @@ Return Value:
                                            NULL) != S_OK)
             {
                 // g_Ext->Dml("Error: Can't read buffer at 0x%I64X\n", SavedUnicodeString.Buffer);
-                wcscpy_s(Buffer, MaxChars / sizeof(Buffer[0]), L"#ERROR#"); // _countof
+                StringCchCopyW(Buffer, MaxChars / sizeof(Buffer[0]), L"#ERROR#"); // _countof
             }
         }
     }
@@ -478,7 +478,7 @@ Return Value:
 
                 StringCchPrintf(DisplacementString, _countof(DisplacementString), "+0x%x", Displacement);
 
-                StringCchCat(Buffer, Length - _tcslen(Buffer), DisplacementString);
+                StringCchCat(Buffer, Length, DisplacementString);
             }
         }
     }

@@ -92,7 +92,7 @@ public:
     {
         Set(Ptr, TypeName); // We keep the same structure name. TODO: Links
 
-        strcpy_s(m_Field, sizeof(m_Field), Field);
+        StringCchCopyA(m_Field, _countof(m_Field), Field);
         m_FieldSize = Size;
         ExtRemoteData::Set(Ptr, Size);
     }

@@ -59,7 +59,7 @@ CProtocols::~CProtocols()
 
 VOID WINAPI CProtocols::SetProtocolName(PWSTR ProtocolName)
 {
-	wcscpy_s(m_protocolname, MAX_PROTOCOL_NAME, ProtocolName);
+	StringCchCopyW(m_protocolname, MAX_PROTOCOL_NAME, ProtocolName);
 }
 
 PWSTR WINAPI CProtocols::GetProtocolName()

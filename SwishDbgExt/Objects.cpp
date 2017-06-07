@@ -101,14 +101,16 @@ Return Value:
             }
 
             ExtRemoteTypedEx::GetUnicodeString(ObjTypeTable.ArrayElement(HandleObj->ObjectTypeIndex).Field("Name"), TypeStr, sizeof(TypeStr));
-            wcscpy_s(HandleObj->Type, TypeStr);
+
+            StringCchCopyW(HandleObj->Type, _countof(HandleObj->Type), TypeStr);
         }
         else
         {
             if (!IsValid(ObjHeader.Field("Type").GetPtr())) goto CleanUp;
 
             ExtRemoteTypedEx::GetUnicodeString(ObjHeader.Field("Type").Field("Name"), TypeStr, sizeof(TypeStr));
-            wcscpy_s(HandleObj->Type, TypeStr);
+
+            StringCchCopyW(HandleObj->Type, _countof(HandleObj->Type), TypeStr);
         }
 
         if (_wcsicmp(TypeStr, L"File") == 0)
@@ -190,7 +192,8 @@ Return Value:
 
     if (ObjName)
     {
-        wcscpy_s(HandleObj->Name, ObjName);
+        StringCchCopyW(HandleObj->Name, _countof(HandleObj->Name), ObjName);
+
         free(ObjName);
         ObjName = NULL;
     }

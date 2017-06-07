@@ -420,25 +420,25 @@ EXT_COMMAND(ms_process,
                 switch (Vad.Protection) {
 
                 case MM_READONLY:
-                    strcpy_s(Protection, sizeof(Protection), "MM_READONLY");
+                    StringCchCopyA(Protection, _countof(Protection), "MM_READONLY");
                     break;
                 case MM_EXECUTE:
-                    strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE");
+                    StringCchCopyA(Protection, _countof(Protection), "MM_EXECUTE");
                     break;
                 case MM_EXECUTE_READ:
-                    strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE_READ");
+                    StringCchCopyA(Protection, _countof(Protection), "MM_EXECUTE_READ");
                     break;
                 case MM_READWRITE:
-                    strcpy_s(Protection, sizeof(Protection), "MM_READWRITE");
+                    StringCchCopyA(Protection, _countof(Protection), "MM_READWRITE");
                     break;
                 case MM_WRITECOPY:
-                    strcpy_s(Protection, sizeof(Protection), "MM_WRITECOPY");
+                    StringCchCopyA(Protection, _countof(Protection), "MM_WRITECOPY");
                     break;
                 case MM_EXECUTE_READWRITE:
-                    strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE_READWRITE");
+                    StringCchCopyA(Protection, _countof(Protection), "MM_EXECUTE_READWRITE");
                     break;
                 case MM_EXECUTE_WRITECOPY:
-                    strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE_WRITECOPY");
+                    StringCchCopyA(Protection, _countof(Protection), "MM_EXECUTE_WRITECOPY");
                     break;
                 }
 
@@ -1530,10 +1530,10 @@ EXT_COMMAND(ms_timers,
         switch (Timer.Type)
         {
             case TimerSynchronizationObject:
-                strcpy_s((LPSTR)TimerType, sizeof(TimerType), "TimerSynchronizationObject");
+                StringCchCopyA((LPSTR)TimerType, _countof(TimerType), "TimerSynchronizationObject");
                 break;
             case TimerNotificationObject:
-                strcpy_s((LPSTR)TimerType, sizeof(TimerType), "TimerNotificationObject");
+                StringCchCopyA((LPSTR)TimerType, _countof(TimerType), "TimerNotificationObject");
                 break;
         }
         Dml("    | %-26s | 0x%016I64X | 0x%016I64X | %8d | 0x%016I64X | <col fg=\"changed\">%-6s</col> | %s\n",

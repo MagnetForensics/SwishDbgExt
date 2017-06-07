@@ -198,7 +198,8 @@ Return Value:
         m_PdbInfo.Guid = PdbInfo->Guid;
         m_PdbInfo.Age = PdbInfo->Age;
 
-        strcpy_s(m_PdbInfo.PdbName, sizeof(m_PdbInfo.PdbName), PdbInfo->PdbFileName);
+        StringCchCopyA(m_PdbInfo.PdbName, _countof(m_PdbInfo.PdbName), PdbInfo->PdbFileName);
+
         Result = TRUE;
     }
 
@@ -514,7 +515,7 @@ Return Value:
             }
             else {
 
-                strcpy_s(ExportInfo.Name, sizeof(ExportInfo.Name), "*unreadable*");
+                StringCchCopyA(ExportInfo.Name, _countof(ExportInfo.Name), "*unreadable*");
             }
 
             m_Exports.push_back(ExportInfo);

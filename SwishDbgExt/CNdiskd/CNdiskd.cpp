@@ -287,7 +287,7 @@ CNdiskd::GetProtocolList(std::list<CProtocols*> *protocolList)
                 CHAR moduleName[MAX_MODULE_NAME] = { 0 };
                 utils::getNameByOffset(addrHandler, moduleName);
 
-                strcpy_s(protocol->m_ModuleName, MAX_MODULE_NAME, moduleName);
+                StringCchCopyA(protocol->m_ModuleName, MAX_MODULE_NAME, moduleName);
 
                 // For debugging purposes
                 DbgPrint("DEBUG: %s:%d:%s Protocol address: %p (%I64x-%I64x [%s]), Protocol name: %msu (v%d.%d)\n",

@@ -147,7 +147,7 @@ ULONG64 WINAPI COpenblock::GetMiniDriverEndAddr()
 
 VOID WINAPI COpenblock::SetBinderName(PWSTR AdatperName)
 {
-    wcscpy_s(m_bindingname, MAX_BINDING_NAME, AdatperName);
+    StringCchCopyW(m_bindingname, MAX_BINDING_NAME, AdatperName);
 }
 
 PWSTR WINAPI COpenblock::GetBinderName()
