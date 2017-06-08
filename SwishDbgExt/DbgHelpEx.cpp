@@ -764,6 +764,13 @@ Return Value:
             goto CleanUp;
         }
 
+        BaseImage = ExtRemoteTyped("(nt!_IMAGE_DOS_HEADER *)@$extin", BaseImageAddress);
+
+        if (BaseImage.Field("e_magic").GetUshort() != IMAGE_DOS_SIGNATURE) {
+
+            goto CleanUp;
+        }
+
         if (!m_ImageSize)
         {
             Header = (PIMAGE_DOS_HEADER)malloc(PAGE_SIZE);
@@ -777,9 +784,6 @@ Return Value:
 #endif
                 goto CleanUp;
             }
-
-            BaseImage = ExtRemoteTyped("(nt!_IMAGE_DOS_HEADER *)@$extin", BaseImageAddress);
-            if (BaseImage.Field("e_magic").GetUshort() != IMAGE_DOS_SIGNATURE) goto CleanUp;
 
             NtHeader32 = (PIMAGE_NT_HEADERS32)((PUCHAR)Header + BaseImage.Field("e_lfanew").GetUlong());
 
