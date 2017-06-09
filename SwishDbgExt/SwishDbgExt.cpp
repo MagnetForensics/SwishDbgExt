@@ -1210,6 +1210,11 @@ EXT_COMMAND(ms_dump,
 
     PVOID Buffer = malloc(Size);
 
+    if (!Buffer) {
+
+        goto CleanUp;
+    }
+
     if (ExtRemoteTypedEx::ReadVirtual(BaseAddress, Buffer, Size, NULL) != S_OK)
     {
         Err("Error: Failed to read the memory buffer.\n");
@@ -1475,25 +1480,29 @@ EXT_COMMAND(ms_consoles,
             ScreenX = ConsoleInfo.Field("CurrentScreenBuffer", TRUE).Field("ScreenX").GetUshort();
             Rows = ConsoleInfo.Field("CurrentScreenBuffer", TRUE).Field("Rows", TRUE).Field("Chars").GetPtr();
 
-            LPWSTR Buffer = (LPWSTR)malloc(ScreenY * ScreenX * sizeof(WCHAR));
-            if (g_Ext->m_Data->ReadVirtual(Rows, Buffer, ScreenY * ScreenX * sizeof(WCHAR), NULL) != S_OK) continue;
+            PWSTR Buffer = (LPWSTR)malloc(ScreenY * ScreenX * sizeof(WCHAR));
 
-            ULONG SpaceLinesCount = 0;
-            for (UINT y = 0; y < ScreenY; y += 1)
-            {
-                BOOLEAN isSpaceLine = TRUE;
-                for (UINT x = 0; x < ScreenX; x += 1)
+            if (Buffer) {
+
+                if (g_Ext->m_Data->ReadVirtual(Rows, Buffer, ScreenY * ScreenX * sizeof(WCHAR), NULL) != S_OK) continue;
+
+                ULONG SpaceLinesCount = 0;
+                for (UINT y = 0; y < ScreenY; y += 1)
                 {
-                    if (Buffer[(y * ScreenX) + x] != ' ') isSpaceLine = FALSE;
-                    Dml("%c", Buffer[(y * ScreenX) + x]);
+                    BOOLEAN isSpaceLine = TRUE;
+                    for (UINT x = 0; x < ScreenX; x += 1)
+                    {
+                        if (Buffer[(y * ScreenX) + x] != ' ') isSpaceLine = FALSE;
+                        Dml("%c", Buffer[(y * ScreenX) + x]);
+                    }
+
+                    Dml("\n");
+
+                    if (isSpaceLine) SpaceLinesCount += 1;
+                    else SpaceLinesCount = 0;
+
+                    if (SpaceLinesCount > 3) break;
                 }
-
-                Dml("\n");
-
-                if (isSpaceLine) SpaceLinesCount += 1;
-                else SpaceLinesCount = 0;
-
-                if (SpaceLinesCount > 3) break;
             }
         }
 
@@ -1769,6 +1778,11 @@ EXT_COMMAND(ms_malscore,
 
     Buffer = (LPBYTE)malloc(Size);
 
+    if (!Buffer) {
+
+        goto CleanUp;
+    }
+
     if (ExtRemoteTypedEx::ReadVirtual(BaseAddress, Buffer, Size, NULL) != S_OK)
     {
         Err("Error: Failed to read the memory buffer.\n");
@@ -1780,8 +1794,8 @@ EXT_COMMAND(ms_malscore,
     Dml("   -> <col fg=\"changed\">Malware Score Index (MSI)</col> = <col fg=\"emphfg\">%d</col>\n", MalwareScoreIndex);
 
 CleanUp:
-    if (Buffer) free(Buffer);
 
+    if (Buffer) free(Buffer);
 }
 
 EXT_COMMAND(ms_exqueue,

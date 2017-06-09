@@ -856,10 +856,11 @@ Return Value:
 
     FullNameA = (LPWSTR)malloc(AllocateSize);
     TmpName = (LPWSTR)malloc(AllocateSize);
-    RtlZeroMemory(TmpName, AllocateSize);
-    RtlZeroMemory(FullNameA, AllocateSize);
 
     if (!FullNameA || !TmpName) goto CleanUp;
+
+    RtlZeroMemory(TmpName, AllocateSize);
+    RtlZeroMemory(FullNameA, AllocateSize);
 
     try {
 
@@ -889,15 +890,25 @@ Return Value:
     Result = TRUE;
 
 CleanUp:
-    if (!Result)
-    {
-        free(FullNameA); FullNameA = NULL;
+
+    if (!Result) {
+
+        if (FullNameA) {
+
+            free(FullNameA);
+
+            FullNameA = NULL;
+        }
     }
 
-    free(TmpName); TmpName = NULL;
+    if (TmpName) {
+
+        free(TmpName);
+
+        TmpName = NULL;
+    }
 
     return FullNameA;
-
 }
 
 VOID

@@ -820,7 +820,7 @@ Return Value:
 
 --*/
 {
-    LPBYTE Buffer = NULL;
+    PBYTE Buffer = NULL;
     ULONG MalScore = 0;
 
     if (!Length) {
@@ -828,17 +828,21 @@ Return Value:
         return 0;
     }
 
-    Buffer = (LPBYTE)malloc(Length);
-    RtlZeroMemory(Buffer, Length);
+    Buffer = (PBYTE)calloc(Length, sizeof(BYTE));
 
-    ProcObj->SwitchContext();
-    if (ExtRemoteTypedEx::ReadVirtual(BaseAddress, Buffer, Length, NULL) != S_OK) goto CleanUp;
-    ProcObj->RestoreContext();
+    if (Buffer) {
 
-    MalScore = GetMalScore(Verbose, BaseAddress, Buffer, Length);
+        ProcObj->SwitchContext();
 
-CleanUp:
-    if (Buffer) free(Buffer);
+        if (ExtRemoteTypedEx::ReadVirtual(BaseAddress, Buffer, Length, NULL) == S_OK) {
+
+            MalScore = GetMalScore(Verbose, BaseAddress, Buffer, Length);
+        }
+
+        ProcObj->RestoreContext();
+
+        free(Buffer);
+    }
 
     return MalScore;
 }
