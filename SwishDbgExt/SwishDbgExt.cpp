@@ -420,25 +420,25 @@ EXT_COMMAND(ms_process,
                 switch (Vad.Protection) {
 
                 case MM_READONLY:
-                    strcpy_s(Protection, sizeof(Protection), "MM_READONLY");
+                    StringCchCopyA(Protection, _countof(Protection), "MM_READONLY");
                     break;
                 case MM_EXECUTE:
-                    strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE");
+                    StringCchCopyA(Protection, _countof(Protection), "MM_EXECUTE");
                     break;
                 case MM_EXECUTE_READ:
-                    strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE_READ");
+                    StringCchCopyA(Protection, _countof(Protection), "MM_EXECUTE_READ");
                     break;
                 case MM_READWRITE:
-                    strcpy_s(Protection, sizeof(Protection), "MM_READWRITE");
+                    StringCchCopyA(Protection, _countof(Protection), "MM_READWRITE");
                     break;
                 case MM_WRITECOPY:
-                    strcpy_s(Protection, sizeof(Protection), "MM_WRITECOPY");
+                    StringCchCopyA(Protection, _countof(Protection), "MM_WRITECOPY");
                     break;
                 case MM_EXECUTE_READWRITE:
-                    strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE_READWRITE");
+                    StringCchCopyA(Protection, _countof(Protection), "MM_EXECUTE_READWRITE");
                     break;
                 case MM_EXECUTE_WRITECOPY:
-                    strcpy_s(Protection, sizeof(Protection), "MM_EXECUTE_WRITECOPY");
+                    StringCchCopyA(Protection, _countof(Protection), "MM_EXECUTE_WRITECOPY");
                     break;
                 }
 
@@ -1210,6 +1210,11 @@ EXT_COMMAND(ms_dump,
 
     PVOID Buffer = malloc(Size);
 
+    if (!Buffer) {
+
+        goto CleanUp;
+    }
+
     if (ExtRemoteTypedEx::ReadVirtual(BaseAddress, Buffer, Size, NULL) != S_OK)
     {
         Err("Error: Failed to read the memory buffer.\n");
@@ -1475,25 +1480,29 @@ EXT_COMMAND(ms_consoles,
             ScreenX = ConsoleInfo.Field("CurrentScreenBuffer", TRUE).Field("ScreenX").GetUshort();
             Rows = ConsoleInfo.Field("CurrentScreenBuffer", TRUE).Field("Rows", TRUE).Field("Chars").GetPtr();
 
-            LPWSTR Buffer = (LPWSTR)malloc(ScreenY * ScreenX * sizeof(WCHAR));
-            if (g_Ext->m_Data->ReadVirtual(Rows, Buffer, ScreenY * ScreenX * sizeof(WCHAR), NULL) != S_OK) continue;
+            PWSTR Buffer = (LPWSTR)malloc(ScreenY * ScreenX * sizeof(WCHAR));
 
-            ULONG SpaceLinesCount = 0;
-            for (UINT y = 0; y < ScreenY; y += 1)
-            {
-                BOOLEAN isSpaceLine = TRUE;
-                for (UINT x = 0; x < ScreenX; x += 1)
+            if (Buffer) {
+
+                if (g_Ext->m_Data->ReadVirtual(Rows, Buffer, ScreenY * ScreenX * sizeof(WCHAR), NULL) != S_OK) continue;
+
+                ULONG SpaceLinesCount = 0;
+                for (UINT y = 0; y < ScreenY; y += 1)
                 {
-                    if (Buffer[(y * ScreenX) + x] != ' ') isSpaceLine = FALSE;
-                    Dml("%c", Buffer[(y * ScreenX) + x]);
+                    BOOLEAN isSpaceLine = TRUE;
+                    for (UINT x = 0; x < ScreenX; x += 1)
+                    {
+                        if (Buffer[(y * ScreenX) + x] != ' ') isSpaceLine = FALSE;
+                        Dml("%c", Buffer[(y * ScreenX) + x]);
+                    }
+
+                    Dml("\n");
+
+                    if (isSpaceLine) SpaceLinesCount += 1;
+                    else SpaceLinesCount = 0;
+
+                    if (SpaceLinesCount > 3) break;
                 }
-
-                Dml("\n");
-
-                if (isSpaceLine) SpaceLinesCount += 1;
-                else SpaceLinesCount = 0;
-
-                if (SpaceLinesCount > 3) break;
             }
         }
 
@@ -1530,10 +1539,10 @@ EXT_COMMAND(ms_timers,
         switch (Timer.Type)
         {
             case TimerSynchronizationObject:
-                strcpy_s((LPSTR)TimerType, sizeof(TimerType), "TimerSynchronizationObject");
+                StringCchCopyA((LPSTR)TimerType, _countof(TimerType), "TimerSynchronizationObject");
                 break;
             case TimerNotificationObject:
-                strcpy_s((LPSTR)TimerType, sizeof(TimerType), "TimerNotificationObject");
+                StringCchCopyA((LPSTR)TimerType, _countof(TimerType), "TimerNotificationObject");
                 break;
         }
         Dml("    | %-26s | 0x%016I64X | 0x%016I64X | %8d | 0x%016I64X | <col fg=\"changed\">%-6s</col> | %s\n",
@@ -1769,6 +1778,11 @@ EXT_COMMAND(ms_malscore,
 
     Buffer = (LPBYTE)malloc(Size);
 
+    if (!Buffer) {
+
+        goto CleanUp;
+    }
+
     if (ExtRemoteTypedEx::ReadVirtual(BaseAddress, Buffer, Size, NULL) != S_OK)
     {
         Err("Error: Failed to read the memory buffer.\n");
@@ -1780,8 +1794,8 @@ EXT_COMMAND(ms_malscore,
     Dml("   -> <col fg=\"changed\">Malware Score Index (MSI)</col> = <col fg=\"emphfg\">%d</col>\n", MalwareScoreIndex);
 
 CleanUp:
-    if (Buffer) free(Buffer);
 
+    if (Buffer) free(Buffer);
 }
 
 EXT_COMMAND(ms_exqueue,

@@ -134,7 +134,9 @@ GetSubKeys(
 
                             CHAR Name[MAX_PATH] = {0};
 
-                            ChildKeyNode.Field("Name").GetString(Name, NameLength, sizeof(Name) - 1);
+                            Address = ChildKeyNode.Field("Name").GetPointerTo().GetPtr();
+
+                            ExtRemoteTypedEx::ReadVirtual(Address, Name, min(NameLength, sizeof(Name) - 1), NULL);
 
                             StringCchPrintfW(SubKey.Name, _countof(SubKey.Name), L"%S", Name);
 
@@ -193,7 +195,9 @@ GetSubKeys(
 
                             CHAR Name[MAX_PATH] = {0};
 
-                            ChildKeyNode.Field("Name").GetString(Name, NameLength, sizeof(Name) - 1);
+                            Address = ChildKeyNode.Field("Name").GetPointerTo().GetPtr();
+
+                            ExtRemoteTypedEx::ReadVirtual(Address, Name, min(NameLength, sizeof(Name) - 1), NULL);
 
                             StringCchPrintfW(SubKey.Name, _countof(SubKey.Name), L"%S", Name);
 
@@ -356,7 +360,9 @@ RegGetKeyValue(
 
                             ZeroMemory(ValueNameAnsi, sizeof(ValueNameAnsi));
 
-                            KeyValue.Field("Name").GetString(ValueNameAnsi, NameLength, sizeof(ValueNameAnsi) - 1);
+                            ULONG64 NameAddress = KeyValue.Field("Name").GetPointerTo().GetPtr();
+
+                            ExtRemoteTypedEx::ReadVirtual(NameAddress, ValueNameAnsi, min(NameLength, sizeof(ValueNameAnsi) - 1), NULL);
 
                             StringCchPrintfW(ValueNameWide, _countof(ValueNameWide), L"%S", ValueNameAnsi);
 
@@ -421,6 +427,71 @@ RegGetKeyValue(
     }
 
     return Status;
+}
+
+vector<KEY_NAME>
+RegGetKeyValuesNames(
+    _In_ PWSTR FullKeyPath
+    )
+{
+    vector<KEY_NAME> KeyValuesNames;
+    KEY_NAME ValueName;
+
+    try {
+
+        ExtRemoteTyped CmHive = GetHive(FullKeyPath);
+        ExtRemoteTyped KeyNode = GetKeyNode(FullKeyPath);
+
+        ULONG ValuesCount = KeyNode.Field("ValueList").Field("Count").GetUlong();
+
+        if (ValuesCount) {
+
+            PULONG ValuesTable = (PULONG)calloc(ValuesCount, sizeof(ULONG));
+
+            if (ValuesTable) {
+
+                ULONG ValuesIndex = KeyNode.Field("ValueList").Field("List").GetUlong();
+                ULONG64 ValuesTableAddress = RegGetCellPaged(CmHive, ValuesIndex);
+
+                if (ExtRemoteTypedEx::ReadVirtual(ValuesTableAddress, ValuesTable, ValuesCount * sizeof(ULONG), NULL) == S_OK) {
+
+                    CHAR ValueNameAnsi[MAX_VALUE_NAME];
+                    WCHAR ValueNameWide[MAX_VALUE_NAME];
+
+                    for (UINT j = 0; j < ValuesCount; j++) {
+
+                        ULONG64 KeyValueAddress = RegGetCellPaged(CmHive, ValuesTable[j]);
+
+                        ExtRemoteTyped KeyValue("(nt!_CM_KEY_VALUE *)@$extin", KeyValueAddress);
+
+                        USHORT NameLength = KeyValue.Field("NameLength").GetUshort();
+
+                        if (NameLength) {
+
+                            ZeroMemory(ValueNameAnsi, sizeof(ValueNameAnsi));
+
+                            ULONG64 NameAddress = KeyValue.Field("Name").GetPointerTo().GetPtr();
+
+                            ExtRemoteTypedEx::ReadVirtual(NameAddress, ValueNameAnsi, min(NameLength, sizeof(ValueNameAnsi) - 1), NULL);
+
+                            StringCchPrintfW(ValueNameWide, _countof(ValueNameWide), L"%S", ValueNameAnsi);
+
+                            StringCchCopyW(ValueName.Name, _countof(ValueName.Name), ValueNameWide);
+
+                            KeyValuesNames.push_back(ValueName);
+                        }
+                    }
+                }
+
+                free(ValuesTable);
+            }
+        }
+    }
+    catch (...) {
+
+    }
+
+    return KeyValuesNames;
 }
 
 vector<KEY_NODE>
@@ -525,6 +596,8 @@ Return Value:
     ULONG64 SubKeysStableTableAddress;
     ULONG64 SubKeysVolatileTableAddress;
     ULONG64 ValuesTableAddress;
+    ULONG64 NameAddress;
+    USHORT NameLength;
 
     if (KeyNode.Field("Signature").GetUshort() == CM_LINK_NODE_SIGNATURE) {
 
@@ -543,8 +616,17 @@ Return Value:
 
     RtlZeroMemory(Name, sizeof(Name));
 
+    NameLength = KeyNode.Field("NameLength").GetUshort();
+
+    if (NameLength) {
+
+        NameAddress = KeyNode.Field("Name").GetPointerTo().GetPtr();
+
+        ExtRemoteTypedEx::ReadVirtual(NameAddress, Name, min(NameLength, sizeof(Name) - 1), NULL);
+    }
+
     g_Ext->Dml(" Key node <col fg=\"changed\">%s</col> contains %d key values and %d subkeys.\n\n",
-               KeyNode.Field("Name").GetString(Name, KeyNode.Field("NameLength").GetUshort(), sizeof(Name)),
+               Name,
                ValuesCount,
                SubKeysStableCount + SubKeysVolatileCount);
 
@@ -591,12 +673,21 @@ Return Value:
 
                         RtlZeroMemory(Name, sizeof(Name));
 
+                        NameLength = LocalKeyNode.Field("NameLength").GetUshort();
+
+                        if (NameLength) {
+
+                            NameAddress = LocalKeyNode.Field("Name").GetPointerTo().GetPtr();
+
+                            ExtRemoteTypedEx::ReadVirtual(NameAddress, Name, min(NameLength, sizeof(Name) - 1), NULL);
+                        }
+
                         g_Ext->Dml("   [%2d] <link cmd=\"!ms_readknode 0x%I64X 0x%I64X\">0x%I64X</link> | <col fg=\"changed\">%-50s</col> | LastWriteTime: %s\n",
                                    i,
                                    KeyHive.GetPtr(),
                                    Address,
                                    Address,
-                                   LocalKeyNode.Field("Name").GetString(Name, LocalKeyNode.Field("NameLength").GetUshort(), sizeof(Name)),
+                                   Name,
                                    GetLastWriteTime(&LastWriteTime, TimeBuffer, sizeof(TimeBuffer)));
                     }
                     catch (...) {
@@ -645,12 +736,21 @@ Return Value:
 
                         RtlZeroMemory(Name, sizeof(Name));
 
+                        NameLength = LocalKeyNode.Field("NameLength").GetUshort();
+
+                        if (NameLength) {
+
+                            NameAddress = LocalKeyNode.Field("Name").GetPointerTo().GetPtr();
+
+                            ExtRemoteTypedEx::ReadVirtual(NameAddress, Name, min(NameLength, sizeof(Name) - 1), NULL);
+                        }
+
                         g_Ext->Dml("   [%2d] <link cmd=\"!ms_readknode 0x%I64X 0x%I64X\">0x%I64X</link> | <col fg=\"changed\">%-32s</col>\n",
                                    i,
                                    KeyHive.GetPtr(),
                                    Address,
                                    Address,
-                                   LocalKeyNode.Field("Name").GetString(Name, LocalKeyNode.Field("NameLength").GetUshort(), sizeof(Name)));
+                                   Name);
                     }
                     catch (...) {
 
@@ -684,18 +784,28 @@ Return Value:
 
                         ExtRemoteTyped KeyValue("(nt!_CM_KEY_VALUE *)@$extin", Address);
 
+                        NameLength = 0;
+
                         RtlZeroMemory(Name, sizeof(Name));
 
-                        USHORT NameLength = 0;
+                        if (KeyValue.GetPtr()) {
 
-                        if (KeyValue.GetPtr()) NameLength = KeyValue.Field("NameLength").GetUshort();
+                            NameLength = KeyValue.Field("NameLength").GetUshort();
+
+                            if (NameLength) {
+
+                                NameAddress = KeyValue.Field("Name").GetPointerTo().GetPtr();
+
+                                ExtRemoteTypedEx::ReadVirtual(NameAddress, Name, min(NameLength, sizeof(Name) - 1), NULL);
+                            }
+                        }
 
                         g_Ext->Dml("   [%2d] <link cmd=\"!ms_readkvalue 0x%I64X 0x%I64X\">0x%I64X</link> | <col fg=\"changed\">%-32s</col> | ",
                                    i,
                                    KeyHive.GetPtr(),
                                    Address,
                                    Address,
-                                   NameLength ? KeyValue.Field("Name").GetString(Name, NameLength, sizeof(Name)) : "(Default)");
+                                   NameLength ? Name : "(Default)");
 
                         g_Ext->Dml("        ");
 
@@ -746,10 +856,11 @@ Return Value:
 
     FullNameA = (LPWSTR)malloc(AllocateSize);
     TmpName = (LPWSTR)malloc(AllocateSize);
-    RtlZeroMemory(TmpName, AllocateSize);
-    RtlZeroMemory(FullNameA, AllocateSize);
 
     if (!FullNameA || !TmpName) goto CleanUp;
+
+    RtlZeroMemory(TmpName, AllocateSize);
+    RtlZeroMemory(FullNameA, AllocateSize);
 
     try {
 
@@ -779,15 +890,25 @@ Return Value:
     Result = TRUE;
 
 CleanUp:
-    if (!Result)
-    {
-        free(FullNameA); FullNameA = NULL;
+
+    if (!Result) {
+
+        if (FullNameA) {
+
+            free(FullNameA);
+
+            FullNameA = NULL;
+        }
     }
 
-    free(TmpName); TmpName = NULL;
+    if (TmpName) {
+
+        free(TmpName);
+
+        TmpName = NULL;
+    }
 
     return FullNameA;
-
 }
 
 VOID
@@ -925,44 +1046,50 @@ Return Value:
 
     ExtRemoteTypedList HiveList(CmpHiveListHead, "nt!_CMHIVE", "HiveList");
 
-    for (HiveList.StartHead(); HiveList.HasNode(); HiveList.Next()) {
+    try {
 
-        HIVE_OBJECT HiveObject = {0};
+        for (HiveList.StartHead(); HiveList.HasNode(); HiveList.Next()) {
 
-        if (HiveList.GetTypedNode().Field("Hive.Signature").GetUlong() != CM_HIVE_SIGNATURE) break;
+            HIVE_OBJECT HiveObject = {0};
 
-        ExtRemoteTypedEx::GetUnicodeString(HiveList.GetTypedNode().Field("FileUserName"), (PWSTR)&HiveObject.FileUserName, sizeof(HiveObject.FileUserName));
-        ExtRemoteTypedEx::GetUnicodeString(HiveList.GetTypedNode().Field("HiveRootPath"), (PWSTR)&HiveObject.HiveRootPath, sizeof(HiveObject.HiveRootPath));
+            if (HiveList.GetTypedNode().Field("Hive.Signature").GetUlong() != CM_HIVE_SIGNATURE) break;
 
-        HiveObject.HivePtr = HiveList.GetNodeOffset();
-        HiveObject.KeyNodePtr = GetKeyNode(HiveObject.HiveRootPath).m_Data;
-        HiveObject.GetCellRoutine = HiveList.GetTypedNode().Field("Hive.GetCellRoutine").GetPtr();
-        HiveObject.Allocate = HiveList.GetTypedNode().Field("Hive.Allocate").GetPtr();
-        HiveObject.Free = HiveList.GetTypedNode().Field("Hive.Free").GetPtr();
-        HiveObject.FileWrite = HiveList.GetTypedNode().Field("Hive.FileWrite").GetPtr();
-        HiveObject.FileRead = HiveList.GetTypedNode().Field("Hive.FileRead").GetPtr();
+            ExtRemoteTypedEx::GetUnicodeString(HiveList.GetTypedNode().Field("FileUserName"), (PWSTR)&HiveObject.FileUserName, sizeof(HiveObject.FileUserName));
+            ExtRemoteTypedEx::GetUnicodeString(HiveList.GetTypedNode().Field("HiveRootPath"), (PWSTR)&HiveObject.HiveRootPath, sizeof(HiveObject.HiveRootPath));
 
-        if (HiveList.GetTypedNode().HasField("Flags")) {
+            HiveObject.HivePtr = HiveList.GetNodeOffset();
+            HiveObject.KeyNodePtr = GetKeyNode(HiveObject.HiveRootPath).m_Data;
+            HiveObject.GetCellRoutine = HiveList.GetTypedNode().Field("Hive.GetCellRoutine").GetPtr();
+            HiveObject.Allocate = HiveList.GetTypedNode().Field("Hive.Allocate").GetPtr();
+            HiveObject.Free = HiveList.GetTypedNode().Field("Hive.Free").GetPtr();
+            HiveObject.FileWrite = HiveList.GetTypedNode().Field("Hive.FileWrite").GetPtr();
+            HiveObject.FileRead = HiveList.GetTypedNode().Field("Hive.FileRead").GetPtr();
 
-            HiveObject.Flags = HiveList.GetTypedNode().Field("Flags").GetUlong();
+            if (HiveList.GetTypedNode().HasField("Flags")) {
+
+                HiveObject.Flags = HiveList.GetTypedNode().Field("Flags").GetUlong();
+            }
+
+            if (HiveList.GetTypedNode().HasField("Hive.ReleaseCellRoutine")) {
+
+                HiveObject.ReleaseCellRoutine = HiveList.GetTypedNode().Field("Hive.ReleaseCellRoutine").GetPtr();
+            }
+
+            if (HiveList.GetTypedNode().HasField("Hive.FileSetSize")) {
+
+                HiveObject.FileSetSize = HiveList.GetTypedNode().Field("Hive.FileSetSize").GetPtr();
+            }
+
+            if (HiveList.GetTypedNode().HasField("Hive.FileFlush")) {
+
+                HiveObject.FileFlush = HiveList.GetTypedNode().Field("Hive.FileFlush").GetPtr();
+            }
+
+            Hives.push_back(HiveObject);
         }
+    }
+    catch (...) {
 
-        if (HiveList.GetTypedNode().HasField("Hive.ReleaseCellRoutine")) {
-
-            HiveObject.ReleaseCellRoutine = HiveList.GetTypedNode().Field("Hive.ReleaseCellRoutine").GetPtr();
-        }
-
-        if (HiveList.GetTypedNode().HasField("Hive.FileSetSize")) {
-
-            HiveObject.FileSetSize = HiveList.GetTypedNode().Field("Hive.FileSetSize").GetPtr();
-        }
-
-        if (HiveList.GetTypedNode().HasField("Hive.FileFlush")) {
-
-            HiveObject.FileFlush = HiveList.GetTypedNode().Field("Hive.FileFlush").GetPtr();
-        }
-
-        Hives.push_back(HiveObject);
     }
 
     return Hives;

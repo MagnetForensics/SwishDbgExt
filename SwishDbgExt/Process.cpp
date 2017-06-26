@@ -473,6 +473,40 @@ CleanUp:
 }
 
 BOOLEAN
+MsProcessObject::GetEnvironmentVariableValue(
+    _In_ PWSTR Buffer,
+    _In_ SIZE_T BufferSize,
+    _In_ PWSTR VariableName
+    )
+{
+    PWSTR Name;
+    PWSTR Value;
+
+    Buffer[0] = L'\0';
+
+    for (size_t i = 0; i < m_EnvVars.size(); i++) {
+
+        if (m_EnvVars[i].Variable) {
+
+            Name = m_EnvVars[i].Variable;
+            Value = wcschr(m_EnvVars[i].Variable, L'=');
+
+            if (Value && (Value != Name)) {
+
+                if (0 == _wcsnicmp(Name, VariableName, Value - Name)) {
+
+                    StringCchCopyW(Buffer, BufferSize, Value + 1);
+
+                    return TRUE;
+                }
+            }
+        }
+    }
+
+    return FALSE;
+}
+
+BOOLEAN
 MsProcessObject::GetDlls(
 )
 /*++
@@ -499,84 +533,102 @@ Return Value:
 
         if (IsValid(Head)) {
 
-            ModuleIterator Dlls(Head);
-
-            for (Dlls.First(); !Dlls.IsDone(); Dlls.Next()) {
-
-                MsDllObject Object = Dlls.Current();
-
-                Object.mm_CcDllObject.LoadTime.QuadPart = 0;
-
-                m_DllList.push_back(Object);
-            }
-        }
-    }
-    else {
-
-        ULONG64 Peb = m_TypedObject.Field("Peb").GetPtr();
-
-        if (Peb && IsValid(Peb) && IsValid(m_TypedObject.Field("Peb").Field("Ldr").GetPtr())) {
-
-            ULONG64 Head = m_TypedObject.Field("Peb").Field("Ldr").Field("InLoadOrderModuleList").GetPointerTo().GetPtr();
-
-            if (IsValid(Head)) {
+            try {
 
                 ModuleIterator Dlls(Head);
 
                 for (Dlls.First(); !Dlls.IsDone(); Dlls.Next()) {
 
                     MsDllObject Object = Dlls.Current();
+
+                    Object.mm_CcDllObject.LoadTime.QuadPart = 0;
+
                     m_DllList.push_back(Object);
                 }
             }
+            catch (...) {
+
+            }
+        }
+    }
+    else {
+
+        try {
+
+            ULONG64 Peb = m_TypedObject.Field("Peb").GetPtr();
+
+            if (Peb && IsValid(Peb) && IsValid(m_TypedObject.Field("Peb").Field("Ldr").GetPtr())) {
+
+                ULONG64 Head = m_TypedObject.Field("Peb").Field("Ldr").Field("InLoadOrderModuleList").GetPointerTo().GetPtr();
+
+                if (IsValid(Head)) {
+
+                    ModuleIterator Dlls(Head);
+
+                    for (Dlls.First(); !Dlls.IsDone(); Dlls.Next()) {
+
+                        MsDllObject Object = Dlls.Current();
+                        m_DllList.push_back(Object);
+                    }
+                }
+            }
+        }
+        catch (...) {
+
         }
 
         //
         // Wow64
         //
+        
+        try {
 
-        if (m_TypedObject.HasField("Wow64Process") && (m_TypedObject.Field("Wow64Process").GetPtr() != 0)) {
+            if (m_TypedObject.HasField("Wow64Process") && (m_TypedObject.Field("Wow64Process").GetPtr() != 0)) {
 
-            PEB_LDR_DATA PebLdrData = {0};
-            LDR_DATA_TABLE_ENTRY32 LdrDataTableEntry = {0};
-            ExtRemoteTyped Peb32("(nt!_PEB32 *)@$extin", m_TypedObject.Field("Wow64Process").GetPtr());
+                PEB_LDR_DATA PebLdrData = {0};
+                LDR_DATA_TABLE_ENTRY32 LdrDataTableEntry = {0};
+                ExtRemoteTyped Peb32("(nt!_PEB32 *)@$extin", m_TypedObject.Field("Wow64Process").GetPtr());
 
-            if (IsValid(Peb32.GetPtr())) {
+                if (IsValid(Peb32.GetPtr())) {
 
-                ULONG64 Ldr = Peb32.Field("Ldr").GetUlong();
+                    ULONG64 Ldr = Peb32.Field("Ldr").GetUlong();
 
-                if (g_Ext->m_Data->ReadVirtual(Ldr, &PebLdrData, sizeof(PebLdrData), NULL) != S_OK) goto CleanUp;
+                    if (g_Ext->m_Data->ReadVirtual(Ldr, &PebLdrData, sizeof(PebLdrData), NULL) != S_OK) goto CleanUp;
 
-                if (g_Ext->m_Data->ReadVirtual(PebLdrData.InLoadOrderModuleList.Flink, &LdrDataTableEntry, sizeof(LdrDataTableEntry), NULL) != S_OK) goto CleanUp;
+                    if (g_Ext->m_Data->ReadVirtual(PebLdrData.InLoadOrderModuleList.Flink, &LdrDataTableEntry, sizeof(LdrDataTableEntry), NULL) != S_OK) goto CleanUp;
 
-                while (PebLdrData.InLoadOrderModuleList.Flink != LdrDataTableEntry.InLoadOrderLinks.Flink)
-                {
-                    MsDllObject Object;
+                    while (PebLdrData.InLoadOrderModuleList.Flink != LdrDataTableEntry.InLoadOrderLinks.Flink)
+                    {
+                        MsDllObject Object;
 
-                    if (LdrDataTableEntry.InLoadOrderLinks.Flink == 0) break;
-                    if (LdrDataTableEntry.DllBase == 0) break;
-                    if (LdrDataTableEntry.SizeOfImage == 0) break;
+                        if (LdrDataTableEntry.InLoadOrderLinks.Flink == 0) break;
+                        if (LdrDataTableEntry.DllBase == 0) break;
+                        if (LdrDataTableEntry.SizeOfImage == 0) break;
 
-                    Object.mm_CcDllObject.IsWow64 = TRUE;
+                        Object.mm_CcDllObject.IsWow64 = TRUE;
 
-                    Object.m_ImageBase = LdrDataTableEntry.DllBase;
-                    Object.m_ImageSize = LdrDataTableEntry.SizeOfImage;
+                        Object.m_ImageBase = LdrDataTableEntry.DllBase;
+                        Object.m_ImageSize = LdrDataTableEntry.SizeOfImage;
 
-                    if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.BaseDllName.Buffer,
-                                                   (PWSTR)&Object.mm_CcDllObject.DllName,
-                                                   LdrDataTableEntry.BaseDllName.Length,
-                                                   NULL) != S_OK) break;
+                        if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.BaseDllName.Buffer,
+                                                       (PWSTR)&Object.mm_CcDllObject.DllName,
+                                                       LdrDataTableEntry.BaseDllName.Length,
+                                                       NULL) != S_OK) break;
 
-                    if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.FullDllName.Buffer,
-                                                   (PWSTR)&Object.mm_CcDllObject.FullDllName,
-                                                   LdrDataTableEntry.FullDllName.Length,
-                                                   NULL) != S_OK) break;
+                        if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.FullDllName.Buffer,
+                                                       (PWSTR)&Object.mm_CcDllObject.FullDllName,
+                                                       LdrDataTableEntry.FullDllName.Length,
+                                                       NULL) != S_OK) break;
 
-                    m_DllList.push_back(Object);
+                        m_DllList.push_back(Object);
 
-                    if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.InLoadOrderLinks.Flink, &LdrDataTableEntry, sizeof(LdrDataTableEntry), NULL) != S_OK) goto CleanUp;
+                        if (g_Ext->m_Data->ReadVirtual(LdrDataTableEntry.InLoadOrderLinks.Flink, &LdrDataTableEntry, sizeof(LdrDataTableEntry), NULL) != S_OK) goto CleanUp;
+                    }
                 }
             }
+        }
+        catch (...) {
+
         }
     }
 
@@ -811,90 +863,167 @@ Return Value:
 --*/
 {
     ULONG64 Peb;
+    ULONG64 Address;
+    WCHAR UserName[MAX_PATH];
+    WCHAR DomainName[MAX_PATH];
 
     RtlZeroMemory(&m_CcProcessObject, sizeof(m_CcProcessObject));
 
-    m_CcProcessObject.ProcessId = m_TypedObject.Field("UniqueProcessId").GetPtr();
-    m_CcProcessObject.ParentProcessId = m_TypedObject.Field("InheritedFromUniqueProcessId").GetPtr();
-    m_ImageBase = m_TypedObject.Field("SectionBaseAddress").GetPtr();
+    try {
 
-    if ((m_ImageBase == 0ULL) && (m_CcProcessObject.ProcessId == 4)) {
+        m_CcProcessObject.ProcessId = m_TypedObject.Field("UniqueProcessId").GetPtr();
+        m_CcProcessObject.ParentProcessId = m_TypedObject.Field("InheritedFromUniqueProcessId").GetPtr();
+        m_CcProcessObject.Token = GetFastRefPointer(m_TypedObject.Field("Token.Object").GetPtr());
+        m_ImageBase = m_TypedObject.Field("SectionBaseAddress").GetPtr();
 
-        //
-        // System Process
-        //
+        if ((m_ImageBase == 0ULL) && (m_CcProcessObject.ProcessId == 4)) {
 
-        m_ImageBase = ExtNtOsInformation::GetNtDebuggerData(DEBUG_DATA_KernBase, "nt", 0);
-    }
+            //
+            // System Process
+            //
 
-    m_CcProcessObject.ProcessObjectPtr = m_TypedObject.GetPtr();
+            m_ImageBase = ExtNtOsInformation::GetNtDebuggerData(DEBUG_DATA_KernBase, "nt", 0);
+        }
 
-    m_TypedObject.Field("ImageFileName").GetString((PTSTR)&m_CcProcessObject.ImageFileName, sizeof(m_CcProcessObject.ImageFileName));
+        m_CcProcessObject.ProcessObjectPtr = m_TypedObject.GetPtr();
 
-    ExtRemoteTypedEx::GetUnicodeString(m_TypedObject.Field("SeAuditProcessCreationInfo.ImageFileName").Field("Name"),
-                                       (PWSTR)&m_CcProcessObject.FullPath,
-                                       sizeof(m_CcProcessObject.FullPath));
+        m_TypedObject.Field("ImageFileName").GetString((PTSTR)&m_CcProcessObject.ImageFileName, sizeof(m_CcProcessObject.ImageFileName));
 
-    m_CcProcessObject.CreateTime.QuadPart = m_TypedObject.Field("CreateTime.QuadPart").GetUlong64();
-    m_CcProcessObject.ExitTime.QuadPart = m_TypedObject.Field("ExitTime.QuadPart").GetUlong64();
+        ExtRemoteTypedEx::GetUnicodeString(m_TypedObject.Field("SeAuditProcessCreationInfo.ImageFileName").Field("Name"),
+                                           (PWSTR)&m_CcProcessObject.FullPath,
+                                           sizeof(m_CcProcessObject.FullPath));
 
-    Peb = m_TypedObject.Field("Peb").GetPtr();
+        m_CcProcessObject.CreateTime.QuadPart = m_TypedObject.Field("CreateTime.QuadPart").GetUlong64();
+        m_CcProcessObject.ExitTime.QuadPart = m_TypedObject.Field("ExitTime.QuadPart").GetUlong64();
 
-    if (Peb)
-    {
-        ULONG64 ProcessParameters;
+        Peb = m_TypedObject.Field("Peb").GetPtr();
 
-        SwitchContext();
-
-        if (IsValid(Peb))
+        if (Peb)
         {
-            ProcessParameters = m_TypedObject.Field("Peb").Field("ProcessParameters").GetPtr();
+            ULONG64 ProcessParameters;
 
-            if (ProcessParameters && IsValid(ProcessParameters))
+            SwitchContext();
+
+            if (IsValid(Peb))
             {
-                ULONG EnvironmentSize;
+                ProcessParameters = m_TypedObject.Field("Peb").Field("ProcessParameters").GetPtr();
 
-                m_CcProcessObject.DllPath = ExtRemoteTypedEx::GetUnicodeString2(m_TypedObject.Field("Peb").Field("ProcessParameters").Field("DllPath"));
-                REF_POINTER(m_CcProcessObject.DllPath);
-
-                m_CcProcessObject.ImagePathName = ExtRemoteTypedEx::GetUnicodeString2(m_TypedObject.Field("Peb").Field("ProcessParameters").Field("ImagePathName"));
-                REF_POINTER(m_CcProcessObject.ImagePathName);
-
-                m_CcProcessObject.CommandLine = ExtRemoteTypedEx::GetUnicodeString2(m_TypedObject.Field("Peb").Field("ProcessParameters").Field("CommandLine"));
-                REF_POINTER(m_CcProcessObject.CommandLine);
-
-                ULONG64 Environment = m_TypedObject.Field("Peb").Field("ProcessParameters").Field("Environment").GetPtr();
-                if (m_TypedObject.Field("Peb").Field("ProcessParameters").HasField("EnvironmentSize"))
+                if (ProcessParameters && IsValid(ProcessParameters))
                 {
-                    EnvironmentSize = (ULONG)m_TypedObject.Field("Peb").Field("ProcessParameters").Field("EnvironmentSize").GetPtr();
-                }
-                else
-                {
-                    EnvironmentSize = 0x1000;
-                }
+                    ULONG EnvironmentSize;
 
-                m_EnvVarsBuffer = (LPWSTR)calloc(EnvironmentSize, sizeof(BYTE));
-                REF_POINTER(m_EnvVarsBuffer);
+                    m_CcProcessObject.DllPath = ExtRemoteTypedEx::GetUnicodeString2(m_TypedObject.Field("Peb").Field("ProcessParameters").Field("DllPath"));
+                    REF_POINTER(m_CcProcessObject.DllPath);
 
-                if (g_Ext->m_Data->ReadVirtual(Environment, m_EnvVarsBuffer, EnvironmentSize, NULL) == S_OK)
-                {
-                    for (UINT Index = 0; Index < (EnvironmentSize / sizeof(WCHAR)); Index += 1)
+                    m_CcProcessObject.ImagePathName = ExtRemoteTypedEx::GetUnicodeString2(m_TypedObject.Field("Peb").Field("ProcessParameters").Field("ImagePathName"));
+                    REF_POINTER(m_CcProcessObject.ImagePathName);
+
+                    m_CcProcessObject.CommandLine = ExtRemoteTypedEx::GetUnicodeString2(m_TypedObject.Field("Peb").Field("ProcessParameters").Field("CommandLine"));
+                    REF_POINTER(m_CcProcessObject.CommandLine);
+
+                    ULONG64 Environment = m_TypedObject.Field("Peb").Field("ProcessParameters").Field("Environment").GetPtr();
+                    if (m_TypedObject.Field("Peb").Field("ProcessParameters").HasField("EnvironmentSize"))
                     {
-                        ENV_VAR_OBJECT EnvVar = {0};
+                        EnvironmentSize = (ULONG)m_TypedObject.Field("Peb").Field("ProcessParameters").Field("EnvironmentSize").GetPtr();
+                    }
+                    else
+                    {
+                        EnvironmentSize = 0x1000;
+                    }
 
-                        if (m_EnvVarsBuffer[Index] == L'\0') continue;
+                    m_EnvVarsBuffer = (PWSTR)calloc(EnvironmentSize, sizeof(BYTE));
 
-                        ULONG Len = (ULONG)wcslen(&m_EnvVarsBuffer[Index]);
+                    if (m_EnvVarsBuffer) {
 
-                        EnvVar.Variable = &m_EnvVarsBuffer[Index];
-                        m_EnvVars.push_back(EnvVar);
-                        Index += Len;
+                        REF_POINTER(m_EnvVarsBuffer);
+
+                        if (g_Ext->m_Data->ReadVirtual(Environment, m_EnvVarsBuffer, EnvironmentSize, NULL) == S_OK)
+                        {
+                            for (UINT Index = 0; Index < (EnvironmentSize / sizeof(WCHAR)); Index += 1)
+                            {
+                                ENV_VAR_OBJECT EnvVar = {0};
+
+                                if (m_EnvVarsBuffer[Index] == L'\0') continue;
+
+                                ULONG Len = (ULONG)wcslen(&m_EnvVarsBuffer[Index]);
+
+                                EnvVar.Variable = &m_EnvVarsBuffer[Index];
+                                m_EnvVars.push_back(EnvVar);
+                                Index += Len;
+                            }
+                        }
                     }
                 }
             }
+
+            RestoreContext();
         }
 
-        RestoreContext();
+        if (m_CcProcessObject.Token) {
+
+            ExtRemoteTyped Token("(nt!_TOKEN *)@$extin", m_CcProcessObject.Token);
+
+            Address = Token.Field("UserAndGroups").GetPtr();
+
+            if (Address) {
+
+                ExtRemoteTyped SidAndAttributes("(nt!_SID_AND_ATTRIBUTES *)@$extin", Address);
+
+                Address = SidAndAttributes.Field("Sid").GetPtr();
+
+                if (Address) {
+
+                    ExtRemoteTyped Sid("(nt!_SID *)@$extin", Address);
+
+                    ULONG SubAuthorityOffset = Sid.GetFieldOffset("SubAuthority");
+                    UCHAR SubAuthorityCount = Sid.Field("SubAuthorityCount").GetUchar();
+
+                    if (SubAuthorityOffset && SubAuthorityCount) {
+
+                        ULONG BufferSize = SubAuthorityOffset + SubAuthorityCount * sizeof(ULONG);
+
+                        PBYTE Buffer = (PBYTE)calloc(BufferSize, sizeof(BYTE));
+
+                        if (Buffer) {
+
+                            if (g_Ext->m_Data->ReadVirtual(Address, Buffer, BufferSize, NULL) == S_OK) {
+
+                                ULONG UserNameLength = _countof(UserName);
+                                ULONG DomainNameLength = _countof(DomainName);
+                                SID_NAME_USE SidNameUse;
+
+                                if (LookupAccountSidW(NULL, Buffer, UserName, &UserNameLength, DomainName, &DomainNameLength, &SidNameUse)) {
+
+                                    StringCchPrintfW(m_CcProcessObject.UserName, _countof(m_CcProcessObject.UserName), L"%s\\%s", DomainName, UserName);
+                                }
+                            }
+
+                            free(Buffer);
+                        }
+                    }
+                }
+            }
+
+            if (!wcslen(m_CcProcessObject.UserName)) {
+
+                ExtRemoteTypedEx::GetUnicodeString(Token.Field("LogonSession").Field("AccountName"), UserName, sizeof(UserName));
+                ExtRemoteTypedEx::GetUnicodeString(Token.Field("LogonSession").Field("AuthorityName"), DomainName, sizeof(DomainName));
+
+                StringCchPrintfW(m_CcProcessObject.UserName, _countof(m_CcProcessObject.UserName), L"%s\\%s", DomainName, UserName);
+            }
+        }
+
+        if (!wcslen(m_CcProcessObject.UserName)) {
+
+            if (GetEnvironmentVariableValue(DomainName, _countof(DomainName), L"USERDOMAIN") &&
+                GetEnvironmentVariableValue(UserName, _countof(UserName), L"USERNAME")) {
+
+                StringCchPrintfW(m_CcProcessObject.UserName, _countof(m_CcProcessObject.UserName), L"%s\\%s", DomainName, UserName);
+            }
+        }
+    }
+    catch (...) {
+
     }
 }
 
@@ -1064,32 +1193,43 @@ Return Value:
 {
     ProcessArray ProcessList;
     ProcessArray MmProcessList;
-
     ProcessIterator Processes;
 
     if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Entering...\n", __FILE__, __FUNCTIONW__, __LINE__);
 
-    for (Processes.First(); !Processes.IsDone(); Processes.Next())
-    {
-        MsProcessObject ProcObject = Processes.Current();
+    try {
 
-        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Current process %s\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObject.m_CcProcessObject.ImageFileName);
-
-        if (!Pid || (Pid == ProcObject.m_CcProcessObject.ProcessId))
+        for (Processes.First(); !Processes.IsDone(); Processes.Next())
         {
-            ProcessList.push_back(ProcObject);
+            MsProcessObject ProcObject = Processes.Current();
+
+            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Current process %s\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObject.m_CcProcessObject.ImageFileName);
+
+            if (!Pid || (Pid == ProcObject.m_CcProcessObject.ProcessId))
+            {
+                ProcessList.push_back(ProcObject);
+            }
         }
+    }
+    catch (...) {
+
     }
 
     if (!Pid)
     {
-        ProcessIterator MmProcesses(ProcessLinksMmType);
+        try {
 
-        for (MmProcesses.First(); !MmProcesses.IsDone(); MmProcesses.Next())
-        {
-            MsProcessObject ProcObject = MmProcesses.Current();
+            ProcessIterator MmProcesses(ProcessLinksMmType);
 
-            MmProcessList.push_back(MmProcesses.Current());
+            for (MmProcesses.First(); !MmProcesses.IsDone(); MmProcesses.Next())
+            {
+                MsProcessObject ProcObject = MmProcesses.Current();
+
+                MmProcessList.push_back(MmProcesses.Current());
+            }
+        }
+        catch (...) {
+
         }
 
         //
@@ -1212,26 +1352,32 @@ Return Value:
 
 --*/
 {
-    ProcessIterator Processes;
+    try {
 
-    for (Processes.First(); !Processes.IsDone(); Processes.Next()) {
+        ProcessIterator Processes;
 
-        MsProcessObject ProcessObject = Processes.Current();
+        for (Processes.First(); !Processes.IsDone(); Processes.Next()) {
 
-        if (0 == _stricmp(ProcessObject.m_CcProcessObject.ImageFileName, ProcessName)) {
+            MsProcessObject ProcessObject = Processes.Current();
 
-            //
-            // Save, and change the current process.
-            //
+            if (0 == _stricmp(ProcessObject.m_CcProcessObject.ImageFileName, ProcessName)) {
 
-            ProcessObject.SwitchContext();
+                //
+                // Save, and change the current process.
+                //
 
-            ProcessObject.GetInfoFull();
+                ProcessObject.SwitchContext();
 
-            ProcessObject.RestoreContext();
+                ProcessObject.GetInfoFull();
 
-            return ProcessObject;
+                ProcessObject.RestoreContext();
+
+                return ProcessObject;
+            }
         }
+    }
+    catch (...) {
+
     }
 
     return MsProcessObject();
@@ -1257,26 +1403,32 @@ Return Value:
 
 --*/
 {
-    ProcessIterator Processes;
+    try {
 
-    for (Processes.First(); !Processes.IsDone(); Processes.Next()) {
+        ProcessIterator Processes;
 
-        MsProcessObject ProcessObject = Processes.Current();
+        for (Processes.First(); !Processes.IsDone(); Processes.Next()) {
 
-        if (ProcessObject.m_CcProcessObject.ProcessId == ProcessId) {
+            MsProcessObject ProcessObject = Processes.Current();
 
-            //
-            // Save, and change the current process.
-            //
+            if (ProcessObject.m_CcProcessObject.ProcessId == ProcessId) {
 
-            ProcessObject.SwitchContext();
+                //
+                // Save, and change the current process.
+                //
 
-            ProcessObject.GetInfoFull();
+                ProcessObject.SwitchContext();
 
-            ProcessObject.RestoreContext();
+                ProcessObject.GetInfoFull();
 
-            return ProcessObject;
+                ProcessObject.RestoreContext();
+
+                return ProcessObject;
+            }
         }
+    }
+    catch (...) {
+
     }
 
     return MsProcessObject();
@@ -1289,69 +1441,83 @@ MsProcessObject::MmGetFirstVad(
 {
     ULONG64 First, LeftChild = 0;
     ExtRemoteTyped MmVad;
+    ULONG MaxIter = 0;
 
-    if (m_TypedObject.Field("VadRoot").GetTypeSize() > GetPtrSize())
-    {
-        First = m_TypedObject.Field("VadRoot.BalancedRoot.RightChild").GetPtr();
-        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] VadRoot.BalancedRoot.RightChild = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
-        if (!First) return FALSE;
-    }
-    else
-    {
-        if (m_TypedObject.Field("VadRoot").HasField("Root")) {
-            First = m_TypedObject.Field("VadRoot").Field("Root").GetPtr();
-        } else {
-            First = m_TypedObject.Field("VadRoot").GetPtr();
+    try {
+
+        if (m_TypedObject.Field("VadRoot").GetTypeSize() > GetPtrSize())
+        {
+            First = m_TypedObject.Field("VadRoot.BalancedRoot.RightChild").GetPtr();
+            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] VadRoot.BalancedRoot.RightChild = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
+            if (!First) return FALSE;
         }
-        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] VadRoot = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
-        if (!First) return FALSE;
-    }
+        else
+        {
+            if (m_TypedObject.Field("VadRoot").HasField("Root")) {
+                First = m_TypedObject.Field("VadRoot").Field("Root").GetPtr();
+            } else {
+                First = m_TypedObject.Field("VadRoot").GetPtr();
+            }
+            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] VadRoot = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
+            if (!First) return FALSE;
+        }
 
-    while (First)
-    {
-        LeftChild = First;
+        while (First)
+        {
+            if (MaxIter++ > 1000) {
 
-        MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", LeftChild);
+                return FALSE;
+            }
 
-        if (MmVad.HasField("Core")) {
+            LeftChild = First;
 
-            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] [Left] LeftChild = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
+            MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", LeftChild);
 
-            if (MmVad.Field("Core").Field("VadNode").HasField("LeftChild")) {
+            if (MmVad.HasField("Core")) {
 
-                First = MmVad.Field("Core").Field("VadNode").Field("LeftChild").GetPtr();
+                if (g_Verbose) g_Ext->Dml("[%s!%S!%d] [Left] LeftChild = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
+
+                if (MmVad.Field("Core").Field("VadNode").HasField("LeftChild")) {
+
+                    First = MmVad.Field("Core").Field("VadNode").Field("LeftChild").GetPtr();
+                }
+                else {
+
+                    First = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+                }
             }
             else {
 
-                First = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+                First = MmVad.Field("LeftChild").GetPtr();
             }
+
+            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] VadRoot.First = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
+        }
+
+        First = LeftChild;
+        VadInfo->FirstNode = First;
+        VadInfo->CurrentNode = VadInfo->FirstNode;
+
+        MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
+
+        if (MmVad.HasField("Core")) {
+
+            VadInfo->StartingVpn = MmVad.Field("Core").Field("StartingVpn").GetUlong();
+            VadInfo->EndingVpn = MmVad.Field("Core").Field("EndingVpn").GetUlong();
         }
         else {
-
-            First = MmVad.Field("LeftChild").GetPtr();
+            VadInfo->StartingVpn = MmVad.Field("StartingVpn").GetPtr();
+            VadInfo->EndingVpn = MmVad.Field("EndingVpn").GetPtr();
         }
+        VadInfo->EndingVpn += 1;
 
-        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] VadRoot.First = 0x%llx\n", __FILE__, __FUNCTIONW__, __LINE__, First);
+        return TRUE;
+    }
+    catch (...) {
+
     }
 
-    First = LeftChild;
-    VadInfo->FirstNode = First;
-    VadInfo->CurrentNode = VadInfo->FirstNode;
-
-    MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
-
-    if (MmVad.HasField("Core")) {
-
-        VadInfo->StartingVpn = MmVad.Field("Core").Field("StartingVpn").GetUlong();
-        VadInfo->EndingVpn = MmVad.Field("Core").Field("EndingVpn").GetUlong();
-    }
-    else {
-        VadInfo->StartingVpn = MmVad.Field("StartingVpn").GetPtr();
-        VadInfo->EndingVpn = MmVad.Field("EndingVpn").GetPtr();
-    }
-    VadInfo->EndingVpn += 1;
-
-    return TRUE;
+    return FALSE;
 }
 
 BOOLEAN
@@ -1376,216 +1542,239 @@ Return Value:
 {
     ULONG64 Parent, Next;
     ULONG64 LeftChild = 0, RightChild;
-
     ExtRemoteTyped MmVad;
+    ULONG MaxIter;
 
-     if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Entering...\n", __FILE__, __FUNCTIONW__, __LINE__);
+    try {
 
-    VadInfo->StartingVpn = 0;
-    VadInfo->EndingVpn = 0;
-    VadInfo->FileObject = 0;
-    if (!VadInfo->CurrentNode) {
-        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] CurrentNode is null. Exiting.\n", __FILE__, __FUNCTIONW__, __LINE__);
-        return FALSE;
-    }
+        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Entering...\n", __FILE__, __FUNCTIONW__, __LINE__);
 
-    Next = VadInfo->CurrentNode;
+        VadInfo->StartingVpn = 0;
+        VadInfo->EndingVpn = 0;
+        VadInfo->FileObject = 0;
 
-    MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
+        if (!VadInfo->CurrentNode) {
 
-    if (MmVad.HasField("Core")) {
+            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] CurrentNode is null. Exiting.\n", __FILE__, __FUNCTIONW__, __LINE__);
+            return FALSE;
+        }
 
-        if (MmVad.Field("Core").Field("VadNode").HasField("RightChild")) {
+        Next = VadInfo->CurrentNode;
 
-            RightChild = MmVad.Field("Core").Field("VadNode").Field("RightChild").GetPtr();
+        MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
+
+        if (MmVad.HasField("Core")) {
+
+            if (MmVad.Field("Core").Field("VadNode").HasField("RightChild")) {
+
+                RightChild = MmVad.Field("Core").Field("VadNode").Field("RightChild").GetPtr();
+            }
+            else {
+
+                RightChild = MmVad.Field("Core").Field("VadNode").Field("Right").GetPtr();
+            }
         }
         else {
 
-            RightChild = MmVad.Field("Core").Field("VadNode").Field("Right").GetPtr();
+            RightChild = MmVad.Field("RightChild").GetPtr();
         }
-    }
-    else {
 
-        RightChild = MmVad.Field("RightChild").GetPtr();
-    }
+        MaxIter = 0;
 
-    if (!RightChild)
-    {
-        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Looking for parent node.\n", __FILE__, __FUNCTIONW__, __LINE__);
-        while (TRUE)
+        if (!RightChild)
         {
-            if (MmVad.HasField("u1.Parent"))
+            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Looking for parent node.\n", __FILE__, __FUNCTIONW__, __LINE__);
+
+            while (TRUE)
             {
-                Parent = MmVad.Field("u1.Parent").GetPtr();
-            }
-            else if (MmVad.HasField("Parent"))
-            {
-                Parent = MmVad.Field("Parent").GetPtr();
-            }
-            else if (MmVad.HasField("Core.VadNode.u1.Parent")) {
+                if (MaxIter++ > 1000) {
 
-                Parent = MmVad.Field("Core").Field("VadNode.u1.Parent").GetPtr();
-            }
-            else if (MmVad.HasField("Core.VadNode.ParentValue")) {
+                    return FALSE;
+                }
 
-                Parent = MmVad.Field("Core").Field("VadNode.ParentValue").GetPtr();
-            }
-            else return FALSE;
+                if (MmVad.HasField("u1.Parent"))
+                {
+                    Parent = MmVad.Field("u1.Parent").GetPtr();
+                }
+                else if (MmVad.HasField("Parent"))
+                {
+                    Parent = MmVad.Field("Parent").GetPtr();
+                }
+                else if (MmVad.HasField("Core.VadNode.u1.Parent")) {
 
-            //
-            // Sanitize
-            //
-            Parent &= ~0x3;
-            if (!Parent) return FALSE;
+                    Parent = MmVad.Field("Core").Field("VadNode.u1.Parent").GetPtr();
+                }
+                else if (MmVad.HasField("Core.VadNode.ParentValue")) {
 
-            if (Parent == Next)
-            {
-                VadInfo->CurrentNode = 0;
-                return FALSE;
-            }
+                    Parent = MmVad.Field("Core").Field("VadNode.ParentValue").GetPtr();
+                }
+                else return FALSE;
 
-            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access VadInfo->CurrentNode = 0x%llx\n",
-                __FILE__, __FUNCTIONW__, __LINE__, VadInfo->CurrentNode);
+                //
+                // Sanitize
+                //
+                Parent &= ~0x3;
+                if (!Parent) return FALSE;
 
-            MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", Parent);
+                if (Parent == Next)
+                {
+                    VadInfo->CurrentNode = 0;
+                    return FALSE;
+                }
 
-            if (MmVad.HasField("Core")) {
+                if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access VadInfo->CurrentNode = 0x%llx\n",
+                    __FILE__, __FUNCTIONW__, __LINE__, VadInfo->CurrentNode);
 
-                if (MmVad.Field("Core").Field("VadNode").HasField("LeftChild")) {
+                MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", Parent);
 
-                    LeftChild = MmVad.Field("Core").Field("VadNode").Field("LeftChild").GetPtr();
+                if (MmVad.HasField("Core")) {
+
+                    if (MmVad.Field("Core").Field("VadNode").HasField("LeftChild")) {
+
+                        LeftChild = MmVad.Field("Core").Field("VadNode").Field("LeftChild").GetPtr();
+                    }
+                    else {
+
+                        LeftChild = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+                    }
                 }
                 else {
 
-                    LeftChild = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+                    LeftChild = MmVad.Field("LeftChild").GetPtr();
                 }
-            }
-            else {
 
-                LeftChild = MmVad.Field("LeftChild").GetPtr();
-            }
+                if (LeftChild == Next)
+                {
+                    VadInfo->CurrentNode = Parent;
+                    break;
+                }
 
-            if (LeftChild == Next)
-            {
-                VadInfo->CurrentNode = Parent;
-                break;
+                Next = Parent;
             }
-
-            Next = Parent;
         }
-    }
-    else
-    {
-        Next = RightChild;
-
-        while (Next)
+        else
         {
-            LeftChild = Next;
-            if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access [0x%llX] Node\n",
-                __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
+            Next = RightChild;
 
-            if (!IsValid(LeftChild)) {
-                g_Ext->Err("[%s!%S!%d] Unable to get LeftChild of nt!_MMVAD_SHORT at 0x%llX\n", __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
-                return FALSE;
-            }
+            while (Next)
+            {
+                if (MaxIter++ > 1000) {
 
-            MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", LeftChild);
+                    return FALSE;
+                }
 
-            if (MmVad.HasField("Core")) {
+                LeftChild = Next;
+                if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access [0x%llX] Node\n",
+                    __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
 
-                if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access [0x%llX].Core.VadNode.Left\n", __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
+                if (!IsValid(LeftChild)) {
+                    g_Ext->Err("[%s!%S!%d] Unable to get LeftChild of nt!_MMVAD_SHORT at 0x%llX\n", __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
+                    return FALSE;
+                }
 
-                if (MmVad.Field("Core").Field("VadNode").HasField("LeftChild")) {
+                MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", LeftChild);
 
-                    Next = MmVad.Field("Core").Field("VadNode").Field("LeftChild").GetPtr();
+                if (MmVad.HasField("Core")) {
+
+                    if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access [0x%llX].Core.VadNode.Left\n", __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
+
+                    if (MmVad.Field("Core").Field("VadNode").HasField("LeftChild")) {
+
+                        Next = MmVad.Field("Core").Field("VadNode").Field("LeftChild").GetPtr();
+                    }
+                    else {
+
+                        Next = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+                    }
                 }
                 else {
 
-                    Next = MmVad.Field("Core").Field("VadNode").Field("Left").GetPtr();
+                    Next = MmVad.Field("LeftChild").GetPtr();
                 }
             }
-            else {
 
-                Next = MmVad.Field("LeftChild").GetPtr();
+            VadInfo->CurrentNode = LeftChild;
+
+            if (!LeftChild) return FALSE;
+        }
+
+        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Current Node [0x%llX]\n", __FILE__, __FUNCTIONW__, __LINE__, VadInfo->CurrentNode);
+
+        MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
+
+        if (MmVad.HasField("Core")) {
+
+            VadInfo->StartingVpn = MmVad.Field("Core").Field("StartingVpn").GetUlong();
+            VadInfo->EndingVpn = MmVad.Field("Core").Field("EndingVpn").GetUlong();
+
+            VadInfo->VadType = (ULONG)MmVad.Field("Core").Field("u.VadFlags.VadType").GetUlong();
+            VadInfo->Protection = (ULONG)MmVad.Field("Core").Field("u.VadFlags.Protection").GetUlong();
+            VadInfo->PrivateMemory = (ULONG)MmVad.Field("Core").Field("u.VadFlags.PrivateMemory").GetUlong();
+            VadInfo->MemCommit = (ULONG)MmVad.Field("Core").Field("u1.VadFlags1.MemCommit").GetUlong();
+
+            if (MmVad.HasField("Core.StartingVpnHigh") && MmVad.HasField("Core.EndingVpnHigh")) {
+
+                ULONG64 StartingVpnHigh;
+                ULONG64 EndingVpnHigh;
+
+                StartingVpnHigh = MmVad.Field("Core").Field("StartingVpnHigh").GetUchar();
+                EndingVpnHigh = MmVad.Field("Core").Field("EndingVpnHigh").GetUchar();
+
+                VadInfo->StartingVpn = VadInfo->StartingVpn | (StartingVpnHigh << 32);
+                VadInfo->EndingVpn = VadInfo->EndingVpn | (EndingVpnHigh << 32);
             }
         }
+        else {
+            VadInfo->StartingVpn = MmVad.Field("StartingVpn").GetPtr();
+            VadInfo->EndingVpn = MmVad.Field("EndingVpn").GetPtr();
 
-        VadInfo->CurrentNode = LeftChild;
-
-        if (!LeftChild) return FALSE;
-    }
-
-    if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Current Node [0x%llX]\n", __FILE__, __FUNCTIONW__, __LINE__, VadInfo->CurrentNode);
-
-    MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", VadInfo->CurrentNode);
-
-    if (MmVad.HasField("Core")) {
-
-        VadInfo->StartingVpn = MmVad.Field("Core").Field("StartingVpn").GetUlong();
-        VadInfo->EndingVpn = MmVad.Field("Core").Field("EndingVpn").GetUlong();
-
-        VadInfo->VadType = (ULONG)MmVad.Field("Core").Field("u.VadFlags.VadType").GetUlong();
-        VadInfo->Protection = (ULONG)MmVad.Field("Core").Field("u.VadFlags.Protection").GetUlong();
-        VadInfo->PrivateMemory = (ULONG)MmVad.Field("Core").Field("u.VadFlags.PrivateMemory").GetUlong();
-        VadInfo->MemCommit = (ULONG)MmVad.Field("Core").Field("u1.VadFlags1.MemCommit").GetUlong();
-
-        if (MmVad.HasField("Core.StartingVpnHigh") && MmVad.HasField("Core.EndingVpnHigh")) {
-
-            ULONG64 StartingVpnHigh;
-            ULONG64 EndingVpnHigh;
-
-            StartingVpnHigh = MmVad.Field("Core").Field("StartingVpnHigh").GetUchar();
-            EndingVpnHigh = MmVad.Field("Core").Field("EndingVpnHigh").GetUchar();
-
-            VadInfo->StartingVpn = VadInfo->StartingVpn | (StartingVpnHigh << 32);
-            VadInfo->EndingVpn = VadInfo->EndingVpn | (EndingVpnHigh << 32);
-        }
-    }
-    else {
-        VadInfo->StartingVpn = MmVad.Field("StartingVpn").GetPtr();
-        VadInfo->EndingVpn = MmVad.Field("EndingVpn").GetPtr();
-
-        if (MmVad.HasField("u.VadFlags.VadType"))
-        {
-            VadInfo->VadType = (ULONG)MmVad.Field("u.VadFlags.VadType").GetPtr();
-        }
-        VadInfo->Protection = (ULONG)MmVad.Field("u.VadFlags.Protection").GetPtr();
-        VadInfo->PrivateMemory = (ULONG)MmVad.Field("u.VadFlags.PrivateMemory").GetPtr();
-        VadInfo->MemCommit = (ULONG)MmVad.Field("u.VadFlags.MemCommit").GetPtr();
-    }
-    VadInfo->EndingVpn += 1;
-
-    if (MmVad.HasField("ControlArea"))
-    {
-        // NT 5
-        ULONG64 ControlArea = 0;
-        ULONG64 FilePointer = 0;
-
-        ControlArea = MmVad.Field("ControlArea").GetPtr();
-        if (ControlArea && IsValid(ControlArea)) FilePointer = MmVad.Field("ControlArea").Field("FilePointer").GetPtr();
-
-        VadInfo->FileObject = FilePointer;
-    }
-    else if (MmVad.HasField("Subsection"))
-    {
-        ULONG64 Subsection = MmVad.Field("Subsection").GetPtr();
-        if (Subsection && !VadInfo->PrivateMemory)
-        {
-            ExtRemoteTyped MmSubSection("(nt!_SUBSECTION *)@$extin", Subsection);
-
-            if (MmSubSection.Field("ControlArea").GetPtr())
+            if (MmVad.HasField("u.VadFlags.VadType"))
             {
-                VadInfo->FileObject = MmSubSection.Field("ControlArea").Field("FilePointer").Field("Object").GetPtr();
+                VadInfo->VadType = (ULONG)MmVad.Field("u.VadFlags.VadType").GetPtr();
+            }
+            VadInfo->Protection = (ULONG)MmVad.Field("u.VadFlags.Protection").GetPtr();
+            VadInfo->PrivateMemory = (ULONG)MmVad.Field("u.VadFlags.PrivateMemory").GetPtr();
+            VadInfo->MemCommit = (ULONG)MmVad.Field("u.VadFlags.MemCommit").GetPtr();
+        }
+        VadInfo->EndingVpn += 1;
+
+        if (MmVad.HasField("ControlArea"))
+        {
+            // NT 5
+            ULONG64 ControlArea = 0;
+            ULONG64 FilePointer = 0;
+
+            ControlArea = MmVad.Field("ControlArea").GetPtr();
+            if (ControlArea && IsValid(ControlArea)) FilePointer = MmVad.Field("ControlArea").Field("FilePointer").GetPtr();
+
+            VadInfo->FileObject = FilePointer;
+        }
+        else if (MmVad.HasField("Subsection"))
+        {
+            ULONG64 Subsection = MmVad.Field("Subsection").GetPtr();
+            if (Subsection && !VadInfo->PrivateMemory)
+            {
+                ExtRemoteTyped MmSubSection("(nt!_SUBSECTION *)@$extin", Subsection);
+
+                if (MmSubSection.Field("ControlArea").GetPtr())
+                {
+                    VadInfo->FileObject = MmSubSection.Field("ControlArea").Field("FilePointer").Field("Object").GetPtr();
+                }
             }
         }
+
+        if (GetPtrSize() == sizeof(ULONG64))  VadInfo->FileObject &= ~0xF;
+        else if (GetPtrSize() == sizeof(ULONG32)) VadInfo->FileObject &= ~0x7;
+
+        if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Leaving.\n", __FILE__, __FUNCTIONW__, __LINE__);
+
+        return TRUE;
+    }
+    catch (...) {
+
     }
 
-    if (GetPtrSize() == sizeof(ULONG64))  VadInfo->FileObject &= ~0xF;
-    else if (GetPtrSize() == sizeof(ULONG32)) VadInfo->FileObject &= ~0x7;
-
-    if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Leaving.\n", __FILE__, __FUNCTIONW__, __LINE__);
-
-    return TRUE;
+    return FALSE;
 }
 
 BOOLEAN
@@ -1607,15 +1796,23 @@ Return Value:
 
 --*/
 {
-    VAD_OBJECT VadInfo = { 0 };
-
+    VAD_OBJECT VadInfo = {0};
+    ULONG64 PreviousVpn;
     BOOLEAN Result;
 
     Result = MmGetFirstVad(&VadInfo);
-    while (Result)
-    {
+
+    while (Result) {
+
+        PreviousVpn = VadInfo.StartingVpn;
+
         m_Vads.push_back(VadInfo);
         Result = MmGetNextVad(&VadInfo);
+
+        if (PreviousVpn >= VadInfo.StartingVpn) {
+
+            break;
+        }
     }
 
     return TRUE;
@@ -1644,36 +1841,48 @@ Return Value:
 
     ExtRemoteTypedList ThreadList(ThreadListHead, "nt!_ETHREAD", "ThreadListEntry");
 
-    for (ThreadList.StartHead(); ThreadList.HasNode(); ThreadList.Next())
-    {
-        THREAD_OBJECT ThreadObject = { 0 };
+    try {
 
-        ThreadObject.CrossThreadFlags = ThreadList.GetTypedNode().Field("CrossThreadFlags").GetUlong();
-        if (ThreadList.GetTypedNode().HasField("Tcb.ThreadFlags"))
-        {
-            ThreadObject.ThreadFlags = ThreadList.GetTypedNode().Field("Tcb.ThreadFlags").GetUlong();
+        for (ThreadList.StartHead(); ThreadList.HasNode(); ThreadList.Next()) {
+
+            THREAD_OBJECT ThreadObject = {0};
+
+            if (ThreadList.GetTypedNode().Field("Tcb.Header.Type").GetUchar() != 6) {
+
+                break;
+            }
+
+            ThreadObject.CrossThreadFlags = ThreadList.GetTypedNode().Field("CrossThreadFlags").GetUlong();
+
+            if (ThreadList.GetTypedNode().HasField("Tcb.ThreadFlags")) {
+
+                ThreadObject.ThreadFlags = ThreadList.GetTypedNode().Field("Tcb.ThreadFlags").GetUlong();
+            }
+
+            ThreadObject.StartAddress = ThreadList.GetTypedNode().Field("StartAddress").GetPtr();
+            ThreadObject.Win32StartAddress = ThreadList.GetTypedNode().Field("Win32StartAddress").GetPtr();
+
+            if (!ThreadObject.Win32StartAddress) {
+
+                ThreadObject.Win32StartAddress = ThreadObject.StartAddress;
+            }
+
+            ThreadObject.ProcessId = ThreadList.GetTypedNode().Field("Cid.UniqueProcess").GetPtr();
+            ThreadObject.ThreadId = ThreadList.GetTypedNode().Field("Cid.UniqueThread").GetPtr();
+
+            ThreadObject.CreateTime.QuadPart = ThreadList.GetTypedNode().Field("CreateTime.QuadPart").GetUlong64();
+            ThreadObject.ExitTime.QuadPart = ThreadList.GetTypedNode().Field("ExitTime.QuadPart").GetUlong64();
+
+            if (ThreadList.GetTypedNode().HasField("Tcb.ServiceTable")) {
+
+                ThreadObject.ServiceTable = ThreadList.GetTypedNode().Field("Tcb.ServiceTable").GetPtr();
+            }
+
+            m_Threads.push_back(ThreadObject);
         }
+    }
+    catch (...) {
 
-        ThreadObject.StartAddress = ThreadList.GetTypedNode().Field("StartAddress").GetPtr();
-        ThreadObject.Win32StartAddress = ThreadList.GetTypedNode().Field("Win32StartAddress").GetPtr();
-
-        if (!ThreadObject.Win32StartAddress) {
-
-            ThreadObject.Win32StartAddress = ThreadObject.StartAddress;
-        }
-
-        ThreadObject.ProcessId = ThreadList.GetTypedNode().Field("Cid.UniqueProcess").GetPtr();
-        ThreadObject.ThreadId = ThreadList.GetTypedNode().Field("Cid.UniqueThread").GetPtr();
-
-        ThreadObject.CreateTime.QuadPart = ThreadList.GetTypedNode().Field("CreateTime.QuadPart").GetUlong64();
-        ThreadObject.ExitTime.QuadPart = ThreadList.GetTypedNode().Field("ExitTime.QuadPart").GetUlong64();
-
-        if (ThreadList.GetTypedNode().HasField("Tcb.ServiceTable"))
-        {
-            ThreadObject.ServiceTable = ThreadList.GetTypedNode().Field("Tcb.ServiceTable").GetPtr();
-        }
-
-        m_Threads.push_back(ThreadObject);
     }
 
     return TRUE;

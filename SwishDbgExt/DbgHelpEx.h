@@ -136,6 +136,7 @@ public:
     ULONG m_ImageSize;
 
     BOOL m_IsPagedOut;
+	BOOL m_IsSigned;
 
     vector<CACHED_SECTION_INFO> m_CcSections;
     FILE_VERSION m_FileVersion;
@@ -198,6 +199,11 @@ public:
     BOOLEAN
     GetInfoFull(
     );
+
+    BOOL
+    IsValidAddress(
+        _In_ ULONG_PTR Address
+        );
 
     void Free(void);
 

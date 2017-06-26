@@ -110,7 +110,7 @@ namespace utils {
 			// Ndis6x does not have ProtocolCharaterisitics
 			if (utils::IsVistaOrAbove())
 			{
-				strcpy_s(NewFieldName, FieldName);
+				StringCchCopyA(NewFieldName, _countof(NewFieldName), FieldName);
 			}
 			// Ndis5x has a union structure ProtocolCharaterisitics
 			else 
@@ -123,18 +123,18 @@ namespace utils {
 					strcmp(FieldName, "Flags") == 0 ||
 					strstr(FieldName, "Handler") != NULL)
 				{
-					strcpy_s(NewFieldName, "ProtocolCharacteristics.");
-					strcat_s(NewFieldName, FieldName);
+					StringCchCopyA(NewFieldName, _countof(NewFieldName), "ProtocolCharacteristics.");
+					StringCchCatA(NewFieldName, _countof(NewFieldName), FieldName);
 				}
 				else
 				{
-					strcpy_s(NewFieldName, FieldName);
+					StringCchCopyA(NewFieldName, _countof(NewFieldName), FieldName);
 				}
 			}
 		}
 		else
 		{
-			strcpy_s(NewFieldName, FieldName);
+			StringCchCopyA(NewFieldName, _countof(NewFieldName), FieldName);
 		}
 
 		if (Base > 0)

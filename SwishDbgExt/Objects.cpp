@@ -101,14 +101,16 @@ Return Value:
             }
 
             ExtRemoteTypedEx::GetUnicodeString(ObjTypeTable.ArrayElement(HandleObj->ObjectTypeIndex).Field("Name"), TypeStr, sizeof(TypeStr));
-            wcscpy_s(HandleObj->Type, TypeStr);
+
+            StringCchCopyW(HandleObj->Type, _countof(HandleObj->Type), TypeStr);
         }
         else
         {
             if (!IsValid(ObjHeader.Field("Type").GetPtr())) goto CleanUp;
 
             ExtRemoteTypedEx::GetUnicodeString(ObjHeader.Field("Type").Field("Name"), TypeStr, sizeof(TypeStr));
-            wcscpy_s(HandleObj->Type, TypeStr);
+
+            StringCchCopyW(HandleObj->Type, _countof(HandleObj->Type), TypeStr);
         }
 
         if (_wcsicmp(TypeStr, L"File") == 0)
@@ -190,7 +192,8 @@ Return Value:
 
     if (ObjName)
     {
-        wcscpy_s(HandleObj->Name, ObjName);
+        StringCchCopyW(HandleObj->Name, _countof(HandleObj->Name), ObjName);
+
         free(ObjName);
         ObjName = NULL;
     }
@@ -225,36 +228,41 @@ Return Value:
     vector<HANDLE_OBJECT> Handles;
     HANDLE_OBJECT Handle = {0};
     ExtRemoteTyped Directory;
-
     ULONG64 ObjectDir = InputObject;
 
-    if (!ObjectDir)
-    {
-        ReadPointer(ObpRootDirectoryObjectAddress, &ObjectDir);
-    }
+    try {
 
-    Directory = ExtRemoteTyped("(nt!_OBJECT_DIRECTORY *)@$extin", ObjectDir);
-
-    ObReadObject(ObjectDir, &Handle);
-
-    for (UINT i = 0; i < 37; i += 1)
-    {
-        ULONG64 Entry = Directory.Field("HashBuckets").ArrayElement(i).GetPointerTo().GetPtr();
-        if (!Entry) continue;
-
-        //
-        // ExtRemoteTypedList requires a POINTER to the first entry. Not the offset of the first entry.
-        //
-        ExtRemoteTypedList EntryList(Entry, "nt!_OBJECT_DIRECTORY_ENTRY", "ChainLink");
-
-        for (EntryList.StartHead(); EntryList.HasNode(); EntryList.Next())
+        if (!ObjectDir)
         {
-            ULONG64 Object = EntryList.GetTypedNode().Field("Object").GetPtr();
-
-            ObReadObject(Object, &Handle);
-
-            Handles.push_back(Handle);
+            ReadPointer(ObpRootDirectoryObjectAddress, &ObjectDir);
         }
+
+        Directory = ExtRemoteTyped("(nt!_OBJECT_DIRECTORY *)@$extin", ObjectDir);
+
+        ObReadObject(ObjectDir, &Handle);
+
+        for (UINT i = 0; i < 37; i += 1)
+        {
+            ULONG64 Entry = Directory.Field("HashBuckets").ArrayElement(i).GetPointerTo().GetPtr();
+            if (!Entry) continue;
+
+            //
+            // ExtRemoteTypedList requires a POINTER to the first entry. Not the offset of the first entry.
+            //
+            ExtRemoteTypedList EntryList(Entry, "nt!_OBJECT_DIRECTORY_ENTRY", "ChainLink");
+
+            for (EntryList.StartHead(); EntryList.HasNode(); EntryList.Next())
+            {
+                ULONG64 Object = EntryList.GetTypedNode().Field("Object").GetPtr();
+
+                ObReadObject(Object, &Handle);
+
+                Handles.push_back(Handle);
+            }
+        }
+    }
+    catch (...) {
+
     }
 
     return Handles;
@@ -298,6 +306,34 @@ Return Value:
     }
 
     return Result;
+}
+
+ULONG64
+ObGetFileSystemObject(
+    VOID
+    )
+/*++
+
+Routine Description:
+
+Description.
+
+Arguments:
+
+-
+
+Return Value:
+
+ULONG64.
+
+--*/
+{
+    ULONG64 Object = 0;
+
+    HANDLE_OBJECT Handle;
+    if (ObOpenChildren(0, L"FileSystem", &Handle)) Object = Handle.ObjectPtr;
+
+    return Object;
 }
 
 ULONG64

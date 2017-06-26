@@ -850,7 +850,7 @@ Return Value:
     RtlZeroMemory(m_TypeName, sizeof(m_TypeName));
     RtlZeroMemory(m_Field, sizeof(m_Field));
 
-    strcpy_s(m_TypeName, sizeof(m_TypeName), TypeName);
+    StringCchCopyA(m_TypeName, _countof(m_TypeName), TypeName);
 
     PTYPED_DATA_VERSION ReturnType = NULL;
 

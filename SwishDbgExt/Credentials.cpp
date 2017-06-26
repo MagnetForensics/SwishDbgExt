@@ -550,20 +550,25 @@ Return Value:
     DomainStr = ExtRemoteTypedEx::GetUnicodeString2(Domain);
 
     ULONG PwdMaxLen = Password.Field("MaximumLength").GetUshort();
-    PasswordStr = (LPWSTR)malloc(PwdMaxLen + sizeof(WCHAR));
-    if (g_Ext->m_Data->ReadVirtual(Password.Field("Buffer").GetPtr(), PasswordStr, PwdMaxLen, NULL) != S_OK) goto CleanUp;
-    kuhl_m_sekurlsa_nt6_LsaUnprotectMemory(PasswordStr, PwdMaxLen);
 
-    USHORT PwdLen = Password.Field("Length").GetUshort();
-    if (PwdLen <= PwdMaxLen)
-    {
-        PasswordStr[PwdLen / sizeof(PasswordStr[0])] = L'\0';
+    PasswordStr = (PWSTR)malloc(PwdMaxLen + sizeof(WCHAR));
+
+    if (PasswordStr) {
+
+        if (g_Ext->m_Data->ReadVirtual(Password.Field("Buffer").GetPtr(), PasswordStr, PwdMaxLen, NULL) != S_OK) goto CleanUp;
+        kuhl_m_sekurlsa_nt6_LsaUnprotectMemory(PasswordStr, PwdMaxLen);
+
+        USHORT PwdLen = Password.Field("Length").GetUshort();
+        if (PwdLen <= PwdMaxLen)
+        {
+            PasswordStr[PwdLen / sizeof(PasswordStr[0])] = L'\0';
+        }
+
+        g_Ext->Dml("    User: <col fg=\"changed\">%S\\%S</col> = \"<col fg=\"emphfg\">%S</col>\" (Len=%d, MaxLen=%d)\n",
+            DomainStr, UserNameStr, PasswordStr,
+            PwdLen,
+            PwdMaxLen);
     }
-
-    g_Ext->Dml("    User: <col fg=\"changed\">%S\\%S</col> = \"<col fg=\"emphfg\">%S</col>\" (Len=%d, MaxLen=%d)\n",
-        DomainStr, UserNameStr, PasswordStr,
-        PwdLen,
-        PwdMaxLen);
 
 CleanUp:
     if (UserNameStr) free(UserNameStr);
@@ -704,17 +709,25 @@ Return Value:
         if (g_Ext->m_Data->ReadVirtual(pCur + credhelper[CredOffsetIndex].offsetCbPassword, &PwdMaxLen, sizeof(PwdMaxLen), NULL) != S_OK) goto CleanUp;
         ULONG64 PwdBuffer;
         if (ReadPointersVirtual(1, pCur + credhelper[CredOffsetIndex].offsetPassword, &PwdBuffer) != S_OK) goto CleanUp;
-        PasswordStr = (LPWSTR)malloc(PwdMaxLen + sizeof(WCHAR));
-        RtlZeroMemory(PasswordStr, PwdMaxLen);
-        if (g_Ext->m_Data->ReadVirtual(PwdBuffer, PasswordStr, PwdMaxLen, NULL) != S_OK) goto CleanUp;
-        kuhl_m_sekurlsa_nt6_LsaUnprotectMemory(PasswordStr, PwdMaxLen);
-        PasswordStr[PwdMaxLen / sizeof(PasswordStr[0])] = L'\0';
 
-        g_Ext->Dml("    [%08x] ", nbCred);
-        g_Ext->Dml("<col fg=\"changed\">User</col> = \"<col fg=\"emphfg\">%S</col>\", "
-                   "<col fg=\"changed\">Domain</col> = \"<col fg=\"emphfg\">%S</col>\", "
-                   "<col fg=\"changed\">Password</col> = \"<col fg=\"emphfg\">%S</col>\" (PwdMaxLen=%d)\n",
-                   UserNameStr, DomainStr, PasswordStr, PwdMaxLen);
+        PasswordStr = (PWSTR)malloc(PwdMaxLen + sizeof(WCHAR));
+
+        if (PasswordStr) {
+
+            RtlZeroMemory(PasswordStr, PwdMaxLen);
+
+            if (g_Ext->m_Data->ReadVirtual(PwdBuffer, PasswordStr, PwdMaxLen, NULL) != S_OK) goto CleanUp;
+
+            kuhl_m_sekurlsa_nt6_LsaUnprotectMemory(PasswordStr, PwdMaxLen);
+
+            PasswordStr[PwdMaxLen / sizeof(PasswordStr[0])] = L'\0';
+
+            g_Ext->Dml("    [%08x] ", nbCred);
+            g_Ext->Dml("<col fg=\"changed\">User</col> = \"<col fg=\"emphfg\">%S</col>\", "
+                       "<col fg=\"changed\">Domain</col> = \"<col fg=\"emphfg\">%S</col>\", "
+                       "<col fg=\"changed\">Password</col> = \"<col fg=\"emphfg\">%S</col>\" (PwdMaxLen=%d)\n",
+                       UserNameStr, DomainStr, PasswordStr, PwdMaxLen);
+        }
 
         if (ReadPointersVirtual(1, pCur + credhelper[CredOffsetIndex].offsetFLink, &pCur) != S_OK) goto CleanUp;
 

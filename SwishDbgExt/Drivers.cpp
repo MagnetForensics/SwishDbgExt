@@ -188,12 +188,18 @@ Return Value:
 
     if (IsValid(Head)) {
 
-        ModuleIterator Dlls(Head);
+        try {
 
-        for (Dlls.First(); !Dlls.IsDone(); Dlls.Next()) {
+            ModuleIterator Dlls(Head);
 
-            MsDllObject DllObject = Dlls.Current();
-            DllList.push_back(DllObject);
+            for (Dlls.First(); !Dlls.IsDone(); Dlls.Next()) {
+
+                MsDllObject DllObject = Dlls.Current();
+                DllList.push_back(DllObject);
+            }
+        }
+        catch (...) {
+
         }
     }
 
@@ -206,6 +212,22 @@ Return Value:
         Driver.RtlGetImports(DllList);
 
         Drivers.push_back(Driver);
+    }
+
+    DriverObjects = ObOpenObjectDirectory(ObGetFileSystemObject());
+
+    for each (HANDLE_OBJECT DriverObject in DriverObjects) {
+
+        if (0 == wcscmp(DriverObject.Type, L"Driver")) {
+
+            MsDriverObject Driver(DriverObject.ObjectPtr);
+
+            Driver.GetInfoFull();
+            Driver.RtlGetExports();
+            Driver.RtlGetImports(DllList);
+
+            Drivers.push_back(Driver);
+        }
     }
 
     return Drivers;

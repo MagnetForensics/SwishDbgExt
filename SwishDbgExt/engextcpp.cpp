@@ -2380,8 +2380,14 @@ ExtExtension::Query(_In_ PDEBUG_CLIENT Start)
 
     if (m_Data4->ReadDebuggerData(DEBUG_DATA_SharedUserData, &Address, sizeof(Address), NULL) == S_OK) {
 
-        ExtRemoteTyped SharedData = ExtRemoteTyped("(nt!_KUSER_SHARED_DATA *)@$extin", Address);
-        SharedData.Field("SystemTime").ReadBuffer(&m_SystemTime, sizeof(m_SystemTime));
+        try {
+
+            ExtRemoteTyped SharedData = ExtRemoteTyped("(nt!_KUSER_SHARED_DATA *)@$extin", Address);
+            SharedData.Field("SystemTime").ReadBuffer(&m_SystemTime, sizeof(m_SystemTime));
+        }
+        catch (...) {
+
+        }
     }
 
     RefreshOutputCallbackFlags();

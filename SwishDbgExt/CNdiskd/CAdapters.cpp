@@ -54,7 +54,7 @@ CAdapters::~CAdapters()
 
 VOID WINAPI CAdapters::SetAdapterName(PWSTR AdatperName)
 {
-    wcscpy_s(m_adaptername, MAX_ADAPTER_NAME, AdatperName);
+    StringCchCopyW(m_adaptername, MAX_ADAPTER_NAME, AdatperName);
 }
 
 PWSTR WINAPI CAdapters::GetAdapterName()
