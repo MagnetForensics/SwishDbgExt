@@ -675,52 +675,79 @@ Return Value:
 
 --*/
 {
+    ULONG_PTR ImageBase;
+    ULONG_PTR Address;
     ULONG Index;
 
-    for (Index = 0; Index < m_Image.NumberOfSections; Index += 1)
-    {
+    for (Index = 0; Index < m_Image.NumberOfSections; Index++) {
+
         CACHED_SECTION_INFO SectionInfo = {0};
         MD5_CONTEXT Md5Context = {0};
 
-        memcpy_s(SectionInfo.Name, sizeof(SectionInfo.Name), m_Image.Sections[Index].Name, sizeof(m_Image.Sections[Index].Name));
+        try {
 
-        SectionInfo.VaBase = m_Image.Sections[Index].VirtualAddress;
-        SectionInfo.VaSize = m_Image.Sections[Index].Misc.VirtualSize;
-        SectionInfo.RawSize = m_Image.Sections[Index].SizeOfRawData;
+            memcpy_s(SectionInfo.Name, sizeof(SectionInfo.Name), m_Image.Sections[Index].Name, sizeof(m_Image.Sections[Index].Name));
 
-        SectionInfo.Characteristics = m_Image.Sections[Index].Characteristics;
+            SectionInfo.VaBase = m_Image.Sections[Index].VirtualAddress;
+            SectionInfo.VaSize = m_Image.Sections[Index].Misc.VirtualSize;
+            SectionInfo.RawSize = m_Image.Sections[Index].SizeOfRawData;
+            SectionInfo.Characteristics = m_Image.Sections[Index].Characteristics;
 
-        if (m_Image.Sections[Index].Characteristics & IMAGE_SCN_MEM_EXECUTE) {
+            if (m_Image.Sections[Index].Characteristics & IMAGE_SCN_MEM_EXECUTE) {
 
-            SectionInfo.IsExecutable = TRUE;
-        }
+                SectionInfo.IsExecutable = TRUE;
+            }
 
-        if (SectionInfo.VaSize > m_ImageSize) continue;
+            if (g_Verbose) g_Ext->Dml("[%d][%s] Base = 0x%I64X Size = 0x%x RawSize = 0x%x\n", Index, SectionInfo.Name, SectionInfo.VaBase, SectionInfo.VaSize, SectionInfo.RawSize);
 
-        if (g_Verbose) g_Ext->Dml("[%d][%s] Base = 0x%I64X Size = 0x%x RawSize = 0x%x\n", Index, SectionInfo.Name, SectionInfo.VaBase, SectionInfo.VaSize, SectionInfo.RawSize);
+            ImageBase = (ULONG_PTR)m_Image.Image;
 
-        MD5Init(&Md5Context);
-        MD5Update(&Md5Context, (PUCHAR)m_Image.Image + SectionInfo.VaBase, SectionInfo.VaSize);
-        MD5Final(&Md5Context);
+            Address = ImageBase + SectionInfo.VaBase;
 
-        memcpy_s(SectionInfo.VaMd5Hash, sizeof(SectionInfo.VaMd5Hash), Md5Context.Digest, sizeof(Md5Context.Digest));
+            if (Address >= ImageBase && Address < (ImageBase + m_ImageSize)) {
 
-        MD5Init(&Md5Context);
-        MD5Update(&Md5Context, (PUCHAR)m_Image.Image + SectionInfo.VaBase, SectionInfo.RawSize);
-        MD5Final(&Md5Context);
+                Address = ImageBase + SectionInfo.VaBase + SectionInfo.VaSize;
 
-        memcpy_s(SectionInfo.RawMd5Hash, sizeof(SectionInfo.RawMd5Hash), Md5Context.Digest, sizeof(Md5Context.Digest));
+                if (Address >= ImageBase && Address < (ImageBase + m_ImageSize)) {
+
+                    MD5Init(&Md5Context);
+                    MD5Update(&Md5Context, (PUCHAR)(ImageBase + SectionInfo.VaBase), SectionInfo.VaSize);
+                    MD5Final(&Md5Context);
+
+                    memcpy_s(SectionInfo.VaMd5Hash, sizeof(SectionInfo.VaMd5Hash), Md5Context.Digest, sizeof(Md5Context.Digest));
 
 #if VERBOSE_MODE
-        g_Ext->Dml("Section: %s\n", SectionInfo.Name);
-        g_Ext->Dml("Md5: ");
-        for (UINT i = 0; i < 16; i++) g_Ext->Dml("%02x", Md5Context.Digest[i]);
-        g_Ext->Dml("\n");
+                    g_Ext->Dml("Md5: ");
+                    for (UINT i = 0; i < 16; i++) g_Ext->Dml("%02x", Md5Context.Digest[i]);
+                    g_Ext->Dml("\n");
 #endif
+                }
 
-        // VirusTotal::GetReport(Md5Context.Digest);
+                Address = ImageBase + SectionInfo.VaBase + SectionInfo.RawSize;
 
-        m_CcSections.push_back(SectionInfo);
+                if (Address >= ImageBase && Address < (ImageBase + m_ImageSize)) {
+
+                    MD5Init(&Md5Context);
+                    MD5Update(&Md5Context, (PUCHAR)(ImageBase + SectionInfo.VaBase), SectionInfo.RawSize);
+                    MD5Final(&Md5Context);
+
+                    memcpy_s(SectionInfo.RawMd5Hash, sizeof(SectionInfo.RawMd5Hash), Md5Context.Digest, sizeof(Md5Context.Digest));
+
+#if VERBOSE_MODE
+                    g_Ext->Dml("Md5: ");
+                    for (UINT i = 0; i < 16; i++) g_Ext->Dml("%02x", Md5Context.Digest[i]);
+                    g_Ext->Dml("\n");
+#endif
+                }
+            }
+
+            // VirusTotal::GetReport(Md5Context.Digest);
+
+            m_CcSections.push_back(SectionInfo);
+        }
+        catch (...) {
+
+        }
     }
 
     return TRUE;
