@@ -96,6 +96,29 @@ GetArchitectureType(
 }
 
 PSTR
+GetDumpType(
+    _In_ ULONG Class,
+    _In_ ULONG Qualifier
+    )
+{
+    if (Class == DEBUG_CLASS_KERNEL) {
+
+        switch (Qualifier) {
+
+        case DEBUG_KERNEL_CONNECTION:  return "Kernel Connection";
+        case DEBUG_KERNEL_LOCAL:       return "Kernel Local";
+        case DEBUG_KERNEL_EXDI_DRIVER: return "Kernel EXDI Driver";
+        case DEBUG_KERNEL_SMALL_DUMP:  return "Kernel Small Dump";
+        case DEBUG_KERNEL_DUMP:        return "Kernel Dump";
+        case DEBUG_KERNEL_FULL_DUMP:   return "Kernel Full Dump";
+        default:                       return "";
+        }
+    }
+
+    return "";
+}
+
+PSTR
 GetTargetName(
     _In_ PSTR Buffer,
     _In_ ULONG Length
@@ -109,6 +132,44 @@ GetTargetName(
         ExtRemoteTypedEx::GetUnicodeStringEx(Address, UnicodeString, sizeof(UnicodeString));
 
         StringCchPrintf(Buffer, Length, "%S", UnicodeString);
+    }
+
+    return Buffer;
+}
+
+PSTR
+GetIpAddressString(
+    _In_ PSTR Buffer,
+    _In_ ULONG Length,
+    _In_ PBYTE Address,
+    _In_ ULONG SizeOfAddress
+    )
+{
+    Buffer[0] = '\0';
+
+    if (SizeOfAddress == sizeof(IN_ADDR)) {
+
+        StringCchPrintf(Buffer,
+                        Length,
+                        "%d.%d.%d.%d",
+                        Address[0],
+                        Address[1],
+                        Address[2],
+                        Address[3]);
+    }
+    else {
+
+        StringCchPrintf(Buffer,
+                        Length,
+                        "%x:%x:%x:%x:%x:%x:%x:%x",
+                        _byteswap_ushort(((PUSHORT)Address)[0]),
+                        _byteswap_ushort(((PUSHORT)Address)[1]),
+                        _byteswap_ushort(((PUSHORT)Address)[2]),
+                        _byteswap_ushort(((PUSHORT)Address)[3]),
+                        _byteswap_ushort(((PUSHORT)Address)[4]),
+                        _byteswap_ushort(((PUSHORT)Address)[5]),
+                        _byteswap_ushort(((PUSHORT)Address)[6]),
+                        _byteswap_ushort(((PUSHORT)Address)[7]));
     }
 
     return Buffer;
@@ -166,17 +227,23 @@ GetFileSize(
     _Out_ PLARGE_INTEGER FileSize
     )
 {
-    WIN32_FILE_ATTRIBUTE_DATA FileAttributeData;
+    BOOL IsOk = FALSE;
+    HANDLE hFile;
+    OFSTRUCT of;
 
-    if (GetFileAttributesEx(FileName, GetFileExInfoStandard, &FileAttributeData)) {
+    hFile = (HANDLE)(ULONG_PTR)OpenFile(FileName, &of, OF_READ);
 
-        FileSize->LowPart = FileAttributeData.nFileSizeLow;
-        FileSize->HighPart = FileAttributeData.nFileSizeHigh;
+    if (hFile) {
 
-        return TRUE;
+        if (GetFileSizeEx(hFile, FileSize)) {
+
+            IsOk = TRUE;
+        }
+
+        CloseHandle(hFile);
     }
 
-    return FALSE;
+    return IsOk;
 }
 
 _Check_return_
@@ -195,7 +262,8 @@ GetFileHash(
     LONGLONG TotalNumberOfBytesRead = 0;
     FILE *File;
     PBYTE Data;
-    DWORD DataLength;
+    PBYTE Hash;
+    DWORD HashLength;
     DWORD NumberOfBytesRead;
     BOOL Status = FALSE;
 
@@ -209,7 +277,7 @@ GetFileHash(
 
             if (Data) {
 
-                if (CryptAcquireContext(&hCryptProvider, NULL, NULL, ProviderType, 0)) {
+                if (CryptAcquireContext(&hCryptProvider, NULL, NULL, ProviderType, CRYPT_VERIFYCONTEXT)) {
 
                     if (CryptCreateHash(hCryptProvider, AlgId, NULL, 0, &hHash)) {
 
@@ -225,14 +293,21 @@ GetFileHash(
 
                         if (TotalNumberOfBytesRead == FileSize.QuadPart) {
 
-                            if (CryptGetHashParam(hHash, HP_HASHVAL, NULL, &DataLength, 0)) {
+                            if (CryptGetHashParam(hHash, HP_HASHVAL, NULL, &HashLength, 0)) {
 
-                                if (CryptGetHashParam(hHash, HP_HASHVAL, Data, &DataLength, 0)) {
+                                Hash = (PBYTE)calloc(HashLength, sizeof(BYTE));
 
-                                    if (CryptBinaryToString(Data, DataLength, CRYPT_STRING_HEXRAW | CRYPT_STRING_NOCRLF, Buffer, &Length)) {
+                                if (Hash) {
 
-                                        Status = TRUE;
+                                    if (CryptGetHashParam(hHash, HP_HASHVAL, Hash, &HashLength, 0)) {
+
+                                        if (CryptBinaryToString(Hash, HashLength, CRYPT_STRING_HEXRAW | CRYPT_STRING_NOCRLF, Buffer, &Length)) {
+
+                                            Status = TRUE;
+                                        }
                                     }
+
+                                    free(Hash);
                                 }
                             }
                         }

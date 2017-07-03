@@ -60,9 +60,23 @@ GetArchitectureType(
     );
 
 PSTR
+GetDumpType(
+    _In_ ULONG Class,
+    _In_ ULONG Qualifier
+    );
+
+PSTR
 GetTargetName(
     _In_ PSTR Buffer,
     _In_ ULONG Length
+    );
+
+PSTR
+GetIpAddressString(
+    _In_ PSTR Buffer,
+    _In_ ULONG Length,
+    _In_ PBYTE Address,
+    _In_ ULONG SizeOfAddress
     );
 
 PSTR
