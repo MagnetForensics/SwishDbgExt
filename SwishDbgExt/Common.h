@@ -41,6 +41,9 @@ Revision History:
 
 #define BUFFER_SIZE 64 * 1024
 
+#define MD5_HASH_LENGTH       16
+#define SHA256_HASH_LENGTH    32
+
 
 PSTR
 GetISO8601Date(
@@ -87,10 +90,11 @@ GetGuidString(
     );
 
 PSTR
-GetMd5HashString(
-    _In_ PSTR Buffer,
+GetHashString(
+    _Out_writes_(Length) PSTR Buffer,
     _In_ ULONG Length,
-    _In_ PBYTE Hash
+    _In_ PBYTE Hash,
+    _In_ ULONG HashLength
     );
 
 _Check_return_

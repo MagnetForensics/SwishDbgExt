@@ -203,19 +203,16 @@ GetGuidString(
 }
 
 PSTR
-GetMd5HashString(
-    _In_ PSTR Buffer,
+GetHashString(
+    _Out_writes_(Length) PSTR Buffer,
     _In_ ULONG Length,
-    _In_ PBYTE Hash
+    _In_ PBYTE Hash,
+    _In_ ULONG HashLength
     )
 {
     Buffer[0] = '\0';
 
-    StringCchPrintfA(Buffer,
-                    Length,
-                    "%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
-                    Hash[0], Hash[1], Hash[2], Hash[3], Hash[4], Hash[5], Hash[6], Hash[7],
-                    Hash[8], Hash[9], Hash[10], Hash[11], Hash[12], Hash[13], Hash[14], Hash[15]);
+    CryptBinaryToStringA(Hash, HashLength, CRYPT_STRING_HEXRAW | CRYPT_STRING_NOCRLF, Buffer, &Length);
 
     return Buffer;
 }
