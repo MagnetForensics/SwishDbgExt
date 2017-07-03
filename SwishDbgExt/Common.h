@@ -47,7 +47,7 @@ Revision History:
 
 PSTR
 GetISO8601Date(
-    _In_ PSTR Buffer,
+    _Out_writes_(Length) PSTR Buffer,
     _In_ ULONG Length,
     _In_ PFILETIME FileTime
     );
@@ -70,13 +70,13 @@ GetDumpType(
 
 PSTR
 GetTargetName(
-    _In_ PSTR Buffer,
+    _Out_writes_(Length) PSTR Buffer,
     _In_ ULONG Length
     );
 
 PSTR
 GetIpAddressString(
-    _In_ PSTR Buffer,
+    _Out_writes_(Length) PSTR Buffer,
     _In_ ULONG Length,
     _In_ PBYTE Address,
     _In_ ULONG SizeOfAddress
@@ -84,7 +84,7 @@ GetIpAddressString(
 
 PSTR
 GetGuidString(
-    _In_ PSTR Buffer,
+    _Out_writes_(Length) PSTR Buffer,
     _In_ ULONG Length,
     _In_ GUID *Guid
     );
@@ -107,7 +107,7 @@ GetFileSize(
 _Check_return_
 BOOL
 GetFileHash(
-    _In_ PTSTR Buffer,
+    _Out_writes_(Length) PTSTR Buffer,
     _In_ ULONG Length,
     _In_ PTSTR FileName,
     _In_ DWORD ProviderType,
