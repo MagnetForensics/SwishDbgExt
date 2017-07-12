@@ -111,8 +111,8 @@ public:
 
     typedef struct _ADDRESS_INFO {
         ULONG64 Address;
+        HOOK_TYPE HookType;
         BOOL IsTablePatched;
-        BOOL IsHooked;
     } ADDRESS_INFO, *PADDRESS_INFO;
 
     typedef struct _IMPORT_INFO {

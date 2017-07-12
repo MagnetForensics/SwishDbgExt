@@ -152,7 +152,7 @@ Return Value:
     {
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    IrpMajor[i], Driver->mm_DriverInfo.MajorFunction[i].Address,
-                   IsPointerHooked(Driver->mm_DriverInfo.MajorFunction[i].Address) ? "Hooked" : "",
+                   GetPointerHookType(Driver->mm_DriverInfo.MajorFunction[i].Address) ? "Hooked" : "",
                    GetNameByOffset(Driver->mm_DriverInfo.MajorFunction[i].Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -163,7 +163,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "FastIoCheckIfPossible",
                    FastIo->FastIoCheckIfPossible.Address,
-                   IsPointerHooked(FastIo->FastIoCheckIfPossible.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->FastIoCheckIfPossible.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->FastIoCheckIfPossible.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -172,7 +172,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "FastIoRead",
                    FastIo->FastIoRead.Address,
-                   IsPointerHooked(FastIo->FastIoRead.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->FastIoRead.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->FastIoRead.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -181,7 +181,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "FastIoWrite",
                    FastIo->FastIoWrite.Address,
-                   IsPointerHooked(FastIo->FastIoWrite.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->FastIoWrite.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->FastIoWrite.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -190,7 +190,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "FastIoQueryBasicInfo",
                    FastIo->FastIoQueryBasicInfo.Address,
-                   IsPointerHooked(FastIo->FastIoQueryBasicInfo.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->FastIoQueryBasicInfo.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->FastIoQueryBasicInfo.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -199,7 +199,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "FastIoQueryStandardInfo",
                    FastIo->FastIoQueryStandardInfo.Address,
-                   IsPointerHooked(FastIo->FastIoQueryStandardInfo.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->FastIoQueryStandardInfo.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->FastIoQueryStandardInfo.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -208,7 +208,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "FastIoLock",
                    FastIo->FastIoLock.Address,
-                   IsPointerHooked(FastIo->FastIoLock.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->FastIoLock.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->FastIoLock.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -217,7 +217,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "FastIoUnlockSingle",
                    FastIo->FastIoUnlockSingle.Address,
-                   IsPointerHooked(FastIo->FastIoUnlockSingle.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->FastIoUnlockSingle.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->FastIoUnlockSingle.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -226,7 +226,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "FastIoUnlockAll",
                    FastIo->FastIoUnlockAll.Address,
-                   IsPointerHooked(FastIo->FastIoUnlockAll.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->FastIoUnlockAll.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->FastIoUnlockAll.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -235,7 +235,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "FastIoUnlockAllByKey",
                    FastIo->FastIoUnlockAllByKey.Address,
-                   IsPointerHooked(FastIo->FastIoUnlockAllByKey.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->FastIoUnlockAllByKey.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->FastIoUnlockAllByKey.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -244,7 +244,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "FastIoDeviceControl",
                    FastIo->FastIoDeviceControl.Address,
-                   IsPointerHooked(FastIo->FastIoDeviceControl.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->FastIoDeviceControl.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->FastIoDeviceControl.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -253,7 +253,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "AcquireFileForNtCreateSection",
                    FastIo->AcquireFileForNtCreateSection.Address,
-                   IsPointerHooked(FastIo->AcquireFileForNtCreateSection.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->AcquireFileForNtCreateSection.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->AcquireFileForNtCreateSection.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -262,7 +262,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "AcquireFileForNtCreateSection",
                    FastIo->AcquireFileForNtCreateSection.Address,
-                   IsPointerHooked(FastIo->AcquireFileForNtCreateSection.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->AcquireFileForNtCreateSection.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->AcquireFileForNtCreateSection.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -271,7 +271,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "ReleaseFileForNtCreateSection",
                    FastIo->ReleaseFileForNtCreateSection.Address,
-                   IsPointerHooked(FastIo->ReleaseFileForNtCreateSection.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->ReleaseFileForNtCreateSection.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->ReleaseFileForNtCreateSection.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -280,7 +280,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "FastIoDetachDevice",
                    FastIo->FastIoDetachDevice.Address,
-                   IsPointerHooked(FastIo->FastIoDetachDevice.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->FastIoDetachDevice.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->FastIoDetachDevice.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -289,7 +289,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "FastIoQueryNetworkOpenInfo",
                    FastIo->FastIoQueryNetworkOpenInfo.Address,
-                   IsPointerHooked(FastIo->FastIoQueryNetworkOpenInfo.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->FastIoQueryNetworkOpenInfo.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->FastIoQueryNetworkOpenInfo.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -298,7 +298,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "AcquireForModWrite",
                    FastIo->AcquireForModWrite.Address,
-                   IsPointerHooked(FastIo->AcquireForModWrite.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->AcquireForModWrite.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->AcquireForModWrite.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -307,7 +307,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "MdlRead",
                    FastIo->MdlRead.Address,
-                   IsPointerHooked(FastIo->MdlRead.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->MdlRead.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->MdlRead.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -316,7 +316,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "MdlReadComplete",
                    FastIo->MdlReadComplete.Address,
-                   IsPointerHooked(FastIo->MdlReadComplete.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->MdlReadComplete.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->MdlReadComplete.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -325,7 +325,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "PrepareMdlWrite",
                    FastIo->PrepareMdlWrite.Address,
-                   IsPointerHooked(FastIo->PrepareMdlWrite.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->PrepareMdlWrite.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->PrepareMdlWrite.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -334,7 +334,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "MdlWriteComplete",
                    FastIo->MdlWriteComplete.Address,
-                   IsPointerHooked(FastIo->MdlWriteComplete.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->MdlWriteComplete.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->MdlWriteComplete.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -343,7 +343,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "FastIoReadCompressed",
                    FastIo->FastIoReadCompressed.Address,
-                   IsPointerHooked(FastIo->FastIoReadCompressed.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->FastIoReadCompressed.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->FastIoReadCompressed.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -352,7 +352,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "FastIoWriteCompressed",
                    FastIo->FastIoWriteCompressed.Address,
-                   IsPointerHooked(FastIo->FastIoWriteCompressed.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->FastIoWriteCompressed.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->FastIoWriteCompressed.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -361,7 +361,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "MdlReadCompleteCompressed",
                    FastIo->MdlReadCompleteCompressed.Address,
-                   IsPointerHooked(FastIo->MdlReadCompleteCompressed.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->MdlReadCompleteCompressed.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->MdlReadCompleteCompressed.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -370,7 +370,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "MdlWriteCompleteCompressed",
                    FastIo->MdlWriteCompleteCompressed.Address,
-                   IsPointerHooked(FastIo->MdlWriteCompleteCompressed.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->MdlWriteCompleteCompressed.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->MdlWriteCompleteCompressed.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -379,7 +379,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "FastIoQueryOpen",
                    FastIo->FastIoQueryOpen.Address,
-                   IsPointerHooked(FastIo->FastIoQueryOpen.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->FastIoQueryOpen.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->FastIoQueryOpen.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -388,7 +388,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "ReleaseForModWrite",
                    FastIo->ReleaseForModWrite.Address,
-                   IsPointerHooked(FastIo->ReleaseForModWrite.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->ReleaseForModWrite.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->ReleaseForModWrite.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -397,7 +397,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "AcquireForCcFlush",
                    FastIo->AcquireForCcFlush.Address,
-                   IsPointerHooked(FastIo->AcquireForCcFlush.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->AcquireForCcFlush.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->AcquireForCcFlush.Address, (LPSTR)Name, _countof(Name)));
     }
 
@@ -406,7 +406,7 @@ Return Value:
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",
                    "ReleaseForCcFlush",
                    FastIo->ReleaseForCcFlush.Address,
-                   IsPointerHooked(FastIo->ReleaseForCcFlush.Address) ? "Hooked" : "",
+                   GetPointerHookType(FastIo->ReleaseForCcFlush.Address) ? "Hooked" : "",
                    GetNameByOffset(FastIo->ReleaseForCcFlush.Address, (LPSTR)Name, _countof(Name)));
     }
 }

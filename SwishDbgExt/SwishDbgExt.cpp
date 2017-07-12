@@ -294,15 +294,15 @@ EXT_COMMAND(ms_process,
                 ULONG64 Ptr = ExportInfo.AddressInfo.Address;
 
                 if (!(Flags & PROCESS_SCAN_MALICIOUS_FLAG) ||
-                    ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && (ExportInfo.AddressInfo.IsTablePatched || ExportInfo.AddressInfo.IsHooked))) {
+                    ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && (ExportInfo.AddressInfo.IsTablePatched || ExportInfo.AddressInfo.HookType))) {
 
-                    Dml((ExportInfo.AddressInfo.IsTablePatched || ExportInfo.AddressInfo.IsHooked) ?
+                    Dml((ExportInfo.AddressInfo.IsTablePatched || ExportInfo.AddressInfo.HookType) ?
                         "    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | <col fg=\"changed\">%-50s</col> | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col>\n" :
                         "    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | %-50s | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col>\n",
                         ExportInfo.Index, ExportInfo.Ordinal,
                         Ptr, Ptr, ExportInfo.Name,
                         ExportInfo.AddressInfo.IsTablePatched ? "Yes" : "",
-                        ExportInfo.AddressInfo.IsHooked ? "Yes" : "");
+                        ExportInfo.AddressInfo.HookType ? "Yes" : "");
                 }
             }
 
@@ -334,17 +334,17 @@ EXT_COMMAND(ms_process,
                     ULONG64 Ptr = ExportInfo.AddressInfo.Address;
 
                     if (!(Flags & PROCESS_SCAN_MALICIOUS_FLAG) ||
-                        ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && (ExportInfo.AddressInfo.IsTablePatched || ExportInfo.AddressInfo.IsHooked))) {
+                        ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && (ExportInfo.AddressInfo.IsTablePatched || ExportInfo.AddressInfo.HookType))) {
 
-                        Dml((ExportInfo.AddressInfo.IsTablePatched || ExportInfo.AddressInfo.IsHooked) ?
+                        Dml((ExportInfo.AddressInfo.IsTablePatched || ExportInfo.AddressInfo.HookType) ?
                             "    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | <col fg=\"changed\">%-50s</col> | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col>\n" :
                             "    | %4d | %4d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | %-50s | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col>\n",
                             ExportInfo.Index, ExportInfo.Ordinal,
                             Ptr, Ptr, ExportInfo.Name,
                             ExportInfo.AddressInfo.IsTablePatched ? "Yes" : "",
-                            ExportInfo.AddressInfo.IsHooked ? "Yes" : "");
+                            ExportInfo.AddressInfo.HookType ? "Yes" : "");
 
-                        if ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && ExportInfo.AddressInfo.IsHooked) {
+                        if ((Flags & PROCESS_SCAN_MALICIOUS_FLAG) && ExportInfo.AddressInfo.HookType) {
 
                             ExecuteSilent(".process /p /r 0x%I64X", ProcObj.m_CcProcessObject.ProcessObjectPtr);
                             Execute("u 0x%I64X L3", Ptr);
@@ -1110,7 +1110,7 @@ EXT_COMMAND(ms_callbacks,
                 DeviceObjectDispatchEntry[(i * 2) + 1],
                 DeviceObjectDispatchEntry[(i * 2) + 1],
                 GetNameByOffset(DeviceObjectDispatchEntry[(i * 2) + 1], (PSTR)Buffer, _countof(Buffer)),
-                IsPointerHooked(DeviceObjectDispatchEntry[(i * 2) + 1]) ? "Hooked" : "");
+                GetPointerHookType(DeviceObjectDispatchEntry[(i * 2) + 1]) ? "Hooked" : "");
         }
     }
 
@@ -1181,7 +1181,7 @@ EXT_COMMAND(ms_ssdt,
 
         CHAR Name[512] = {0};
 
-        Dml((Entry.Address.IsTablePatched || Entry.Address.IsHooked) ?
+        Dml((Entry.Address.IsTablePatched || Entry.Address.HookType) ?
             "    | %5d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | <col fg=\"changed\">%-54s</col> | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col> |\n" :
             "    | %5d | <link cmd=\"u 0x%016I64X L1\">0x%016I64X</link> | %-54s | <col fg=\"changed\">%-7s</col> | <col fg=\"changed\">%-6s</col> |\n",
             Entry.Index,
@@ -1189,7 +1189,7 @@ EXT_COMMAND(ms_ssdt,
             Entry.Address.Address,
             GetNameByOffset(Entry.Address.Address, (PSTR)Name, _countof(Name)),
             Entry.Address.IsTablePatched ? "Yes" : "",
-            Entry.Address.IsHooked ? "Yes" : "");
+            Entry.Address.HookType ? "Yes" : "");
     }
 }
 
@@ -1547,7 +1547,7 @@ EXT_COMMAND(ms_timers,
         }
         Dml("    | %-26s | 0x%016I64X | 0x%016I64X | %8d | 0x%016I64X | <col fg=\"changed\">%-6s</col> | %s\n",
             TimerType, Timer.Timer, Timer.Dpc, Timer.Period, Timer.DeferredRoutine,
-            IsPointerHooked(Timer.DeferredRoutine) ? "Hooked" : "",
+            GetPointerHookType(Timer.DeferredRoutine) ? "Hooked" : "",
             GetNameByOffset(Timer.DeferredRoutine, (PSTR)Name, _countof(Name)));
     }
 }
@@ -1606,7 +1606,7 @@ EXT_COMMAND(ms_hivelist,
         {
             Dml("    \\---| %-24s | %I64X | <col fg=\"changed\">%-6s</col> | <col fg=\"changed\">%s</col> \n",
                 "GetCellRoutine", Hive.GetCellRoutine,
-                IsPointerHooked(Hive.GetCellRoutine) ? "Hooked" : "",
+                GetPointerHookType(Hive.GetCellRoutine) ? "Hooked" : "",
                 GetNameByOffset(Hive.GetCellRoutine, (PSTR)Buffer, _countof(Buffer)));
         }
 
@@ -1614,7 +1614,7 @@ EXT_COMMAND(ms_hivelist,
         {
             Dml("    \\---| %-24s | %I64X | <col fg=\"changed\">%-6s</col> | <col fg=\"changed\">%s</col> \n",
                 "ReleaseCellRoutine", Hive.ReleaseCellRoutine,
-                IsPointerHooked(Hive.GetCellRoutine) ? "Hooked" : "",
+                GetPointerHookType(Hive.GetCellRoutine) ? "Hooked" : "",
                 GetNameByOffset(Hive.ReleaseCellRoutine, (PSTR)Buffer, _countof(Buffer)));
         }
 
@@ -1622,7 +1622,7 @@ EXT_COMMAND(ms_hivelist,
         {
             Dml("    \\---| %-24s | %I64X | <col fg=\"changed\">%-6s</col> | <col fg=\"changed\">%s</col> \n",
                 "Allocate", Hive.Allocate,
-                IsPointerHooked(Hive.Allocate) ? "Hooked" : "",
+                GetPointerHookType(Hive.Allocate) ? "Hooked" : "",
                 GetNameByOffset(Hive.Allocate, (PSTR)Buffer, _countof(Buffer)));
         }
 
@@ -1630,7 +1630,7 @@ EXT_COMMAND(ms_hivelist,
         {
             Dml("    \\---| %-24s | %I64X | <col fg=\"changed\">%-6s</col> | <col fg=\"changed\">%s</col> \n",
                 "Free", Hive.Free,
-                IsPointerHooked(Hive.Free) ? "Hooked" : "",
+                GetPointerHookType(Hive.Free) ? "Hooked" : "",
                 GetNameByOffset(Hive.Free, (PSTR)Buffer, _countof(Buffer)));
         }
 
@@ -1638,7 +1638,7 @@ EXT_COMMAND(ms_hivelist,
         {
             Dml("    \\---| %-24s | %I64X | <col fg=\"changed\">%-6s</col> | <col fg=\"changed\">%s</col> \n",
                 "FileSetSize", Hive.FileSetSize,
-                IsPointerHooked(Hive.FileSetSize) ? "Hooked" : "",
+                GetPointerHookType(Hive.FileSetSize) ? "Hooked" : "",
                 GetNameByOffset(Hive.FileSetSize, (PSTR)Buffer, _countof(Buffer)));
         }
 
@@ -1646,7 +1646,7 @@ EXT_COMMAND(ms_hivelist,
         {
             Dml("    \\---| %-24s | %I64X | <col fg=\"changed\">%-6s</col> | <col fg=\"changed\">%s</col> \n",
                 "FileWrite", Hive.FileWrite,
-                IsPointerHooked(Hive.FileWrite) ? "Hooked" : "",
+                GetPointerHookType(Hive.FileWrite) ? "Hooked" : "",
                 GetNameByOffset(Hive.FileWrite, (PSTR)Buffer, _countof(Buffer)));
         }
 
@@ -1654,7 +1654,7 @@ EXT_COMMAND(ms_hivelist,
         {
             Dml("    \\---| %-24s | %I64X | <col fg=\"changed\">%-6s</col> | <col fg=\"changed\">%s</col> \n",
                 "FileRead", Hive.FileRead,
-                IsPointerHooked(Hive.FileRead) ? "Hooked" : "",
+                GetPointerHookType(Hive.FileRead) ? "Hooked" : "",
                 GetNameByOffset(Hive.FileRead, (PSTR)Buffer, _countof(Buffer)));
         }
 
@@ -1662,7 +1662,7 @@ EXT_COMMAND(ms_hivelist,
         {
             Dml("    \\---| %-24s | %I64X | <col fg=\"changed\">%-6s</col> | <col fg=\"changed\">%s</col> \n",
                 "FileFlush", Hive.FileFlush,
-                IsPointerHooked(Hive.FileFlush) ? "Hooked" : "",
+                GetPointerHookType(Hive.FileFlush) ? "Hooked" : "",
                 GetNameByOffset(Hive.FileFlush, (PSTR)Buffer, _countof(Buffer)));
         }
     }
@@ -1696,7 +1696,7 @@ EXT_COMMAND(ms_idt,
                 IdtEntry.Address,
                 GetNameByOffset(IdtEntry.Address, (PSTR)Name, _countof(Name)),
                 IdtEntry.Address ? "" : "",
-                IsPointerHooked(IdtEntry.Address) ? "Yes" : "");
+                GetPointerHookType(IdtEntry.Address) ? "Yes" : "");
         }
     }
 }

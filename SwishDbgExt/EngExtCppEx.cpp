@@ -486,10 +486,10 @@ Return Value:
     return Buffer;
 }
 
-BOOLEAN
-IsPointerHooked(
-    _In_ ULONG64 Ptr
-)
+HOOK_TYPE
+GetPointerHookType(
+    _In_ ULONG64 Pointer
+    )
 /*++
 
 Routine Description:
@@ -506,53 +506,48 @@ Return Value:
 
 --*/
 {
-    UCHAR ByteCode[0x20] = { 0 };
-    BOOLEAN Hooked = FALSE;
+    BYTE ByteCode[0x20] = {0};
+    HOOK_TYPE HookType = NoHook;
 
-    if (g_Ext->m_Data->ReadVirtual(Ptr, ByteCode, sizeof(ByteCode), NULL) != S_OK) goto CleanUp;
+    if (g_Ext->m_Data->ReadVirtual(Pointer, ByteCode, sizeof(ByteCode), NULL) == S_OK) {
 
-    if (ByteCode[0] == 0xe9) // jmp
-    {
-        Hooked = TRUE;
-        goto CleanUp;
-    }
-    else if (ByteCode[0] == 0xe8) // call
-    {
-        Hooked = TRUE;
-        goto CleanUp;
-    }
-    else if ((ByteCode[0] == 0xb8) && // mov eax, XXXXXXXX
-        (ByteCode[5] == 0xba) && // mov edx, XXXXXXXX
-        (ByteCode[0xa] == 0xff) && (ByteCode[0xb] == 0x12) && // call [edx]
-        (ByteCode[0xc] == 0xc2)) // retn
-    {
-        // NT Syscall
-        ULONG Edx = ByteCode[6] | (ByteCode[7] << 8) | (ByteCode[8] << 16) | (ByteCode[9] << 24);
-        if (Edx != 0x7ffe0300)
+        if (ByteCode[0] == 0xe9) // jmp
         {
-            Hooked = TRUE;
-            goto CleanUp;
+            HookType = JmpHook;
+        }
+        else if (ByteCode[0] == 0xe8) // call
+        {
+            HookType = CallHook;
+        }
+        else if ((ByteCode[0] == 0xb8) && // mov eax, XXXXXXXX
+            (ByteCode[5] == 0xba) && // mov edx, XXXXXXXX
+            (ByteCode[0xa] == 0xff) && (ByteCode[0xb] == 0x12) && // call [edx]
+            (ByteCode[0xc] == 0xc2)) // retn
+        {
+            // NT Syscall
+            ULONG Edx = ByteCode[6] | (ByteCode[7] << 8) | (ByteCode[8] << 16) | (ByteCode[9] << 24);
+
+            if (Edx != 0x7ffe0300)
+            {
+                HookType = MovEaxEdxCallPtrHook;
+            }
+        }
+        else if ((ByteCode[0] == 0x68) && // push XXXXXXX
+                 (ByteCode[5] == 0xc3)) // ret
+        {
+            HookType = PushRetHook;
+        }
+        else if ((ByteCode[0] == 0xff) && (ByteCode[1] == 0x25)) // jmp dword ptr [XXXXXXXX]
+        {
+            HookType = JmpDwordPtrHook;
+        }
+        else if ((ByteCode[0] == 0xff) && (ByteCode[1] == 0x15)) // call dword ptr [XXXXXXXX]
+        {
+            HookType = CallDwordPtrHook;
         }
     }
-    else if ((ByteCode[0] == 0x68) && // push XXXXXXX
-        (ByteCode[5] == 0xc3)) // ret
-    {
-        Hooked = TRUE;
-        goto CleanUp;
-    }
-    else if ((ByteCode[0] == 0xff) && (ByteCode[1] == 0x25)) // jmp dword ptr [XXXXXXXX]
-    {
-        Hooked = TRUE;
-        goto CleanUp;
-    }
-    else if ((ByteCode[0] == 0xff) && (ByteCode[1] == 0x15)) // call dword ptr [XXXXXXXX]
-    {
-        Hooked = TRUE;
-        goto CleanUp;
-    }
 
-CleanUp:
-    return Hooked;
+    return HookType;
 }
 
 

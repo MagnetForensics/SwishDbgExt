@@ -105,7 +105,7 @@ Return Value:
 
             Entry.Index = i;
             Entry.Address.Address = ServiceAddress;
-            Entry.Address.IsHooked = IsPointerHooked(ServiceAddress);
+            Entry.Address.HookType = GetPointerHookType(ServiceAddress);
 
             if ((KernelBase && KernelEnd) && !(ServiceAddress >= KernelBase && ServiceAddress < KernelEnd)) {
 
@@ -132,7 +132,7 @@ Return Value:
 
             Entry.Index = i;
             Entry.Address.Address = ServiceAddress;
-            Entry.Address.IsHooked = IsPointerHooked(ServiceAddress);
+            Entry.Address.HookType = GetPointerHookType(ServiceAddress);
 
             if ((KernelBase && KernelEnd) && !(ServiceAddress >= KernelBase && ServiceAddress < KernelEnd)) {
 

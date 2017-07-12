@@ -65,7 +65,7 @@ MsPEImageFile::GetAddressInfo(
     )
 {
     AddressInfo->Address = Address;
-    AddressInfo->IsHooked = IsPointerHooked(Address);
+    AddressInfo->HookType = GetPointerHookType(Address);
 
     if (Address && m_ImageBase && m_ImageSize) {
 
@@ -322,7 +322,7 @@ Return Value:
                                     }
 
                                     ImportInfo.AddressInfo.Address = Address;
-                                    ImportInfo.AddressInfo.IsHooked = IsPointerHooked(Address);
+                                    ImportInfo.AddressInfo.HookType = GetPointerHookType(Address);
 
                                     if (Address && DllImageBase && DllImageEnd) {
 
@@ -346,7 +346,7 @@ Return Value:
                                         }
                                     }
 
-                                    if (ImportInfo.AddressInfo.IsTablePatched || ImportInfo.AddressInfo.IsHooked) {
+                                    if (ImportInfo.AddressInfo.IsTablePatched || ImportInfo.AddressInfo.HookType) {
 
                                         m_NumberOfHookedAPIs++;
                                     }
@@ -369,7 +369,7 @@ Return Value:
                                     Address = *ImportAddressTable64;
 
                                     ImportInfo.AddressInfo.Address = Address;
-                                    ImportInfo.AddressInfo.IsHooked = IsPointerHooked(Address);
+                                    ImportInfo.AddressInfo.HookType = GetPointerHookType(Address);
 
                                     if (Address && DllImageBase && DllImageEnd) {
 
@@ -393,7 +393,7 @@ Return Value:
                                         }
                                     }
 
-                                    if (ImportInfo.AddressInfo.IsTablePatched || ImportInfo.AddressInfo.IsHooked) {
+                                    if (ImportInfo.AddressInfo.IsTablePatched || ImportInfo.AddressInfo.HookType) {
 
                                         m_NumberOfHookedAPIs++;
                                     }
@@ -502,7 +502,7 @@ Return Value:
 
             GetAddressInfo(m_ImageBase + AddressOfFunctions[AddressOfNameOrdinals[i]], &ExportInfo.AddressInfo);
 
-            if (ExportInfo.AddressInfo.IsTablePatched || ExportInfo.AddressInfo.IsHooked) {
+            if (ExportInfo.AddressInfo.IsTablePatched || ExportInfo.AddressInfo.HookType) {
         
                 NumberOfHookedAPIs++;
             }

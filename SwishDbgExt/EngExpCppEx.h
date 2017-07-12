@@ -36,6 +36,18 @@ Revision History:
 
 --*/
 
+
+typedef enum _HOOK_TYPE {
+	NoHook = 0,
+	JmpHook = 1,
+	CallHook = 2,
+	MovEaxEdxCallPtrHook = 3,
+	NtSyscallHook = MovEaxEdxCallPtrHook,
+	PushRetHook = 4,
+	JmpDwordPtrHook = 5,
+	CallDwordPtrHook = 6
+} HOOK_TYPE;
+
 BOOLEAN
 IsValid(
     ULONG64 Pointer
@@ -48,11 +60,10 @@ GetNameByOffset(
     _In_ ULONG Length
     );
 
-BOOLEAN
-IsPointerHooked(
-ULONG64 Ptr
-);
-
+HOOK_TYPE
+GetPointerHookType(
+    _In_ ULONG64 Pointer
+    );
 
 ULONG64
 GetFastRefPointer(
