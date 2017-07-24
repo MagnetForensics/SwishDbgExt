@@ -95,74 +95,146 @@ Return Value:
 
 --*/
 {
-    PIMAGE_RESOURCE_DIRECTORY ImgResDir = NULL;
+    PIMAGE_RESOURCE_DIRECTORY ImgResDir;
     PIMAGE_RESOURCE_DIRECTORY_ENTRY ImgResDirEntry;
     PIMAGE_RESOURCE_DATA_ENTRY ImgResDataEntry;
-
-    ULONG ResRva, ResSize;
-
-    ULONG Index;
-
     PVOID RessourceData = NULL;
     ExtRemoteTyped BaseImage;
+    ULONG TableRva, TableSize;
+    ULONG Index;
 
-    //
-    // Points to Data Directory Table.
-    //
-    ResRva = m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE].VirtualAddress;
-    ResSize = m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE].Size;
+    try {
 
-    //
-    // Category.Type
-    //
-    ImgResDir = (PIMAGE_RESOURCE_DIRECTORY)((PUCHAR)m_Image.Image + ResRva);
-    ImgResDirEntry = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)(ImgResDir + 1);
+        if (m_Image.Initialized) {
 
-    if (ImgResDir->NumberOfIdEntries > 26) ImgResDir->NumberOfIdEntries = 26;
+            //
+            // Points to Data Directory Table.
+            //
 
-    for (Index = 0; Index < ImgResDir->NumberOfIdEntries; Index += 1)
-    {
-        if (ImgResDirEntry[Index].Name == Type) break;
+            TableRva = m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE].VirtualAddress;
+            TableSize = m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE].Size;
+
+            if (TableRva && TableSize) {
+
+                //
+                // Category.Type
+                //
+
+                ImgResDir = (PIMAGE_RESOURCE_DIRECTORY)((PUCHAR)m_Image.Image + TableRva);
+
+                if (IsValidAddress((ULONG_PTR)ImgResDir) &&
+                    IsValidAddress((ULONG_PTR)(ImgResDir + 1))) {
+
+                    ImgResDirEntry = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)(ImgResDir + 1);
+
+                    if (IsValidAddress((ULONG_PTR)ImgResDirEntry) &&
+                        IsValidAddress((ULONG_PTR)(ImgResDirEntry + 1))) {
+
+                        if (ImgResDir->NumberOfIdEntries > 26) {
+
+                            ImgResDir->NumberOfIdEntries = 26;
+                        }
+
+                        for (Index = 0; Index < ImgResDir->NumberOfIdEntries; Index++) {
+
+                            if (ImgResDirEntry[Index].Name == Type) {
+
+                                break;
+                            }
+                        }
+
+                        if ((Index != ImgResDir->NumberOfIdEntries) || ImgResDirEntry[Index].DataIsDirectory) {
+
+                            //
+                            // Sub-category.Name
+                            //
+
+                            ImgResDir = (PIMAGE_RESOURCE_DIRECTORY)((PUCHAR)m_Image.Image + TableRva + ImgResDirEntry[Index].OffsetToDirectory);
+
+                            if (IsValidAddress((ULONG_PTR)ImgResDir) &&
+                                IsValidAddress((ULONG_PTR)(ImgResDir + 1))) {
+
+                                ImgResDirEntry = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)(ImgResDir + 1);
+
+                                if (IsValidAddress((ULONG_PTR)ImgResDirEntry) &&
+                                    IsValidAddress((ULONG_PTR)(ImgResDirEntry + 1))) {
+
+                                    if (ImgResDir->NumberOfIdEntries > 26) {
+
+                                        ImgResDir->NumberOfIdEntries = 26;
+                                    }
+
+                                    for (Index = 0; Index < ImgResDir->NumberOfIdEntries; Index++) {
+
+                                        if (ImgResDirEntry[Index].Name == Name) {
+
+                                            break;
+                                        }
+                                    }
+
+                                    if ((Index != ImgResDir->NumberOfIdEntries) || ImgResDirEntry[Index].DataIsDirectory) {
+
+                                        //
+                                        // Read first entry by default.
+                                        //
+
+                                        ImgResDir = (PIMAGE_RESOURCE_DIRECTORY)((PUCHAR)m_Image.Image + TableRva + ImgResDirEntry[Index].OffsetToDirectory);
+
+                                        if (IsValidAddress((ULONG_PTR)ImgResDir) &&
+                                            IsValidAddress((ULONG_PTR)(ImgResDir + 1))) {
+
+                                            ImgResDirEntry = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)(ImgResDir + 1);
+
+                                            if (IsValidAddress((ULONG_PTR)ImgResDirEntry) &&
+                                                IsValidAddress((ULONG_PTR)(ImgResDirEntry + 1))) {
+
+                                                if (!ImgResDirEntry[0].DataIsDirectory) {
+
+                                                    ImgResDataEntry = (PIMAGE_RESOURCE_DATA_ENTRY)((PUCHAR)m_Image.Image + TableRva + ImgResDirEntry[0].OffsetToDirectory);
+
+                                                    if (IsValidAddress((ULONG_PTR)ImgResDataEntry) &&
+                                                        IsValidAddress((ULONG_PTR)(ImgResDataEntry + 1))) {
+
+                                                        RessourceData = malloc(ImgResDataEntry->Size);
+
+                                                        if (RessourceData) {
+
+                                                            if (IsValidAddress((ULONG_PTR)((PUCHAR)m_Image.Image + ImgResDataEntry->OffsetToData)) &&
+                                                                IsValidAddress((ULONG_PTR)((PUCHAR)m_Image.Image + ImgResDataEntry->OffsetToData + ImgResDataEntry->Size))) {
+
+                                                                memcpy_s(RessourceData, ImgResDataEntry->Size, (PUCHAR)m_Image.Image + ImgResDataEntry->OffsetToData, ImgResDataEntry->Size);
+                                                            }
+                                                            else {
+
+                                                                free(RessourceData);
+
+                                                                RessourceData = NULL;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    catch (...) {
+
     }
 
-    if ((Index == ImgResDir->NumberOfIdEntries) || (!ImgResDirEntry[Index].DataIsDirectory)) goto CleanUp;
-
-    //
-    // Sub-category.Name
-    //
-    ImgResDir = (PIMAGE_RESOURCE_DIRECTORY)((PUCHAR)m_Image.Image + ResRva + ImgResDirEntry[Index].OffsetToDirectory);
-    ImgResDirEntry = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)(ImgResDir + 1);
-
-    if (ImgResDir->NumberOfIdEntries > 26) ImgResDir->NumberOfIdEntries = 26;
-
-    for (Index = 0; Index < ImgResDir->NumberOfIdEntries; Index += 1)
-    {
-        if (ImgResDirEntry[Index].Name == Name) break;
-    }
-
-    if ((Index == ImgResDir->NumberOfIdEntries) || (!ImgResDirEntry[Index].DataIsDirectory)) goto CleanUp;
-
-    //
-    // Read first entry by default.
-    //
-    ImgResDir = (PIMAGE_RESOURCE_DIRECTORY)((PUCHAR)m_Image.Image + ResRva + ImgResDirEntry[Index].OffsetToDirectory);
-    ImgResDirEntry = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)(ImgResDir + 1);
-
-    if (ImgResDirEntry[0].DataIsDirectory) goto CleanUp;
-
-    ImgResDataEntry = (PIMAGE_RESOURCE_DATA_ENTRY)((PUCHAR)m_Image.Image + ResRva + ImgResDirEntry[0].OffsetToDirectory);
-    RessourceData = malloc(ImgResDataEntry->Size);
-    if (RessourceData == NULL) goto CleanUp;
-
-    memcpy_s(RessourceData, ImgResDataEntry->Size, (PUCHAR)m_Image.Image + ImgResDataEntry->OffsetToData, ImgResDataEntry->Size);
-
-CleanUp:
     return RessourceData;
 }
 
 BOOLEAN
 MsPEImageFile::RtlGetPdbInfo(
-)
+    VOID
+    )
 /*++
 
 Routine Description:
@@ -179,38 +251,57 @@ Return Value:
 
 --*/
 {
-    BOOLEAN Result = FALSE;
-    PIMAGE_DEBUG_DIRECTORY DbgDir = NULL;
-    ULONG Offset;
+    PIMAGE_DEBUG_DIRECTORY DbgDir;
+    PCV_INFO_PDB70 PdbInfo;
+    ULONG_PTR ImageBase;
+    ULONG TableRva, TableSize;
 
-    if (!m_Image.Initialized) goto CleanUp;
+    try {
 
-    Offset = m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress;
-    if (!Offset || (m_ImageSize && (Offset > m_ImageSize))) goto CleanUp;
-    DbgDir = (PIMAGE_DEBUG_DIRECTORY)(((PUCHAR)m_Image.Image) + Offset);
+        if (m_Image.Initialized) {
 
-    Offset = DbgDir->AddressOfRawData;
-    if (!Offset || (m_ImageSize && (Offset > m_ImageSize))) goto CleanUp;
-    PCV_INFO_PDB70 PdbInfo = (PCV_INFO_PDB70)(((PUCHAR)m_Image.Image) + Offset);;
+            TableRva = m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress;
+            TableSize = m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].Size;
 
-    if (PdbInfo->Signature == CV_SIGNATURE_RSDS)
-    {
-        m_PdbInfo.Guid = PdbInfo->Guid;
-        m_PdbInfo.Age = PdbInfo->Age;
+            if (TableRva && TableSize) {
 
-        StringCchCopyA(m_PdbInfo.PdbName, _countof(m_PdbInfo.PdbName), PdbInfo->PdbFileName);
+                ImageBase = (ULONG_PTR)m_Image.Image;
 
-        Result = TRUE;
+                DbgDir = (PIMAGE_DEBUG_DIRECTORY)(ImageBase + TableRva);
+
+                if (IsValidAddress((ULONG_PTR)DbgDir) &&
+                    IsValidAddress((ULONG_PTR)(DbgDir + 1))) {
+
+                    if (IsValidAddress(ImageBase + DbgDir->AddressOfRawData) &&
+                        IsValidAddress(ImageBase + DbgDir->AddressOfRawData + DbgDir->SizeOfData)) {
+
+                        PdbInfo = (PCV_INFO_PDB70)(ImageBase + DbgDir->AddressOfRawData);
+
+                        if (PdbInfo->Signature == CV_SIGNATURE_RSDS) {
+
+                            m_PdbInfo.Guid = PdbInfo->Guid;
+                            m_PdbInfo.Age = PdbInfo->Age;
+
+                            StringCchCopyA(m_PdbInfo.PdbName, _countof(m_PdbInfo.PdbName), PdbInfo->PdbFileName);
+
+                            return TRUE;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    catch (...) {
+
     }
 
-CleanUp:
-    return Result;
+    return FALSE;
 }
 
 BOOLEAN
 MsPEImageFile::RtlGetImports(
     vector<MsDllObject> &DllList
-)
+    )
 /*++
 
 Routine Description:
@@ -428,7 +519,8 @@ Return Value:
 
 BOOLEAN
 MsPEImageFile::RtlGetExports(
-)
+    VOID
+    )
 /*++
 
 Routine Description:
@@ -445,97 +537,112 @@ Return Value:
 
 --*/
 {
-    BOOLEAN Result = FALSE;
-    PIMAGE_EXPORT_DIRECTORY ExportDir = NULL;
-    ULONG DirRva, DirSize;
+    PIMAGE_EXPORT_DIRECTORY ExportDir;
+    ULONG_PTR ImageBase;
     PULONG AddressOfNames;
-    PUSHORT AddressOfNameOrdinals;
     PULONG AddressOfFunctions;
+    PUSHORT AddressOfNameOrdinals;
+    ULONG TableRva, TableSize;
     ULONG NumberOfHookedAPIs = 0;
-    UINT i;
+    ULONG i;
 
     try {
 
-        ASSERTDBG(m_Image.Initialized);
-        if (!m_Image.Initialized) goto CleanUp;
+        if (m_Image.Initialized) {
 
-        DirRva = m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;
-        DirSize = m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].Size;
+            TableRva = m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].VirtualAddress;
+            TableSize = m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].Size;
 
-        if (!DirRva || (m_ImageSize && (DirRva > m_ImageSize))) goto CleanUp;
+            if (TableRva && TableSize) {
 
-        PUCHAR Image = ((PUCHAR)m_Image.Image);
+                ImageBase = (ULONG_PTR)m_Image.Image;
 
-        if (!DirSize || !DirRva) goto CleanUp;
+                if (IsValidAddress(ImageBase + TableRva) &&
+                    IsValidAddress(ImageBase + TableRva + TableSize)) {
 
-        ExportDir = (PIMAGE_EXPORT_DIRECTORY)(Image + DirRva);
+                    ExportDir = (PIMAGE_EXPORT_DIRECTORY)(ImageBase + TableRva);
 
-        if ((ExportDir->AddressOfNames >= (DirRva + DirSize)) ||
-            (ExportDir->AddressOfNameOrdinals >= (DirRva + DirSize)) ||
-            (ExportDir->AddressOfFunctions >= (DirRva + DirSize)))
-        {
-            goto CleanUp;
-        }
+                    if ((ExportDir->AddressOfNames >= TableRva && ExportDir->AddressOfNames < (TableRva + TableSize)) &&
+                        (ExportDir->AddressOfNameOrdinals >= TableRva && ExportDir->AddressOfNameOrdinals < (TableRva + TableSize)) &&
+                        (ExportDir->AddressOfFunctions >= TableRva && ExportDir->AddressOfFunctions < (TableRva + TableSize))) {
 
-        AddressOfNames = (PULONG)(Image + (ULONG)ExportDir->AddressOfNames);
-        AddressOfNameOrdinals = (PUSHORT)(Image + (ULONG)ExportDir->AddressOfNameOrdinals);
-        AddressOfFunctions = (PULONG)(Image + (ULONG)ExportDir->AddressOfFunctions);
+                        AddressOfNames = (PULONG)(ImageBase + ExportDir->AddressOfNames);
+                        AddressOfFunctions = (PULONG)(ImageBase + ExportDir->AddressOfFunctions);
+                        AddressOfNameOrdinals = (PUSHORT)(ImageBase + ExportDir->AddressOfNameOrdinals);
 
 #if VERBOSE_MODE
-    g_Ext->Dml("(%s) ExportDir->NumberOfName: %d, ExportDir->NumberOfFunctions: %d\n",
-                m_PdbInfo.PdbName, ExportDir->NumberOfNames, ExportDir->NumberOfFunctions);
+                        g_Ext->Dml("(%s) ExportDir->NumberOfName: %d, ExportDir->NumberOfFunctions: %d\n",
+                                   m_PdbInfo.PdbName,
+                                   ExportDir->NumberOfNames,
+                                   ExportDir->NumberOfFunctions);
 #endif
 
-        m_NumberOfExportedFunctions = ExportDir->NumberOfNames;
+                        if (IsValidAddress((ULONG_PTR)AddressOfNames) &&
+                            IsValidAddress((ULONG_PTR)AddressOfNames + ExportDir->NumberOfNames * sizeof(DWORD)) &&
+                            IsValidAddress((ULONG_PTR)AddressOfFunctions) &&
+                            IsValidAddress((ULONG_PTR)AddressOfFunctions + ExportDir->NumberOfFunctions * sizeof(DWORD)) &&
+                            IsValidAddress((ULONG_PTR)AddressOfNameOrdinals) &&
+                            IsValidAddress((ULONG_PTR)AddressOfNameOrdinals + ExportDir->NumberOfNames * sizeof(DWORD))) {
 
-        for (i = 0; i < ExportDir->NumberOfNames && i < 5000; i += 1) {
+                            m_NumberOfExportedFunctions = ExportDir->NumberOfNames;
 
-            EXPORT_INFO ExportInfo = {0};
+                            for (i = 0; i < ExportDir->NumberOfNames; i++) {
 
-            if (AddressOfNameOrdinals[i] >= ExportDir->NumberOfNames) {
+                                if (AddressOfNameOrdinals[i] >= ExportDir->NumberOfNames) {
 
-                continue;
+                                    continue;
+                                }
+
+                                if (IsValidAddress((ULONG_PTR)(AddressOfFunctions + AddressOfNameOrdinals[i])) &&
+                                    IsValidAddress((ULONG_PTR)(AddressOfFunctions + AddressOfNameOrdinals[i] + sizeof(ULONG)))) {
+
+                                    EXPORT_INFO ExportInfo = {0};
+
+                                    ExportInfo.Index = i;
+                                    ExportInfo.Ordinal = AddressOfNameOrdinals[i];
+
+                                    GetAddressInfo(m_ImageBase + AddressOfFunctions[AddressOfNameOrdinals[i]], &ExportInfo.AddressInfo);
+
+                                    if (ExportInfo.AddressInfo.IsTablePatched || ExportInfo.AddressInfo.HookType) {
+
+                                        NumberOfHookedAPIs++;
+                                    }
+
+                                    if (IsValidAddress(ImageBase + AddressOfNames[i])) {
+
+                                        try {
+
+                                            StringCchCopyA(ExportInfo.Name, _countof(ExportInfo.Name), (PCSTR)(ImageBase + AddressOfNames[i]));
+                                        }
+                                        catch (...) {
+
+                                        }
+                                    }
+
+                                    m_Exports.push_back(ExportInfo);
+                                }
+                            }
+
+                            m_NumberOfHookedAPIs = NumberOfHookedAPIs;
+
+                            return TRUE;
+                        }
+                    }
+                }
             }
-
-            ExportInfo.Index = i;
-            ExportInfo.Ordinal = AddressOfNameOrdinals[i];
-
-            GetAddressInfo(m_ImageBase + AddressOfFunctions[AddressOfNameOrdinals[i]], &ExportInfo.AddressInfo);
-
-            if (ExportInfo.AddressInfo.IsTablePatched || ExportInfo.AddressInfo.HookType) {
-        
-                NumberOfHookedAPIs++;
-            }
-
-            ULONG Len = (ULONG)strnlen_s((LPSTR)(Image + AddressOfNames[i]), sizeof(ExportInfo.Name) - 1);
-
-            if ((AddressOfNames[i] <= (DirRva + DirSize)) && Len) {
-
-                memcpy_s(ExportInfo.Name, sizeof(ExportInfo.Name), (LPSTR)(Image + AddressOfNames[i]), Len);
-            }
-            else {
-
-                StringCchCopyA(ExportInfo.Name, _countof(ExportInfo.Name), "*unreadable*");
-            }
-
-            m_Exports.push_back(ExportInfo);
         }
-
-        m_NumberOfHookedAPIs = NumberOfHookedAPIs;
-
-        Result = TRUE;
     }
     catch (...) {
 
     }
 
-CleanUp:
-    return Result;
+    return FALSE;
 }
 
 BOOLEAN
 MsPEImageFile::RtlGetFileVersion(
-)
+    VOID
+    )
 /*++
 
 Routine Description:
@@ -560,94 +667,100 @@ Return Value:
     UINT DescriptionSize;
     BOOL Result = TRUE;
 
-    RessourceData = RtlGetRessourceData(VS_VERSION_INFO, (ULONG)((ULONG_PTR)RT_VERSION));
+    try {
 
-    if (RessourceData == NULL) goto CleanUp;
+        RessourceData = RtlGetRessourceData(VS_VERSION_INFO, (ULONG)((ULONG_PTR)RT_VERSION));
 
-    //
-    // Read the list of languages and code pages.
-    //
+        if (RessourceData == NULL) goto CleanUp;
 
-    Result = VerQueryValueW(RessourceData,
-                            L"\\VarFileInfo\\Translation",
-                            (LPVOID*)&Translation,
-                            &TranslateSize);
+        //
+        // Read the list of languages and code pages.
+        //
 
-    if (!Result || Translation == NULL) goto CleanUp;
+        Result = VerQueryValueW(RessourceData,
+                                L"\\VarFileInfo\\Translation",
+                                (LPVOID*)&Translation,
+                                &TranslateSize);
 
-    //
-    // Product Version
-    //
+        if (!Result || Translation == NULL) goto CleanUp;
 
-    swprintf_s(MagicLine,
-               _countof(MagicLine),
-               L"\\StringFileInfo\\%04x%04x\\ProductVersion",
-               Translation->wLanguage,
-               Translation->wCodePage);
+        //
+        // Product Version
+        //
 
-    VerQueryValueW(RessourceData, MagicLine, &Description, &DescriptionSize);
+        swprintf_s(MagicLine,
+                   _countof(MagicLine),
+                   L"\\StringFileInfo\\%04x%04x\\ProductVersion",
+                   Translation->wLanguage,
+                   Translation->wCodePage);
 
-    if (DescriptionSize) {
+        VerQueryValueW(RessourceData, MagicLine, &Description, &DescriptionSize);
 
-        swprintf_s(m_FileVersion.ProductVersion, _countof(m_FileVersion.ProductVersion), L"%s", (PWSTR)Description);
+        if (DescriptionSize) {
+
+            swprintf_s(m_FileVersion.ProductVersion, _countof(m_FileVersion.ProductVersion), L"%s", (PWSTR)Description);
+        }
+
+        //
+        // File Version
+        //
+
+        swprintf_s(MagicLine,
+                   _countof(MagicLine),
+                   L"\\StringFileInfo\\%04x%04x\\FileVersion",
+                   Translation->wLanguage,
+                   Translation->wCodePage);
+
+        VerQueryValueW(RessourceData, MagicLine, &Description, &DescriptionSize);
+
+        if (DescriptionSize) {
+
+            swprintf_s(m_FileVersion.FileVersion, _countof(m_FileVersion.FileVersion), L"%s", (PWSTR)Description);
+        }
+
+        //
+        // Company Name
+        //
+
+        swprintf_s(MagicLine,
+                   _countof(MagicLine),
+                   L"\\StringFileInfo\\%04x%04x\\CompanyName",
+                   Translation->wLanguage,
+                   Translation->wCodePage);
+
+        VerQueryValueW(RessourceData, MagicLine, &Description, &DescriptionSize);
+
+        if (DescriptionSize) {
+
+            swprintf_s(m_FileVersion.CompanyName, _countof(m_FileVersion.CompanyName), L"%s", (PWSTR)Description);
+        }
+
+        //
+        // File Description
+        //
+
+        swprintf_s(MagicLine,
+                   _countof(MagicLine),
+                   L"\\StringFileInfo\\%04x%04x\\FileDescription",
+                   Translation->wLanguage,
+                   Translation->wCodePage);
+
+        VerQueryValueW(RessourceData, MagicLine, &Description, &DescriptionSize);
+
+        if (DescriptionSize) {
+
+            swprintf_s(m_FileVersion.FileDescription, _countof(m_FileVersion.FileDescription), L"%s", (PWSTR)Description);
+        }
+
+    #if VERBOSE_MODE
+        // g_Ext->Dml("FileDesc: %S\n", ProcessObject.m_CcProcessObject.FileDescription);
+    #endif
+
+        Result = TRUE;
     }
+    catch (...) {
 
-    //
-    // File Version
-    //
-
-    swprintf_s(MagicLine,
-               _countof(MagicLine),
-               L"\\StringFileInfo\\%04x%04x\\FileVersion",
-               Translation->wLanguage,
-               Translation->wCodePage);
-
-    VerQueryValueW(RessourceData, MagicLine, &Description, &DescriptionSize);
-
-    if (DescriptionSize) {
-
-        swprintf_s(m_FileVersion.FileVersion, _countof(m_FileVersion.FileVersion), L"%s", (PWSTR)Description);
     }
-
-    //
-    // Company Name
-    //
-
-    swprintf_s(MagicLine,
-               _countof(MagicLine),
-               L"\\StringFileInfo\\%04x%04x\\CompanyName",
-               Translation->wLanguage,
-               Translation->wCodePage);
-
-    VerQueryValueW(RessourceData, MagicLine, &Description, &DescriptionSize);
-
-    if (DescriptionSize) {
-
-        swprintf_s(m_FileVersion.CompanyName, _countof(m_FileVersion.CompanyName), L"%s", (PWSTR)Description);
-    }
-
-    //
-    // File Description
-    //
-
-    swprintf_s(MagicLine,
-               _countof(MagicLine),
-               L"\\StringFileInfo\\%04x%04x\\FileDescription",
-               Translation->wLanguage,
-               Translation->wCodePage);
-
-    VerQueryValueW(RessourceData, MagicLine, &Description, &DescriptionSize);
-
-    if (DescriptionSize) {
-
-        swprintf_s(m_FileVersion.FileDescription, _countof(m_FileVersion.FileDescription), L"%s", (PWSTR)Description);
-    }
-
-#if VERBOSE_MODE
-    // g_Ext->Dml("FileDesc: %S\n", ProcessObject.m_CcProcessObject.FileDescription);
-#endif
-
-    Result = TRUE;
 
 CleanUp:
 
@@ -658,7 +771,8 @@ CleanUp:
 
 BOOLEAN
 MsPEImageFile::RtlGetSections(
-)
+    VOID
+    )
 /*++
 
 Routine Description:
@@ -755,7 +869,8 @@ Return Value:
 
 BOOLEAN
 MsPEImageFile::InitImage(
-)
+    VOID
+    )
 /*++
 
 Routine Description:
@@ -905,7 +1020,8 @@ CleanUp:
 
 BOOLEAN
 MsPEImageFile::GetInfoFull(
-)
+    VOID
+    )
 /*++
 
 Routine Description:

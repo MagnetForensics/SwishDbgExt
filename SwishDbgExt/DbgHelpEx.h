@@ -94,7 +94,7 @@ public:
     typedef struct _PDB_INFO {
         GUID Guid;
         ULONG Age;
-        CHAR PdbName[MAX_PATH + 1];
+        CHAR PdbName[MAX_PATH];
     } PDB_INFO, *PPDB_INFO;
 
     typedef struct _LANGANDCODEPAGE {
@@ -136,7 +136,7 @@ public:
     ULONG m_ImageSize;
 
     BOOL m_IsPagedOut;
-	BOOL m_IsSigned;
+    BOOL m_IsSigned;
 
     vector<CACHED_SECTION_INFO> m_CcSections;
     FILE_VERSION m_FileVersion;
@@ -178,27 +178,33 @@ public:
 
     BOOLEAN
     RtlGetExports(
-    );
+        VOID
+        );
 
     BOOLEAN
     InitImage(
-    );
+        VOID
+        );
 
     BOOLEAN
     RtlGetSections(
-    );
+        VOID
+        );
 
     BOOLEAN
     RtlGetFileVersion(
-    );
+        VOID
+        );
 
     BOOLEAN
     RtlGetPdbInfo(
-    );
+        VOID
+        );
 
     BOOLEAN
     GetInfoFull(
-    );
+        VOID
+        );
 
     BOOL
     IsValidAddress(
