@@ -207,7 +207,7 @@ public:
         );
 
     BOOL
-    IsValidAddress(
+    IsAddressValid(
         _In_ ULONG_PTR Address
         );
 

@@ -44,7 +44,7 @@ Revision History:
 
 
 BOOL
-MsPEImageFile::IsValidAddress(
+MsPEImageFile::IsAddressValid(
     _In_ ULONG_PTR Address
     )
 {
@@ -122,13 +122,13 @@ Return Value:
 
                 ImgResDir = (PIMAGE_RESOURCE_DIRECTORY)((PUCHAR)m_Image.Image + TableRva);
 
-                if (IsValidAddress((ULONG_PTR)ImgResDir) &&
-                    IsValidAddress((ULONG_PTR)(ImgResDir + 1))) {
+                if (IsAddressValid((ULONG_PTR)ImgResDir) &&
+                    IsAddressValid((ULONG_PTR)(ImgResDir + 1))) {
 
                     ImgResDirEntry = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)(ImgResDir + 1);
 
-                    if (IsValidAddress((ULONG_PTR)ImgResDirEntry) &&
-                        IsValidAddress((ULONG_PTR)(ImgResDirEntry + 1))) {
+                    if (IsAddressValid((ULONG_PTR)ImgResDirEntry) &&
+                        IsAddressValid((ULONG_PTR)(ImgResDirEntry + 1))) {
 
                         if (ImgResDir->NumberOfIdEntries > 26) {
 
@@ -151,13 +151,13 @@ Return Value:
 
                             ImgResDir = (PIMAGE_RESOURCE_DIRECTORY)((PUCHAR)m_Image.Image + TableRva + ImgResDirEntry[Index].OffsetToDirectory);
 
-                            if (IsValidAddress((ULONG_PTR)ImgResDir) &&
-                                IsValidAddress((ULONG_PTR)(ImgResDir + 1))) {
+                            if (IsAddressValid((ULONG_PTR)ImgResDir) &&
+                                IsAddressValid((ULONG_PTR)(ImgResDir + 1))) {
 
                                 ImgResDirEntry = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)(ImgResDir + 1);
 
-                                if (IsValidAddress((ULONG_PTR)ImgResDirEntry) &&
-                                    IsValidAddress((ULONG_PTR)(ImgResDirEntry + 1))) {
+                                if (IsAddressValid((ULONG_PTR)ImgResDirEntry) &&
+                                    IsAddressValid((ULONG_PTR)(ImgResDirEntry + 1))) {
 
                                     if (ImgResDir->NumberOfIdEntries > 26) {
 
@@ -180,27 +180,27 @@ Return Value:
 
                                         ImgResDir = (PIMAGE_RESOURCE_DIRECTORY)((PUCHAR)m_Image.Image + TableRva + ImgResDirEntry[Index].OffsetToDirectory);
 
-                                        if (IsValidAddress((ULONG_PTR)ImgResDir) &&
-                                            IsValidAddress((ULONG_PTR)(ImgResDir + 1))) {
+                                        if (IsAddressValid((ULONG_PTR)ImgResDir) &&
+                                            IsAddressValid((ULONG_PTR)(ImgResDir + 1))) {
 
                                             ImgResDirEntry = (PIMAGE_RESOURCE_DIRECTORY_ENTRY)(ImgResDir + 1);
 
-                                            if (IsValidAddress((ULONG_PTR)ImgResDirEntry) &&
-                                                IsValidAddress((ULONG_PTR)(ImgResDirEntry + 1))) {
+                                            if (IsAddressValid((ULONG_PTR)ImgResDirEntry) &&
+                                                IsAddressValid((ULONG_PTR)(ImgResDirEntry + 1))) {
 
                                                 if (!ImgResDirEntry[0].DataIsDirectory) {
 
                                                     ImgResDataEntry = (PIMAGE_RESOURCE_DATA_ENTRY)((PUCHAR)m_Image.Image + TableRva + ImgResDirEntry[0].OffsetToDirectory);
 
-                                                    if (IsValidAddress((ULONG_PTR)ImgResDataEntry) &&
-                                                        IsValidAddress((ULONG_PTR)(ImgResDataEntry + 1))) {
+                                                    if (IsAddressValid((ULONG_PTR)ImgResDataEntry) &&
+                                                        IsAddressValid((ULONG_PTR)(ImgResDataEntry + 1))) {
 
                                                         RessourceData = malloc(ImgResDataEntry->Size);
 
                                                         if (RessourceData) {
 
-                                                            if (IsValidAddress((ULONG_PTR)((PUCHAR)m_Image.Image + ImgResDataEntry->OffsetToData)) &&
-                                                                IsValidAddress((ULONG_PTR)((PUCHAR)m_Image.Image + ImgResDataEntry->OffsetToData + ImgResDataEntry->Size))) {
+                                                            if (IsAddressValid((ULONG_PTR)((PUCHAR)m_Image.Image + ImgResDataEntry->OffsetToData)) &&
+                                                                IsAddressValid((ULONG_PTR)((PUCHAR)m_Image.Image + ImgResDataEntry->OffsetToData + ImgResDataEntry->Size))) {
 
                                                                 memcpy_s(RessourceData, ImgResDataEntry->Size, (PUCHAR)m_Image.Image + ImgResDataEntry->OffsetToData, ImgResDataEntry->Size);
                                                             }
@@ -269,11 +269,11 @@ Return Value:
 
                 DbgDir = (PIMAGE_DEBUG_DIRECTORY)(ImageBase + TableRva);
 
-                if (IsValidAddress((ULONG_PTR)DbgDir) &&
-                    IsValidAddress((ULONG_PTR)(DbgDir + 1))) {
+                if (IsAddressValid((ULONG_PTR)DbgDir) &&
+                    IsAddressValid((ULONG_PTR)(DbgDir + 1))) {
 
-                    if (IsValidAddress(ImageBase + DbgDir->AddressOfRawData) &&
-                        IsValidAddress(ImageBase + DbgDir->AddressOfRawData + DbgDir->SizeOfData)) {
+                    if (IsAddressValid(ImageBase + DbgDir->AddressOfRawData) &&
+                        IsAddressValid(ImageBase + DbgDir->AddressOfRawData + DbgDir->SizeOfData)) {
 
                         PdbInfo = (PCV_INFO_PDB70)(ImageBase + DbgDir->AddressOfRawData);
 
@@ -339,7 +339,7 @@ Return Value:
 
             ImageImportDescriptor = (PIMAGE_IMPORT_DESCRIPTOR)(ImageBase + m_Image.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
 
-            if (IsValidAddress((ULONG_PTR)ImageImportDescriptor)) {
+            if (IsAddressValid((ULONG_PTR)ImageImportDescriptor)) {
 
                 try {
 
@@ -355,9 +355,9 @@ Return Value:
                         ULONG64 DllImageBase = 0;
                         ULONG64 DllImageEnd = 0;
 
-                        if (!IsValidAddress(ImageBase + ImageImportDescriptor->Name) ||
-                            !IsValidAddress(ImageBase + ImageImportDescriptor->FirstThunk) ||
-                            !IsValidAddress(ImageBase + ImageImportDescriptor->OriginalFirstThunk)) {
+                        if (!IsAddressValid(ImageBase + ImageImportDescriptor->Name) ||
+                            !IsAddressValid(ImageBase + ImageImportDescriptor->FirstThunk) ||
+                            !IsAddressValid(ImageBase + ImageImportDescriptor->OriginalFirstThunk)) {
 
                             break;
                         }
@@ -430,7 +430,7 @@ Return Value:
 
                                             PIMAGE_IMPORT_BY_NAME ImageImportByName = (PIMAGE_IMPORT_BY_NAME)(ImageBase + ImageThunkData32->u1.AddressOfData);
 
-                                            if (IsValidAddress((ULONG_PTR)ImageImportByName)) {
+                                            if (IsAddressValid((ULONG_PTR)ImageImportByName)) {
 
                                                 StringCchCopy(ImportInfo.Name, _countof(ImportInfo.Name), ImageImportByName->Name);
                                             }
@@ -477,7 +477,7 @@ Return Value:
 
                                             PIMAGE_IMPORT_BY_NAME ImageImportByName = (PIMAGE_IMPORT_BY_NAME)(ImageBase + ImageThunkData64->u1.AddressOfData);
 
-                                            if (IsValidAddress((ULONG_PTR)ImageImportByName)) {
+                                            if (IsAddressValid((ULONG_PTR)ImageImportByName)) {
 
                                                 StringCchCopy(ImportInfo.Name, _countof(ImportInfo.Name), ImageImportByName->Name);
                                             }
@@ -557,8 +557,8 @@ Return Value:
 
                 ImageBase = (ULONG_PTR)m_Image.Image;
 
-                if (IsValidAddress(ImageBase + TableRva) &&
-                    IsValidAddress(ImageBase + TableRva + TableSize)) {
+                if (IsAddressValid(ImageBase + TableRva) &&
+                    IsAddressValid(ImageBase + TableRva + TableSize)) {
 
                     ExportDir = (PIMAGE_EXPORT_DIRECTORY)(ImageBase + TableRva);
 
@@ -577,12 +577,12 @@ Return Value:
                                    ExportDir->NumberOfFunctions);
 #endif
 
-                        if (IsValidAddress((ULONG_PTR)AddressOfNames) &&
-                            IsValidAddress((ULONG_PTR)AddressOfNames + ExportDir->NumberOfNames * sizeof(DWORD)) &&
-                            IsValidAddress((ULONG_PTR)AddressOfFunctions) &&
-                            IsValidAddress((ULONG_PTR)AddressOfFunctions + ExportDir->NumberOfFunctions * sizeof(DWORD)) &&
-                            IsValidAddress((ULONG_PTR)AddressOfNameOrdinals) &&
-                            IsValidAddress((ULONG_PTR)AddressOfNameOrdinals + ExportDir->NumberOfNames * sizeof(DWORD))) {
+                        if (IsAddressValid((ULONG_PTR)AddressOfNames) &&
+                            IsAddressValid((ULONG_PTR)AddressOfNames + ExportDir->NumberOfNames * sizeof(DWORD)) &&
+                            IsAddressValid((ULONG_PTR)AddressOfFunctions) &&
+                            IsAddressValid((ULONG_PTR)AddressOfFunctions + ExportDir->NumberOfFunctions * sizeof(DWORD)) &&
+                            IsAddressValid((ULONG_PTR)AddressOfNameOrdinals) &&
+                            IsAddressValid((ULONG_PTR)AddressOfNameOrdinals + ExportDir->NumberOfNames * sizeof(DWORD))) {
 
                             m_NumberOfExportedFunctions = ExportDir->NumberOfNames;
 
@@ -593,8 +593,8 @@ Return Value:
                                     continue;
                                 }
 
-                                if (IsValidAddress((ULONG_PTR)(AddressOfFunctions + AddressOfNameOrdinals[i])) &&
-                                    IsValidAddress((ULONG_PTR)(AddressOfFunctions + AddressOfNameOrdinals[i] + sizeof(ULONG)))) {
+                                if (IsAddressValid((ULONG_PTR)(AddressOfFunctions + AddressOfNameOrdinals[i])) &&
+                                    IsAddressValid((ULONG_PTR)(AddressOfFunctions + AddressOfNameOrdinals[i] + sizeof(ULONG)))) {
 
                                     EXPORT_INFO ExportInfo = {0};
 
@@ -608,7 +608,7 @@ Return Value:
                                         NumberOfHookedAPIs++;
                                     }
 
-                                    if (IsValidAddress(ImageBase + AddressOfNames[i])) {
+                                    if (IsAddressValid(ImageBase + AddressOfNames[i])) {
 
                                         try {
 
@@ -818,11 +818,11 @@ Return Value:
 
             Address = ImageBase + SectionInfo.VaBase;
 
-            if (Address >= ImageBase && Address < (ImageBase + m_ImageSize)) {
+            if (IsAddressValid(Address)) {
 
                 Address = ImageBase + SectionInfo.VaBase + SectionInfo.VaSize;
 
-                if (Address >= ImageBase && Address < (ImageBase + m_ImageSize)) {
+                if (IsAddressValid(Address)) {
 
                     MD5Init(&Md5Context);
                     MD5Update(&Md5Context, (PUCHAR)(ImageBase + SectionInfo.VaBase), SectionInfo.VaSize);
@@ -839,7 +839,7 @@ Return Value:
 
                 Address = ImageBase + SectionInfo.VaBase + SectionInfo.RawSize;
 
-                if (Address >= ImageBase && Address < (ImageBase + m_ImageSize)) {
+                if (IsAddressValid(Address)) {
 
                     MD5Init(&Md5Context);
                     MD5Update(&Md5Context, (PUCHAR)(ImageBase + SectionInfo.VaBase), SectionInfo.RawSize);
