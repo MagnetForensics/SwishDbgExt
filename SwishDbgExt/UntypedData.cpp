@@ -860,7 +860,7 @@ Return Value:
         {
             for (UINT j = 0; g_UntypedData[i].Type[j].MachineType; j += 1)
             {
-                if ((g_UntypedData[i].Type[j].MachineType == g_Ext->m_Machine) &&
+                if ((g_UntypedData[i].Type[j].MachineType == g_Ext->m_ActualMachine) &&
                     (g_Ext->m_Minor >= g_UntypedData[i].Type[j].MinorVersion))
                 {
                     if ((ReturnType && (ReturnType->MinorVersion < g_UntypedData[i].Type[j].MinorVersion)) || !ReturnType)
@@ -907,7 +907,7 @@ Return Value:
 
             for (UINT j = 0; g_UntypedData[i].Type[j].MachineType; j++) {
 
-                if ((g_UntypedData[i].Type[j].MachineType == g_Ext->m_Machine) &&
+                if ((g_UntypedData[i].Type[j].MachineType == g_Ext->m_ActualMachine) &&
                     (g_Ext->m_Minor >= g_UntypedData[i].Type[j].MinorVersion)) {
 
                     return g_UntypedData[i].Type[j].TypeSize;
