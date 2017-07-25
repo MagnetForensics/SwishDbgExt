@@ -901,9 +901,22 @@ Return Value:
 
 --*/
 {
-    ExtRemoteUnTyped Tmp(0, TypeName);
+    for (UINT i = 0; g_UntypedData[i].TypeName; i++) {
 
-    return Tmp.m_TypedData->TypeSize;
+        if (0 == _stricmp(g_UntypedData[i].TypeName, TypeName)) {
+
+            for (UINT j = 0; g_UntypedData[i].Type[j].MachineType; j++) {
+
+                if ((g_UntypedData[i].Type[j].MachineType == g_Ext->m_Machine) &&
+                    (g_Ext->m_Minor >= g_UntypedData[i].Type[j].MinorVersion)) {
+
+                    return g_UntypedData[i].Type[j].TypeSize;
+                }
+            }
+        }
+    }
+
+    return 0;
 }
 
 ExtRemoteUnTyped::PTYPED_DATA_FIELD
