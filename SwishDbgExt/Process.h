@@ -109,11 +109,12 @@ typedef struct _THREAD_OBJECT {
     LARGE_INTEGER ExitTime;
 
     ULONG64 Win32StartAddress;
+    ULONG64 ObjectPtr;
 } THREAD_OBJECT, *PTHREAD_OBJECT;
 
 typedef struct _HANDLE_OBJECT {
     ULONG Handle;
-    WCHAR Name[MAX_PATH + 1];
+    WCHAR Name[MAX_PATH];
     WCHAR Type[32];
     ULONG ObjectTypeIndex;
     ULONG64 ObjectPtr;

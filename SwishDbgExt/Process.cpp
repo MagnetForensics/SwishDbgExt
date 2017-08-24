@@ -1818,6 +1818,25 @@ Return Value:
     return TRUE;
 }
 
+BOOL
+IsThreadEntryPresent(
+    _In_ vector<THREAD_OBJECT> &ObjectEntries,
+    _In_ ULONG64 ObjectPtr
+    )
+{
+    for (size_t i = ObjectEntries.size(); i > 0 ; i--) {
+
+        PTHREAD_OBJECT Entry = &ObjectEntries[i - 1];
+
+        if (Entry->ObjectPtr == ObjectPtr) {
+
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 BOOLEAN
 MsProcessObject::GetThreads(
 )
@@ -1848,6 +1867,13 @@ Return Value:
             THREAD_OBJECT ThreadObject = {0};
 
             if (ThreadList.GetTypedNode().Field("Tcb.Header.Type").GetUchar() != 6) {
+
+                break;
+            }
+
+            ThreadObject.ObjectPtr = ThreadList.GetNodeOffset();
+
+            if (IsThreadEntryPresent(m_Threads, ThreadObject.ObjectPtr)) {
 
                 break;
             }
