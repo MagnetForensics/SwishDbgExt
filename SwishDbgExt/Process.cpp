@@ -1169,6 +1169,25 @@ Return Value:
     RtlZeroMemory(&m_Image, sizeof(m_Image));
 }
 
+BOOL
+IsProcessEntryPresent(
+    _In_ vector<MsProcessObject> &ObjectEntries,
+    _In_ ULONG64 ObjectPtr
+    )
+{
+    for (size_t i = ObjectEntries.size(); i > 0 ; i--) {
+
+        MsProcessObject Entry = ObjectEntries[i - 1];
+
+        if (Entry.m_CcProcessObject.ProcessObjectPtr == ObjectPtr) {
+
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 ProcessArray
 GetProcesses(
     _In_opt_ ULONG64 Pid,
@@ -1203,6 +1222,11 @@ Return Value:
         {
             MsProcessObject ProcObject = Processes.Current();
 
+            if (IsProcessEntryPresent(ProcessList, ProcObject.m_CcProcessObject.ProcessObjectPtr)) {
+
+                break;
+            }
+
             if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Current process %s\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObject.m_CcProcessObject.ImageFileName);
 
             if (!Pid || (Pid == ProcObject.m_CcProcessObject.ProcessId))
@@ -1225,7 +1249,12 @@ Return Value:
             {
                 MsProcessObject ProcObject = MmProcesses.Current();
 
-                MmProcessList.push_back(MmProcesses.Current());
+                if (IsProcessEntryPresent(MmProcessList, ProcObject.m_CcProcessObject.ProcessObjectPtr)) {
+
+                    break;
+                }
+
+                MmProcessList.push_back(ProcObject);
             }
         }
         catch (...) {
