@@ -161,6 +161,24 @@ Return Value:
     */
 }
 
+BOOL
+IsDriverEntryPresent(
+    _In_ vector<MsDllObject> &ObjectEntries,
+    _In_ ULONG64 ImageBase
+    )
+{
+    for (size_t i = ObjectEntries.size(); i > 0 ; i--) {
+
+        MsDllObject Entry = ObjectEntries[i - 1];
+
+        if (Entry.m_ImageBase == ImageBase) {
+
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
 
 vector<MsDriverObject>
 GetDrivers(
@@ -195,6 +213,12 @@ Return Value:
             for (Dlls.First(); !Dlls.IsDone(); Dlls.Next()) {
 
                 MsDllObject DllObject = Dlls.Current();
+
+                if (IsDriverEntryPresent(DllList, DllObject.m_ImageBase)) {
+
+                    break;
+                }
+
                 DllList.push_back(DllObject);
             }
         }
