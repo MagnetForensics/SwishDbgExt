@@ -43,9 +43,15 @@ VOID
 GetLX(
     VOID
 ) {
+    vector<ULONG64> ListNodes;
+    vector<ULONG64> SessionListNodes;
+    vector<ULONG64> LxProcessGroupListNodes;
+    vector<ULONG64> LxThreadGroupListNodes;
+    ULONG64 ListNodeOffset;
+    ULONG64 SessionListNodeOffset;
+    ULONG64 LxProcessGroupListNodeOffset;
+    ULONG64 LxThreadGroupListNodeOffset;
     ULONG64 LxGlobal;
-
-
     ULONG ProcessorType;
     ULONG PlateformId, Major, Minor, ServicePackNumber;
 
@@ -78,9 +84,19 @@ GetLX(
         for (List.StartHead(); List.HasNode(); List.Next())
         {
             GUID Guid = { 0 };
-            DbgPrint("\tLX_INSTANCE = 0x%p\n", List.GetNodeOffset());
 
-            ULONG64 LxInstanceHead = List.GetNodeOffset() - GetFieldOffset("lx!_LX_INSTANCE", "I_ListOffset.Flink");
+            ListNodeOffset = List.GetNodeOffset();
+
+            DbgPrint("\tLX_INSTANCE = 0x%p\n", ListNodeOffset);
+
+            if (find(ListNodes.rbegin(), ListNodes.rend(), ListNodeOffset) != ListNodes.rend()) {
+
+                break;
+            }
+
+            ListNodes.push_back(ListNodeOffset);
+
+            ULONG64 LxInstanceHead = ListNodeOffset - GetFieldOffset("lx!_LX_INSTANCE", "I_ListOffset.Flink");
             ExtRemoteUnTyped Instance(LxInstanceHead, "lx!_LX_INSTANCE");
             g_Ext->Dml("\t<b><u>Instance 0x%I64X</u></b>\n", Instance.GetPointerTo());
 
@@ -110,8 +126,18 @@ GetLX(
             ExtRemoteTypedList SessionList(Instance.Field("I_SessionListOffset").GetPointerTo(), "nt!_LIST_ENTRY", "Flink");
 
             for (SessionList.StartHead(); SessionList.HasNode(); SessionList.Next()) {
-                DbgPrint("\t\t_LX_SESSION = 0x%p\n", SessionList.GetNodeOffset());
-                ULONG64 LxSessionHead = SessionList.GetNodeOffset() - GetFieldOffset("lx!_LX_SESSION", "S_ListOffset.Flink");
+
+                SessionListNodeOffset = SessionList.GetNodeOffset();
+
+                if (find(SessionListNodes.rbegin(), SessionListNodes.rend(), SessionListNodeOffset) != SessionListNodes.rend()) {
+
+                    break;
+                }
+
+                SessionListNodes.push_back(SessionListNodeOffset);
+
+                DbgPrint("\t\t_LX_SESSION = 0x%p\n", SessionListNodeOffset);
+                ULONG64 LxSessionHead = SessionListNodeOffset - GetFieldOffset("lx!_LX_SESSION", "S_ListOffset.Flink");
                 DbgPrint("\t\tLxSessionHead = 0x%I64X\n", LxSessionHead);
                 ExtRemoteUnTyped LxSession(LxSessionHead, "lx!_LX_SESSION");
                 g_Ext->Dml("\t\t<b><u>Session 0x%I64X</u></b>\n", LxSession.GetPointerTo());
@@ -121,9 +147,20 @@ GetLX(
                 g_Ext->Dml("\t\tForeground PID:   %d\n", (ULONG)LxSession.Field("S_FgPidOffset").GetPtr());
 
                 ExtRemoteTypedList LxProcessGroupList(LxSession.Field("S_GroupListOffset").GetPointerTo(), "nt!_LIST_ENTRY", "Flink");
+
                 for (LxProcessGroupList.StartHead(); LxProcessGroupList.HasNode(); LxProcessGroupList.Next()) {
-                    DbgPrint("\t\t\t_LX_PROCESSGROUP = 0x%p\n", LxProcessGroupList.GetNodeOffset());
-                    ULONG64 LxProcessGroupHead = LxProcessGroupList.GetNodeOffset() - GetFieldOffset("lx!_LX_PROCESSGROUP", "PG_ListOffset.Flink");
+
+                    LxProcessGroupListNodeOffset = LxProcessGroupList.GetNodeOffset();
+
+                    if (find(LxProcessGroupListNodes.rbegin(), LxProcessGroupListNodes.rend(), LxProcessGroupListNodeOffset) != LxProcessGroupListNodes.rend()) {
+
+                        break;
+                    }
+
+                    LxProcessGroupListNodes.push_back(LxProcessGroupListNodeOffset);
+
+                    DbgPrint("\t\t\t_LX_PROCESSGROUP = 0x%p\n", LxProcessGroupListNodeOffset);
+                    ULONG64 LxProcessGroupHead = LxProcessGroupListNodeOffset - GetFieldOffset("lx!_LX_PROCESSGROUP", "PG_ListOffset.Flink");
                     DbgPrint("\t\t\tLxProcessGroupHead = 0x%I64X\n", LxProcessGroupHead);
                     ExtRemoteUnTyped LxProcessGroup(LxProcessGroupHead, "lx!_LX_PROCESSGROUP");
                     g_Ext->Dml("\t\t\t<b><u>Process Group 0x%I64X</u></b>\n", LxProcessGroup.GetPointerTo());
@@ -131,9 +168,20 @@ GetLX(
                     g_Ext->Dml("\t\t\tSession:       0x%P\n", LxProcessGroup.Field("PG_SessionOffset").GetPtr());
 
                     ExtRemoteTypedList LxThreadGroupList(LxProcessGroup.Field("PG_GroupListOffset").GetPointerTo(), "nt!_LIST_ENTRY", "Flink");
+
                     for (LxThreadGroupList.StartHead(); LxThreadGroupList.HasNode(); LxThreadGroupList.Next()) {
-                        DbgPrint("\t\t\t\t_LX_THREADGROUP = 0x%p\n", LxThreadGroupList.GetNodeOffset());
-                        ULONG64 LxThreadGroupHead = LxThreadGroupList.GetNodeOffset() - GetFieldOffset("lx!_LX_THREADGROUP", "TG_ListOffset.Flink");
+
+                        LxThreadGroupListNodeOffset = LxThreadGroupList.GetNodeOffset();
+
+                        if (find(LxThreadGroupListNodes.rbegin(), LxThreadGroupListNodes.rend(), LxThreadGroupListNodeOffset) != LxThreadGroupListNodes.rend()) {
+
+                            break;
+                        }
+
+                        LxThreadGroupListNodes.push_back(LxThreadGroupListNodeOffset);
+
+                        DbgPrint("\t\t\t\t_LX_THREADGROUP = 0x%p\n", LxThreadGroupListNodeOffset);
+                        ULONG64 LxThreadGroupHead = LxThreadGroupListNodeOffset - GetFieldOffset("lx!_LX_THREADGROUP", "TG_ListOffset.Flink");
                         DbgPrint("\t\t\t\tLxProcessGroupHead = 0x%I64X\n", LxThreadGroupHead);
                         ExtRemoteUnTyped LxThreadGroup(LxThreadGroupHead, "lx!_LX_THREADGROUP");
                         g_Ext->Dml("\t\t\t\t<b><u>Thread Group 0x%I64X</u></b>\n", LxThreadGroup.GetPointerTo());

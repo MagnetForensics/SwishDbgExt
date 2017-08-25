@@ -161,6 +161,7 @@ Return Value:
     ULONG TableCount;
 
     vector<NETWORK_ENTRY> NetworkEntries;
+    vector<ULONG64> Nodes;
 
     ULONG ProcessorType;
     ULONG PlateformId, Major, Minor, ServicePackNumber;
@@ -239,6 +240,13 @@ Return Value:
                 {
                     ULONG64 Current = List.GetNodeOffset();
                     if (!IsValid(Current)) break;
+
+                    if (find(Nodes.rbegin(), Nodes.rend(), Current) != Nodes.rend()) {
+
+                        break;
+                    }
+
+                    Nodes.push_back(Current);
 
                     ExtRemoteUnTyped Tcb(Current, "tcpip!_TCB");
                     Tcb.SubtractOffset("HashTableEntry");

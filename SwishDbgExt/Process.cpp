@@ -525,6 +525,7 @@ Return Value:
 
 --*/
 {
+    vector<ULONG64> Nodes;
     BOOLEAN Result = TRUE;
 
     if (m_CcProcessObject.ProcessId == 4) {
@@ -540,6 +541,13 @@ Return Value:
                 for (Dlls.First(); !Dlls.IsDone(); Dlls.Next()) {
 
                     MsDllObject Object = Dlls.Current();
+
+                    if (find(Nodes.rbegin(), Nodes.rend(), Object.m_ImageBase) != Nodes.rend()) {
+
+                        break;
+                    }
+
+                    Nodes.push_back(Object.m_ImageBase);
 
                     Object.mm_CcDllObject.LoadTime.QuadPart = 0;
 
@@ -568,6 +576,14 @@ Return Value:
                     for (Dlls.First(); !Dlls.IsDone(); Dlls.Next()) {
 
                         MsDllObject Object = Dlls.Current();
+
+                        if (find(Nodes.rbegin(), Nodes.rend(), Object.m_ImageBase) != Nodes.rend()) {
+
+                            break;
+                        }
+
+                        Nodes.push_back(Object.m_ImageBase);
+
                         m_DllList.push_back(Object);
                     }
                 }
@@ -1369,6 +1385,8 @@ Return Value:
 
 --*/
 {
+    vector<ULONG64> Nodes;
+
     try {
 
         ProcessIterator Processes;
@@ -1391,6 +1409,13 @@ Return Value:
 
                 return ProcessObject;
             }
+
+            if (find(Nodes.rbegin(), Nodes.rend(), ProcessObject.m_CcProcessObject.ProcessObjectPtr) != Nodes.rend()) {
+
+                break;
+            }
+
+            Nodes.push_back(ProcessObject.m_CcProcessObject.ProcessObjectPtr);
         }
     }
     catch (...) {
@@ -1420,6 +1445,8 @@ Return Value:
 
 --*/
 {
+    vector<ULONG64> Nodes;
+
     try {
 
         ProcessIterator Processes;
@@ -1442,6 +1469,13 @@ Return Value:
 
                 return ProcessObject;
             }
+
+            if (find(Nodes.rbegin(), Nodes.rend(), ProcessObject.m_CcProcessObject.ProcessObjectPtr) != Nodes.rend()) {
+
+                break;
+            }
+
+            Nodes.push_back(ProcessObject.m_CcProcessObject.ProcessObjectPtr);
         }
     }
     catch (...) {

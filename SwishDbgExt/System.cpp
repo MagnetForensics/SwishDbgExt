@@ -517,11 +517,12 @@ Return Value:
 --*/
 {
     vector<KTIMER> Timers;
+    vector<ULONG64> Nodes;
     ULONG KeNumberProcessors;
     PULONG64 KiProcessorBlock;
+    ULONG64 NodeOffset;
 
     ULONG64 KiTimerTableListHead = GetExpression("nt!KiTimerTableListHead");
-    vector<ULONG64> ReadedTimers(1024);
 
     if (KiTimerTableListHead)
     {
@@ -554,27 +555,27 @@ Return Value:
 
             for (TimerList.StartHead(); TimerList.HasNode(); TimerList.Next())
             {
-                KTIMER Timer = { 0 };
+                KTIMER Timer = {0};
 
-                ULONG64 Ptr = TimerList.GetTypedNode().GetPointerTo().GetPtr();
+                NodeOffset = TimerList.GetNodeOffset();
 
-                BOOLEAN Found = FALSE;
-                for each (ULONG64 Current in ReadedTimers)
-                {
-                    if (Current == Ptr)
-                    {
-                        Found = TRUE;
-                        break;
-                    }
+                if (!IsValid(NodeOffset)) {
+
+                    break;
                 }
-                if (Found) break;
-                ReadedTimers.push_back(Ptr);
+
+                if (find(Nodes.rbegin(), Nodes.rend(), NodeOffset) != Nodes.rend()) {
+
+                    break;
+                }
+
+                Nodes.push_back(NodeOffset);
 
                 UCHAR Type = TimerList.GetTypedNode().Field("Header.Type").GetUchar();
                 if ((Type != TimerNotificationObject) && (Type != TimerSynchronizationObject)) continue;
                 Timer.Type = Type;
 
-                Timer.Timer = Ptr;
+                Timer.Timer = NodeOffset;
                 Timer.Dpc = TimerList.GetTypedNode().Field("Dpc").GetPtr();
 
                 Timer.DueTime.HighPart = TimerList.GetTypedNode().Field("DueTime.HighPart").GetUlong();
@@ -628,23 +629,21 @@ Return Value:
 
                 for (TimerList.StartHead(); TimerList.HasNode(); TimerList.Next())
                 {
-                    KTIMER Timer = { 0 };
-                    ULONG64 Ptr = TimerList.GetTypedNode().GetPointerTo().GetPtr();
+                    KTIMER Timer = {0};
 
-                    // g_Ext->Dml("[%d][%d] KTIMER @ 0x%I64X (%s) (ListHead = 0x%I64X)\n", i, j, Ptr, IsValid(Ptr) ? "Valid" : "Error", ListHead);
-                    if (!IsValid(Ptr)) break;
+                    NodeOffset = TimerList.GetNodeOffset();
 
-                    BOOLEAN Found = FALSE;
-                    for each (ULONG64 Current in ReadedTimers)
-                    {
-                        if (Current == Ptr)
-                        {
-                            Found = TRUE;
-                            break;
-                        }
+                    if (!IsValid(NodeOffset)) {
+
+                        break;
                     }
-                    if (Found) break;
-                    ReadedTimers.push_back(Ptr);
+
+                    if (find(Nodes.rbegin(), Nodes.rend(), NodeOffset) != Nodes.rend()) {
+
+                        break;
+                    }
+
+                    Nodes.push_back(NodeOffset);
 
                     UCHAR Type = TimerList.GetTypedNode().Field("Header.Type").GetUchar();
                     if ((Type != TimerNotificationObject) && (Type != TimerSynchronizationObject)) continue;
@@ -652,7 +651,7 @@ Return Value:
                     Timer.Type = Type;
 
                     Timer.CoreId = i;
-                    Timer.Timer = Ptr;
+                    Timer.Timer = NodeOffset;
                     Timer.Dpc = TimerList.GetTypedNode().Field("Dpc").GetPtr();
 
                     Timer.Dpc = KiDecodePointer(Timer.Dpc, Timer.Timer);
@@ -796,9 +795,11 @@ Return Value:
 {
     vector<IDT_TABLE> IdtTables;
     vector<IDT_ENTRY> IdtEntries;
+    vector<ULONG64> Nodes;
     PULONG64 KiProcessorBlock;
     ULONG64 Address;
     ULONG64 InterruptAddress;
+    ULONG64 NodeOffset;
     ULONG ActualMachine;
     ULONG DispatchCodeOffset;
     ULONG CoreIndex = 0;
@@ -923,6 +924,15 @@ Return Value:
 
                             for (InterruptList.StartHead(); InterruptList.HasNode(); InterruptList.Next()) {
 
+                                NodeOffset = InterruptList.GetNodeOffset();
+
+                                if (find(Nodes.rbegin(), Nodes.rend(), NodeOffset) != Nodes.rend()) {
+
+                                    break;
+                                }
+
+                                Nodes.push_back(NodeOffset);
+
                                 IdtEntry.Address = InterruptList.GetTypedNode().Field("ServiceRoutine").GetPtr();
                                 IdtEntry.Index = i;
                                 IdtEntry.CoreIndex = CoreIndex;
@@ -1016,6 +1026,15 @@ Return Value:
                             ExtRemoteTypedList InterruptList(Interrupt.Field("InterruptListEntry").GetPointerTo().GetPtr(), "nt!_KINTERRUPT", "InterruptListEntry");
 
                             for (InterruptList.StartHead(); InterruptList.HasNode(); InterruptList.Next()) {
+
+                                NodeOffset = InterruptList.GetNodeOffset();
+
+                                if (find(Nodes.rbegin(), Nodes.rend(), NodeOffset) != Nodes.rend()) {
+
+                                    break;
+                                }
+
+                                Nodes.push_back(NodeOffset);
 
                                 IdtEntry.Address = InterruptList.GetTypedNode().Field("ServiceRoutine").GetPtr();
                                 IdtEntry.Index = i;
@@ -1236,6 +1255,8 @@ Return Value:
     // ULONG ExDelayedWorkerThreads;
 
     ExtRemoteTyped Nodes;
+    vector<ULONG64> ThreadListNodes;
+    ULONG64 NodeOffset;
 
     if (g_Ext->m_Minor < 9200)
     {
@@ -1275,10 +1296,19 @@ Return Value:
 
             g_Ext->Dml("**** NUMA Node %d %-24s \n", i, WorkQueueType[j]);
 
-            for (ThreadList.StartHead(); ThreadList.HasNode(); ThreadList.Next())
-            {
+            for (ThreadList.StartHead(); ThreadList.HasNode(); ThreadList.Next()) {
+
+                NodeOffset = ThreadList.GetNodeOffset();
+
+                if (find(ThreadListNodes.rbegin(), ThreadListNodes.rend(), NodeOffset) != ThreadListNodes.rend()) {
+
+                    break;
+                }
+
+                ThreadListNodes.push_back(NodeOffset);
+
                 g_Ext->Dml("THREAD <link cmd=\"!thread 0x%I64X\">0x%I64X</link> Cid %04X.%04X Teb: 0x%I64X Win32Thread: 0x%I64X \n",
-                           ThreadList.GetNodeOffset(), ThreadList.GetNodeOffset(),
+                           NodeOffset, NodeOffset,
                            (USHORT)ThreadList.GetTypedNode().Field("Cid.UniqueProcess").GetPtr(),
                            (USHORT)ThreadList.GetTypedNode().Field("Cid.UniqueThread").GetPtr(),
                            ThreadList.GetTypedNode().Field("Tcb.Teb").GetPtr(),

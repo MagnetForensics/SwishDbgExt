@@ -1041,6 +1041,7 @@ Return Value:
 {
     ULONG64 CmpHiveListHead;
     vector<HIVE_OBJECT> Hives;
+    vector<ULONG64> Nodes;
 
     CmpHiveListHead = GetExpression("nt!CmpHiveListHead");
 
@@ -1052,12 +1053,20 @@ Return Value:
 
             HIVE_OBJECT HiveObject = {0};
 
+            HiveObject.HivePtr = HiveList.GetNodeOffset();
+
+            if (find(Nodes.rbegin(), Nodes.rend(), HiveObject.HivePtr) != Nodes.rend()) {
+
+                break;
+            }
+
+            Nodes.push_back(HiveObject.HivePtr);
+
             if (HiveList.GetTypedNode().Field("Hive.Signature").GetUlong() != CM_HIVE_SIGNATURE) break;
 
             ExtRemoteTypedEx::GetUnicodeString(HiveList.GetTypedNode().Field("FileUserName"), (PWSTR)&HiveObject.FileUserName, sizeof(HiveObject.FileUserName));
             ExtRemoteTypedEx::GetUnicodeString(HiveList.GetTypedNode().Field("HiveRootPath"), (PWSTR)&HiveObject.HiveRootPath, sizeof(HiveObject.HiveRootPath));
 
-            HiveObject.HivePtr = HiveList.GetNodeOffset();
             HiveObject.KeyNodePtr = GetKeyNode(HiveObject.HiveRootPath).m_Data;
             HiveObject.GetCellRoutine = HiveList.GetTypedNode().Field("Hive.GetCellRoutine").GetPtr();
             HiveObject.Allocate = HiveList.GetTypedNode().Field("Hive.Allocate").GetPtr();

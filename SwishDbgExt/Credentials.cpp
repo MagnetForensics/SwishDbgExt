@@ -310,14 +310,13 @@ Return Value:
 --*/
 {
     // KIWI_MSV1_0_PRIMARY_CREDENTIALS_X64 primaryCredentials;
-
+    vector<ULONG64> Nodes1;
+    vector<ULONG64> Nodes2;
+    ULONG64 NodeOffset;
     DWORD flags;
-
     ULONG SizeOfMsv1_0_Credentials;
     ULONG SizeOfMsv1_0_Primary_Credentials;
-
     ULONG Offset_Cedentials_PrimaryCredentials;
-
     ULONG Offset_PrimaryCedentials_Credentials;
     ULONG Offset_PrimaryCedentials_Primary;
 
@@ -349,7 +348,16 @@ Return Value:
     {
         ULONG64 pPrimary;
 
-        if (ReadPointersVirtual(1, CredList.GetNodeOffset() + Offset_Cedentials_PrimaryCredentials, &pPrimary) != S_OK) goto CleanUp;
+        NodeOffset = CredList.GetNodeOffset();
+
+        if (find(Nodes1.rbegin(), Nodes1.rend(), NodeOffset) != Nodes1.rend()) {
+
+            break;
+        }
+
+        Nodes1.push_back(NodeOffset);
+
+        if (ReadPointersVirtual(1, NodeOffset + Offset_Cedentials_PrimaryCredentials, &pPrimary) != S_OK) goto CleanUp;
 
         ExtRemoteTypedList PrimaryCredList(pPrimary, "nt!_SINGLE_LIST_ENTRY", "Next");
         for (PrimaryCredList.StartHead(); PrimaryCredList.HasNode(); PrimaryCredList.Next())
@@ -358,6 +366,14 @@ Return Value:
             WCHAR Primary[128] = { 0 };
 
             pPrimary = PrimaryCredList.GetNodeOffset();
+
+            if (find(Nodes2.rbegin(), Nodes2.rend(), pPrimary) != Nodes2.rend()) {
+
+                break;
+            }
+
+            Nodes2.push_back(pPrimary);
+
 #if 0
             if (g_Ext->m_Data->ReadVirtual(PrimaryCredList.GetNodeOffset(),
                                            &primaryCredentials,
@@ -1161,6 +1177,7 @@ Return Value:
 
 --*/
 {
+    vector<ULONG64> Nodes;
     ULONG64 pInitializationVector, phAesKey, ph3DesKey, pLogonSessionList, pLogonSessionListCount;
     PULONG64 LogonSessionList = NULL;
     ULONG LogonSessionListCount, i, j;
@@ -1264,6 +1281,13 @@ Return Value:
             SessionList.Next())
         {
             Flink = SessionList.GetNodeOffset();
+
+            if (find(Nodes.rbegin(), Nodes.rend(), Flink) != Nodes.rend()) {
+
+                break;
+            }
+
+            Nodes.push_back(Flink);
 
             g_Ext->Dml("Flink2 = %I64X\n", Flink);
 
