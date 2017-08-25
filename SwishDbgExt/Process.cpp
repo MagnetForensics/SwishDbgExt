@@ -1169,25 +1169,6 @@ Return Value:
     RtlZeroMemory(&m_Image, sizeof(m_Image));
 }
 
-BOOL
-IsProcessEntryPresent(
-    _In_ vector<MsProcessObject> &ObjectEntries,
-    _In_ ULONG64 ObjectPtr
-    )
-{
-    for (size_t i = ObjectEntries.size(); i > 0 ; i--) {
-
-        MsProcessObject Entry = ObjectEntries[i - 1];
-
-        if (Entry.m_CcProcessObject.ProcessObjectPtr == ObjectPtr) {
-
-            return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
 ProcessArray
 GetProcesses(
     _In_opt_ ULONG64 Pid,
@@ -1210,6 +1191,7 @@ Return Value:
 
 --*/
 {
+    vector<ULONG64> Nodes;
     ProcessArray ProcessList;
     ProcessArray MmProcessList;
     ProcessIterator Processes;
@@ -1222,10 +1204,12 @@ Return Value:
         {
             MsProcessObject ProcObject = Processes.Current();
 
-            if (IsProcessEntryPresent(ProcessList, ProcObject.m_CcProcessObject.ProcessObjectPtr)) {
+            if (find(Nodes.rbegin(), Nodes.rend(), ProcObject.m_CcProcessObject.ProcessObjectPtr) != Nodes.rend()) {
 
                 break;
             }
+
+            Nodes.push_back(ProcObject.m_CcProcessObject.ProcessObjectPtr);
 
             if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Current process %s\n", __FILE__, __FUNCTIONW__, __LINE__, ProcObject.m_CcProcessObject.ImageFileName);
 
@@ -1245,14 +1229,18 @@ Return Value:
 
             ProcessIterator MmProcesses(ProcessLinksMmType);
 
+            Nodes.clear();
+
             for (MmProcesses.First(); !MmProcesses.IsDone(); MmProcesses.Next())
             {
                 MsProcessObject ProcObject = MmProcesses.Current();
 
-                if (IsProcessEntryPresent(MmProcessList, ProcObject.m_CcProcessObject.ProcessObjectPtr)) {
+                if (find(Nodes.rbegin(), Nodes.rend(), ProcObject.m_CcProcessObject.ProcessObjectPtr) != Nodes.rend()) {
 
                     break;
                 }
+
+                Nodes.push_back(ProcObject.m_CcProcessObject.ProcessObjectPtr);
 
                 MmProcessList.push_back(ProcObject);
             }
@@ -1847,25 +1835,6 @@ Return Value:
     return TRUE;
 }
 
-BOOL
-IsThreadEntryPresent(
-    _In_ vector<THREAD_OBJECT> &ObjectEntries,
-    _In_ ULONG64 ObjectPtr
-    )
-{
-    for (size_t i = ObjectEntries.size(); i > 0 ; i--) {
-
-        PTHREAD_OBJECT Entry = &ObjectEntries[i - 1];
-
-        if (Entry->ObjectPtr == ObjectPtr) {
-
-            return TRUE;
-        }
-    }
-
-    return FALSE;
-}
-
 BOOLEAN
 MsProcessObject::GetThreads(
 )
@@ -1885,6 +1854,7 @@ Return Value:
 
 --*/
 {
+    vector<ULONG64> Nodes;
     ULONG64 ThreadListHead = m_TypedObject.Field("ThreadListHead").GetPointerTo().GetPtr();
 
     ExtRemoteTypedList ThreadList(ThreadListHead, "nt!_ETHREAD", "ThreadListEntry");
@@ -1895,14 +1865,16 @@ Return Value:
 
             THREAD_OBJECT ThreadObject = {0};
 
-            if (ThreadList.GetTypedNode().Field("Tcb.Header.Type").GetUchar() != 6) {
+            ThreadObject.ObjectPtr = ThreadList.GetNodeOffset();
+
+            if (find(Nodes.rbegin(), Nodes.rend(), ThreadObject.ObjectPtr) != Nodes.rend()) {
 
                 break;
             }
 
-            ThreadObject.ObjectPtr = ThreadList.GetNodeOffset();
+            Nodes.push_back(ThreadObject.ObjectPtr);
 
-            if (IsThreadEntryPresent(m_Threads, ThreadObject.ObjectPtr)) {
+            if (ThreadList.GetTypedNode().Field("Tcb.Header.Type").GetUchar() != 6) {
 
                 break;
             }

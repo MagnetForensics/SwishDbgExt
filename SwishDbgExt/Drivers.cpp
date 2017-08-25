@@ -161,24 +161,6 @@ Return Value:
     */
 }
 
-BOOL
-IsDriverEntryPresent(
-    _In_ vector<MsDllObject> &ObjectEntries,
-    _In_ ULONG64 ImageBase
-    )
-{
-    for (size_t i = ObjectEntries.size(); i > 0 ; i--) {
-
-        MsDllObject Entry = ObjectEntries[i - 1];
-
-        if (Entry.m_ImageBase == ImageBase) {
-
-            return TRUE;
-        }
-    }
-
-    return FALSE;
-}
 
 vector<MsDriverObject>
 GetDrivers(
@@ -202,6 +184,7 @@ Return Value:
     vector<HANDLE_OBJECT> DriverObjects = ObOpenObjectDirectory(ObGetDriverObject());
     vector<MsDriverObject> Drivers;
     vector<MsDllObject> DllList;
+    vector<ULONG64> Nodes;
     ULONG64 Head = ExtNtOsInformation::GetKernelLoadedModuleListHead();
 
     if (IsValid(Head)) {
@@ -214,10 +197,12 @@ Return Value:
 
                 MsDllObject DllObject = Dlls.Current();
 
-                if (IsDriverEntryPresent(DllList, DllObject.m_ImageBase)) {
+                if (find(Nodes.rbegin(), Nodes.rend(), DllObject.m_ImageBase) != Nodes.rend()) {
 
                     break;
                 }
+
+                Nodes.push_back(DllObject.m_ImageBase);
 
                 DllList.push_back(DllObject);
             }

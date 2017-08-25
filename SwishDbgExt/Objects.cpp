@@ -41,6 +41,7 @@ Revision History:
 BOOLEAN ObTypeInit = FALSE;
 ExtRemoteTyped ObjTypeTable;
 
+
 BOOLEAN
 ObReadObject(
     _In_ ULONG64 Object,
@@ -226,14 +227,15 @@ Return Value:
 --*/
 {
     vector<HANDLE_OBJECT> Handles;
+    vector<ULONG64> Nodes;
     HANDLE_OBJECT Handle = {0};
     ExtRemoteTyped Directory;
     ULONG64 ObjectDir = InputObject;
 
     try {
 
-        if (!ObjectDir)
-        {
+        if (!ObjectDir) {
+
             ReadPointer(ObpRootDirectoryObjectAddress, &ObjectDir);
         }
 
@@ -241,19 +243,31 @@ Return Value:
 
         ObReadObject(ObjectDir, &Handle);
 
-        for (UINT i = 0; i < 37; i += 1)
-        {
+        for (UINT i = 0; i < 37; i += 1) {
+
             ULONG64 Entry = Directory.Field("HashBuckets").ArrayElement(i).GetPointerTo().GetPtr();
-            if (!Entry) continue;
+
+            if (!Entry) {
+
+                continue;
+            }
 
             //
             // ExtRemoteTypedList requires a POINTER to the first entry. Not the offset of the first entry.
             //
+
             ExtRemoteTypedList EntryList(Entry, "nt!_OBJECT_DIRECTORY_ENTRY", "ChainLink");
 
-            for (EntryList.StartHead(); EntryList.HasNode(); EntryList.Next())
-            {
+            for (EntryList.StartHead(); EntryList.HasNode(); EntryList.Next()) {
+
                 ULONG64 Object = EntryList.GetTypedNode().Field("Object").GetPtr();
+
+                if (find(Nodes.rbegin(), Nodes.rend(), Object) != Nodes.rend()) {
+
+                    break;
+                }
+
+                Nodes.push_back(Object);
 
                 ObReadObject(Object, &Handle);
 
