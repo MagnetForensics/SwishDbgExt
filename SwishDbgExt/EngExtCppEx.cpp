@@ -511,7 +511,8 @@ Return Value:
 
     if (g_Ext->m_Data->ReadVirtual(Pointer, ByteCode, sizeof(ByteCode), NULL) == S_OK) {
 
-        if (ByteCode[0] == 0xe9) // jmp
+        if (ByteCode[0] == 0xe9 ||
+            ByteCode[0] == 0xeb) // jmp
         {
             HookType = JmpHook;
         }
