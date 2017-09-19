@@ -1490,9 +1490,9 @@ MsProcessObject::MmGetFirstVad(
     _Inout_ PVAD_OBJECT VadInfo
 )
 {
-    ULONG64 First, LeftChild = 0;
+    ULONG64 First = 0, LeftChild = 0;
     ExtRemoteTyped MmVad;
-    ULONG MaxIter = 0;
+    vector<ULONG64> Nodes;
 
     try {
 
@@ -1515,12 +1515,14 @@ MsProcessObject::MmGetFirstVad(
 
         while (First)
         {
-            if (MaxIter++ > 1000) {
+            LeftChild = First;
+
+            if (find(Nodes.rbegin(), Nodes.rend(), LeftChild) != Nodes.rend()) {
 
                 return FALSE;
             }
 
-            LeftChild = First;
+            Nodes.push_back(LeftChild);
 
             MmVad = ExtRemoteTyped("(nt!_MMVAD *)@$extin", LeftChild);
 
@@ -1594,7 +1596,7 @@ Return Value:
     ULONG64 Parent, Next;
     ULONG64 LeftChild = 0, RightChild;
     ExtRemoteTyped MmVad;
-    ULONG MaxIter;
+    vector<ULONG64> Nodes;
 
     try {
 
@@ -1630,19 +1632,12 @@ Return Value:
             RightChild = MmVad.Field("RightChild").GetPtr();
         }
 
-        MaxIter = 0;
-
         if (!RightChild)
         {
             if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Looking for parent node.\n", __FILE__, __FUNCTIONW__, __LINE__);
 
             while (TRUE)
             {
-                if (MaxIter++ > 1000) {
-
-                    return FALSE;
-                }
-
                 if (MmVad.HasField("u1.Parent"))
                 {
                     Parent = MmVad.Field("u1.Parent").GetPtr();
@@ -1700,6 +1695,13 @@ Return Value:
                     break;
                 }
 
+                if (find(Nodes.rbegin(), Nodes.rend(), Parent) != Nodes.rend()) {
+
+                    return FALSE;
+                }
+
+                Nodes.push_back(Parent);
+
                 Next = Parent;
             }
         }
@@ -1709,17 +1711,12 @@ Return Value:
 
             while (Next)
             {
-                if (MaxIter++ > 1000) {
-
-                    return FALSE;
-                }
-
                 LeftChild = Next;
                 if (g_Verbose) g_Ext->Dml("[%s!%S!%d] Trying to access [0x%llX] Node\n",
                     __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
 
                 if (!IsValid(LeftChild)) {
-                    g_Ext->Err("[%s!%S!%d] Unable to get LeftChild of nt!_MMVAD_SHORT at 0x%llX\n", __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
+                    if (g_Verbose) g_Ext->Err("[%s!%S!%d] Unable to get LeftChild of nt!_MMVAD_SHORT at 0x%llX\n", __FILE__, __FUNCTIONW__, __LINE__, LeftChild);
                     return FALSE;
                 }
 
@@ -1742,6 +1739,13 @@ Return Value:
 
                     Next = MmVad.Field("LeftChild").GetPtr();
                 }
+
+                if (find(Nodes.rbegin(), Nodes.rend(), Next) != Nodes.rend()) {
+
+                    return FALSE;
+                }
+
+                Nodes.push_back(Next);
             }
 
             VadInfo->CurrentNode = LeftChild;
