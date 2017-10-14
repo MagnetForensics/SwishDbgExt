@@ -84,7 +84,9 @@ using namespace web::http::client;
 #pragma comment(lib, "cpprest120_1_4.lib")
 #endif
 
-#define EXT_VERSION "0.7"
+#ifndef COMAE_TOOLKIT_VERSION
+#define COMAE_TOOLKIT_VERSION ""
+#endif
 
 #define API_EXPORT __declspec(dllexport)
 #define SIGN_EXTEND(_x_) (ULONG64)(LONG)(_x_) 
