@@ -613,9 +613,18 @@ Return Value:
 
                     if (g_Ext->m_Data->ReadVirtual(PebLdrData.InLoadOrderModuleList.Flink, &LdrDataTableEntry, sizeof(LdrDataTableEntry), NULL) != S_OK) goto CleanUp;
 
+                    Nodes.clear();
+
                     while (PebLdrData.InLoadOrderModuleList.Flink != LdrDataTableEntry.InLoadOrderLinks.Flink)
                     {
                         MsDllObject Object;
+
+                        if (find(Nodes.rbegin(), Nodes.rend(), LdrDataTableEntry.InLoadOrderLinks.Flink) != Nodes.rend()) {
+
+                            break;
+                        }
+
+                        Nodes.push_back(LdrDataTableEntry.InLoadOrderLinks.Flink);
 
                         if (LdrDataTableEntry.InLoadOrderLinks.Flink == 0) break;
                         if (LdrDataTableEntry.DllBase == 0) break;
