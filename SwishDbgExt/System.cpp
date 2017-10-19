@@ -257,6 +257,15 @@ Return Value:
 
         for each (VAD_OBJECT Vad in ProcessObject.m_Vads) {
 
+            //
+            // Check if VAD's range is valid.
+            //
+
+            if ((Vad.StartingVpn & ~0xFFFFFFFFFF) || (Vad.EndingVpn & ~0xFFFFFFFFFF)) {
+
+                continue;
+            }
+
             if (Vad.PrivateMemory) {
 
                 RangeStart = Vad.StartingVpn * BufferSize;
