@@ -88,11 +88,12 @@ GetSubKeys(
     )
 {
     vector<KEY_NODE> SubKeys;
+    ULONG SubKeysStableCount;
+    ULONG SubKeysVolatileCount;
 
-    ULONG SubKeysStableCount = KeyNode.Field("SubKeyCounts").ArrayElement(0).GetUlong();
-    ULONG SubKeysVolatileCount = KeyNode.Field("SubKeyCounts").ArrayElement(1).GetUlong();
+    SubKeysStableCount = KeyNode.Field("SubKeyCounts").ArrayElement(0).GetUlong();
 
-    if (SubKeysStableCount) {
+    if (SubKeysStableCount && !(SubKeysStableCount & ~0xFFFF)) {
 
         ULONG SubKeysStableIndex = KeyNode.Field("SubKeyLists").ArrayElement(0).GetUlong();
         ULONG64 SubKeysStableTableAddress = RegGetCellPaged(KeyHive, SubKeysStableIndex);
@@ -153,7 +154,9 @@ GetSubKeys(
         }
     }
 
-    if (SubKeysVolatileCount) {
+    SubKeysVolatileCount = KeyNode.Field("SubKeyCounts").ArrayElement(1).GetUlong();
+
+    if (SubKeysVolatileCount && !(SubKeysVolatileCount & ~0xFFFF)) {
 
         ULONG SubKeysVolatileIndex = KeyNode.Field("SubKeyLists").ArrayElement(1).GetUlong();
         ULONG64 SubKeysVolatileTableAddress = RegGetCellPaged(KeyHive, SubKeysVolatileIndex);
@@ -334,7 +337,7 @@ RegGetKeyValue(
 
         ULONG ValuesCount = KeyNode.Field("ValueList").Field("Count").GetUlong();
 
-        if (ValuesCount) {
+        if (ValuesCount && !(ValuesCount & ~0xFFFF)) {
 
             PULONG ValuesTable = (PULONG)calloc(ValuesCount, sizeof(ULONG));
 
@@ -444,7 +447,7 @@ RegGetKeyValuesNames(
 
         ULONG ValuesCount = KeyNode.Field("ValueList").Field("Count").GetUlong();
 
-        if (ValuesCount) {
+        if (ValuesCount && !(ValuesCount & ~0xFFFF)) {
 
             PULONG ValuesTable = (PULONG)calloc(ValuesCount, sizeof(ULONG));
 
@@ -632,7 +635,7 @@ Return Value:
 
     if (SubKeysStableCount + SubKeysVolatileCount) g_Ext->Dml(" [*] Subkeys (%d):\n", SubKeysStableCount + SubKeysVolatileCount);
 
-    if (SubKeysStableCount)
+    if (SubKeysStableCount && !(SubKeysStableCount & ~0xFFFF))
     {
         ULONG SubKeysStableIndex = KeyNode.Field("SubKeyLists").ArrayElement(0).GetUlong();
 
@@ -700,7 +703,7 @@ Return Value:
         }
     }
 
-    if (SubKeysVolatileCount)
+    if (SubKeysVolatileCount && !(SubKeysVolatileCount & ~0xFFFF))
     {
         ULONG SubKeysVolatileIndex = KeyNode.Field("SubKeyLists").ArrayElement(1).GetUlong();
 
@@ -764,7 +767,7 @@ Return Value:
 
     g_Ext->Dml("\n");
 
-    if (ValuesCount) {
+    if (ValuesCount && !(ValuesCount & ~0xFFFF)) {
 
         ValuesTableAddress = RegGetCellPaged(KeyHive, ValuesIndex);
 
@@ -945,74 +948,77 @@ Return Value:
 
     ULONG DataLength = (KeyValue.Field("DataLength").GetUlong()) & 0x7FFFFFFF;
 
-    Buffer = (PUCHAR)calloc(DataLength + sizeof(WCHAR), sizeof(BYTE));
+    if (DataLength && !(DataLength & ~0xFFFFF)) {
 
-    if (Buffer) {
+        Buffer = (PUCHAR)calloc(DataLength + sizeof(WCHAR), sizeof(BYTE));
 
-        switch (KeyValue.Field("Type").GetUlong())
-        {
-            case REG_BINARY:
-                Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
-                if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
+        if (Buffer) {
 
-                g_Ext->Dml("\n        REG_BINARY: \n        ");
-                for (i = 0; i < DataLength; i += 1)
-                {
-                    UINT j;
-                    for (j = 0; (i + j < DataLength) && (j < 0x10); j += 1)
+            switch (KeyValue.Field("Type").GetUlong())
+            {
+                case REG_BINARY:
+                    Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
+                    if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
+
+                    g_Ext->Dml("\n        REG_BINARY: \n        ");
+                    for (i = 0; i < DataLength; i += 1)
                     {
-                        g_Ext->Dml("0x%02x ", Buffer[i + j]);
+                        UINT j;
+                        for (j = 0; (i + j < DataLength) && (j < 0x10); j += 1)
+                        {
+                            g_Ext->Dml("0x%02x ", Buffer[i + j]);
+                        }
+
+                        for (; j < 0x10; j += 1) g_Ext->Dml("     ");
+
+                        g_Ext->Dml(" | ");
+                        for (j = 0; (i + j < DataLength) && (j < 0x10); j += 1)
+                        {
+                            g_Ext->Dml("%c ", ((Buffer[i + j] >= ' ') && (Buffer[i + j] <= 'Z')) ? Buffer[i + j] : '.');
+                        }
+
+                        g_Ext->Dml("\n        ");
+
+                        i += j;
                     }
-
-                    for (; j < 0x10; j += 1) g_Ext->Dml("     ");
-
-                    g_Ext->Dml(" | ");
-                    for (j = 0; (i + j < DataLength) && (j < 0x10); j += 1)
-                    {
-                        g_Ext->Dml("%c ", ((Buffer[i + j] >= ' ') && (Buffer[i + j] <= 'Z')) ? Buffer[i + j] : '.');
-                    }
-
-                    g_Ext->Dml("\n        ");
-
-                    i += j;
-                }
-                if (((i + 1) % 0x10) != 0) g_Ext->Dml("\n");
-            break;
-            case REG_DWORD:
-                g_Ext->Dml("0x%08X (REG_DWORD)\n", KeyValue.Field("Data").GetUlong());
+                    if (((i + 1) % 0x10) != 0) g_Ext->Dml("\n");
                 break;
-            case REG_DWORD_BIG_ENDIAN:
-                g_Ext->Dml("0x%08X (REG_DWORD_BIG_ENDIAN)\n", KeyValue.Field("Data").GetUlong());
-                break;
-            case REG_EXPAND_SZ:
-                Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
-                if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
+                case REG_DWORD:
+                    g_Ext->Dml("0x%08X (REG_DWORD)\n", KeyValue.Field("Data").GetUlong());
+                    break;
+                case REG_DWORD_BIG_ENDIAN:
+                    g_Ext->Dml("0x%08X (REG_DWORD_BIG_ENDIAN)\n", KeyValue.Field("Data").GetUlong());
+                    break;
+                case REG_EXPAND_SZ:
+                    Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
+                    if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
 
-                g_Ext->Dml("%S (REG_EXPAND_SZ)\n", Buffer);
-                break;
-            case REG_LINK:
-                Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
-                if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
+                    g_Ext->Dml("%S (REG_EXPAND_SZ)\n", Buffer);
+                    break;
+                case REG_LINK:
+                    Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
+                    if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
 
-                g_Ext->Dml("%S (REG_LINK)\n", Buffer);
-                break;
-            case REG_MULTI_SZ:
-                Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
-                if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
+                    g_Ext->Dml("%S (REG_LINK)\n", Buffer);
+                    break;
+                case REG_MULTI_SZ:
+                    Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
+                    if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
 
-                g_Ext->Dml("%S (REG_MULTI_SZ)\n", Buffer);
-                break;
-            case REG_NONE:
-                break;
-            case REG_QWORD:
-                g_Ext->Dml("0x%I64X (REG_QWORD)\n", KeyValue.Field("Data").GetLong64());
-                break;
-            case REG_SZ:
-                Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
-                if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
+                    g_Ext->Dml("%S (REG_MULTI_SZ)\n", Buffer);
+                    break;
+                case REG_NONE:
+                    break;
+                case REG_QWORD:
+                    g_Ext->Dml("0x%I64X (REG_QWORD)\n", KeyValue.Field("Data").GetLong64());
+                    break;
+                case REG_SZ:
+                    Data = RegGetCellPaged(KeyHive, KeyValue.Field("Data").GetUlong());
+                    if (ExtRemoteTypedEx::ReadVirtual(Data, Buffer, DataLength, NULL) != S_OK) goto CleanUp;
 
-                g_Ext->Dml("%S (REG_SZ)\n", Buffer);
-            break;
+                    g_Ext->Dml("%S (REG_SZ)\n", Buffer);
+                break;
+            }
         }
     }
 
