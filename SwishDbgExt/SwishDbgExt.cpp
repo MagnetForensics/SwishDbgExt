@@ -474,7 +474,6 @@ EXT_COMMAND(ms_process,
             for each (THREAD_OBJECT Thread in ProcObj.m_Threads) {
 
                 UCHAR Name[512] = {0};
-                UCHAR TimerType[32] = {0};
                 SYSTEMTIME CreateTime = {0}, ExitTime = {0};
 
                 if (Thread.Win32StartAddress) {
@@ -1752,8 +1751,6 @@ EXT_COMMAND(ms_gdt,
 
     for each (GDT_OBJECT Gdt in Gdts)
     {
-        UCHAR Name[512] = { 0 };
-
         Dml("    | %3d | %3x | %-32s | 0x%016I64X | %-54s |\n",
             Gdt.CoreIndex,
             Gdt.Index,
