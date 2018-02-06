@@ -124,6 +124,8 @@ public:
 
     EXT_COMMAND_METHOD(ms_lxss);
 
+    EXT_COMMAND_METHOD(ms_yarascan);
+
     HRESULT
     Initialize(void)
     {
@@ -2215,4 +2217,32 @@ EXT_COMMAND(ms_lxss,
     "{;e,o;;}")
 {
     GetLX();
+}
+
+EXT_COMMAND(ms_yarascan,
+    "Scan process memory using yara rules",
+    "{;e,o;;}"
+    "{pid;ed,o;pid;Process Id}"
+    "{yarafile;s;yarafile;Yara rules file}"
+    )
+{
+    ULONG64 Pid;
+    PCSTR FileName;
+
+    Pid = GetArgU64("pid", FALSE);
+    FileName = GetArgStr("yarafile", FALSE);
+
+    ProcessArray CachedProcessList = GetProcesses(Pid, 0);
+
+    if (CachedProcessList.size()) {
+
+        MsProcessObject ProcObj = CachedProcessList[0];
+
+        Dml("\n<col fg=\"changed\">Process:</col> <link cmd=\"!process %p 1\">%s</link>, Pid: 0x%x\n\n",
+            ProcObj.m_CcProcessObject.ProcessObjectPtr,
+            ProcObj.m_CcProcessObject.ImageFileName,
+            ProcObj.m_CcProcessObject.ProcessId);
+
+        YaraScan(&ProcObj, FileName);
+    }
 }

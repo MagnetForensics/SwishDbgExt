@@ -71,6 +71,7 @@ using namespace web::http::client;
 #include "VirusTotal.h"
 #include "Checks\Codecave.h"
 #include "Lxss.h"
+#include "Yara.h"
 
 #include "Security.h"
 #include "Objects.h"

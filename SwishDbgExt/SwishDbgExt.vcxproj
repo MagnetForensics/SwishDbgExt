@@ -205,6 +205,7 @@
     <ClCompile Include="System.cpp" />
     <ClCompile Include="UntypedData.cpp" />
     <ClCompile Include="VirusTotal.cpp" />
+    <ClCompile Include="Yara.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Azure.h" />
@@ -238,8 +239,10 @@
     <ClInclude Include="targetver.h" />
     <ClInclude Include="UntypedData.h" />
     <ClInclude Include="VirusTotal.h" />
+    <ClInclude Include="Yara.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="packages.config" />
     <None Include="SwishDbgExt.def" />
   </ItemGroup>
   <ItemGroup>
@@ -247,5 +250,14 @@
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\yara-vs2015-binary-dependencies.0.0.1\build\native\yara-vs2015-binary-dependencies.targets" Condition="Exists('..\packages\yara-vs2015-binary-dependencies.0.0.1\build\native\yara-vs2015-binary-dependencies.targets')" />
+    <Import Project="..\packages\libyara_vs2015.3.5.1\build\native\libyara_vs2015.targets" Condition="Exists('..\packages\libyara_vs2015.3.5.1\build\native\libyara_vs2015.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\yara-vs2015-binary-dependencies.0.0.1\build\native\yara-vs2015-binary-dependencies.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\yara-vs2015-binary-dependencies.0.0.1\build\native\yara-vs2015-binary-dependencies.targets'))" />
+    <Error Condition="!Exists('..\packages\libyara_vs2015.3.5.1\build\native\libyara_vs2015.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\libyara_vs2015.3.5.1\build\native\libyara_vs2015.targets'))" />
+  </Target>
 </Project>
