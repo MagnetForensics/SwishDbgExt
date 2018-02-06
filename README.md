@@ -241,6 +241,20 @@ You can read more about the Windows Subsystem for Linux at the following links:
 					Stack Address:       0x00007FFFF70D0000
 ```
 
+### !ms_yarascan
+
+Scan a process memory with yara rules.
+
+Scan a process memory.
+```
+!ms_yarascan /pid 0x228 /yarafile /yarafile C:\Rules.yar
+```
+
+Scan all processes memory.
+```
+!for_each_process "r? @$t0 = (nt!_EPROCESS *) @#Process; .process /r /p @$t0; !ms_yarascan /pid @@C++(@$t0->UniqueProcessId) /yarafile C:\\Rules.yar"
+```
+
 ## Classes
 ### PEFile
 `MsPEImageFile` contains the basic common information used by Windows binaries (PE) and has been derivated into three different classes:
