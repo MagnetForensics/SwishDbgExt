@@ -109,6 +109,17 @@ typedef struct _KEY_NODE {
     ExtRemoteTyped KeyNode;
 } KEY_NODE, *PKEY_NODE;
 
+typedef struct _REG_CHECK {
+    PWSTR KeyName;
+    PWSTR ValueName;
+    ULONG ValueType;
+} REG_CHECK, *PREG_CHECK;
+
+
+PWSTR
+GetRegistryValueTypeName(
+    _In_ ULONG ValueType
+    );
 
 ULONG64
 RegGetCellPaged(
@@ -137,8 +148,9 @@ BOOL
 RegGetKeyValue(
     _In_ PWSTR FullKeyPath,
     _In_ PWSTR ValueName,
-    _In_ PVOID Data,
-    _In_ ULONG DataLength
+    _Out_writes_bytes_to_(Length, *DataLength) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_ PULONG DataLength
     );
 
 vector<KEY_NAME>

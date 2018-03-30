@@ -55,5 +55,6 @@ EXPORTS
 	ms_lxss
 
     ms_yarascan
+    ms_regcheck
 
     help

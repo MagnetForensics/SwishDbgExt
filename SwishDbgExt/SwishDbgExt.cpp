@@ -125,6 +125,7 @@ public:
     EXT_COMMAND_METHOD(ms_lxss);
 
     EXT_COMMAND_METHOD(ms_yarascan);
+    EXT_COMMAND_METHOD(ms_regcheck);
 
     HRESULT
     Initialize(void)
@@ -2244,5 +2245,99 @@ EXT_COMMAND(ms_yarascan,
             ProcObj.m_CcProcessObject.ProcessId);
 
         YaraScan(&ProcObj, FileName);
+    }
+}
+
+EXT_COMMAND(ms_regcheck,
+    "Scan for suspicious registry entries",
+    "{;e,o;;}"
+    )
+{
+    BYTE KeyValue[MAX_PATH * 8];
+    ULONG DataLength;
+    static REG_CHECK RegChecks[] = {
+        L"\\REGISTRY\\MACHINE\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\StandardProfile\\GloballyOpenPorts\\List", L"3389:TCP", REG_SZ,
+        L"\\REGISTRY\\MACHINE\\SYSTEM\\CurrentControlSet\\Services\\SharedAccess\\Parameters\\FirewallPolicy\\DomainProfile\\GloballyOpenPorts\\List", L"3389:TCP", REG_SZ,
+        L"\\REGISTRY\\MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server", L"fDenyTSConnections", REG_DWORD,
+        L"\\REGISTRY\\MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server", L"fSingleSessionPerUser", REG_DWORD,
+        L"\\REGISTRY\\MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server\\Licensing Core", L"EnableConcurrentSessions", REG_DWORD,
+        L"\\REGISTRY\\MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", L"EnableConcurrentSessions", REG_DWORD,
+        L"\\REGISTRY\\MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon", L"AllowMultipleTSSessions", REG_DWORD,
+        L"\\REGISTRY\\MACHINE\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\Terminal Services", L"MaxInstanceCount", REG_DWORD,
+        L"\\REGISTRY\\MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\SpecialAccounts\\UserList", L"MS_BACKUP", REG_DWORD,
+        L"\\REGISTRY\\MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\policies\\system", L"dontdisplaylastusername", REG_DWORD,
+        L"\\REGISTRY\\MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\policies\\system", L"LocalAccountTokenFilterPolicy", REG_DWORD,
+        L"\\REGISTRY\\MACHINE\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\WDigest", L"UseLogonCredential", REG_DWORD
+    };
+
+    if (RegInitialize()) {
+
+        for (size_t i = 0; i < _countof(RegChecks); i++) {
+
+            Dml("\n%S\n", RegChecks[i].KeyName);
+            Dml("%S    %S    ", RegChecks[i].ValueName, GetRegistryValueTypeName(RegChecks[i].ValueType));
+
+            if (RegGetKeyValue(RegChecks[i].KeyName, RegChecks[i].ValueName, KeyValue, sizeof(KeyValue), &DataLength)) {
+
+                switch (RegChecks[i].ValueType) {
+
+                case REG_BINARY:
+                {
+                    size_t k;
+
+                    g_Ext->Dml("\n        ");
+
+                    for (size_t j = 0; j < DataLength; j++) {
+
+                        for (k = 0; ((j + k) < DataLength) && (k < 0x10); k++) {
+
+                            g_Ext->Dml("0x%02x ", KeyValue[j + k]);
+                        }
+
+                        for ( ; k < 0x10; k++) {
+
+                            g_Ext->Dml("     ");
+                        }
+
+                        g_Ext->Dml(" | ");
+
+                        for (k = 0; ((j + k) < DataLength) && (k < 0x10); k++) {
+
+                            g_Ext->Dml("%c ", ((KeyValue[j + k] >= ' ') && (KeyValue[j + k] <= 'Z')) ? KeyValue[j + k] : '.');
+                        }
+
+                        g_Ext->Dml("\n        ");
+
+                        j += k;
+                    }
+
+                    break;
+                }
+                case REG_SZ:
+                case REG_EXPAND_SZ:
+                case REG_LINK:
+                case REG_MULTI_SZ:
+                {
+                    g_Ext->Dml("%S", (PWSTR)KeyValue);
+
+                    break;
+                }
+                case REG_DWORD:
+                {
+                    g_Ext->Dml("0x%08x", *(PULONG)KeyValue);
+
+                    break;
+                }
+                case REG_QWORD:
+                {
+                    g_Ext->Dml("0x%I64x", *(PULONG64)KeyValue);
+
+                    break;
+                }
+                }
+            }
+
+            Dml("\n");
+        }
     }
 }

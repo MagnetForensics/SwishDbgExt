@@ -42,6 +42,29 @@ Revision History:
 vector<HIVE_OBJECT> g_Hives;
 
 
+PWSTR
+GetRegistryValueTypeName(
+    _In_ ULONG ValueType
+    )     
+{
+    switch (ValueType) {
+
+    case REG_NONE:                          return L"REG_NONE";
+    case REG_SZ:                            return L"REG_SZ";
+    case REG_EXPAND_SZ:                     return L"REG_EXPAND_SZ";
+    case REG_BINARY:                        return L"REG_BINARY";
+    case REG_DWORD:                         return L"REG_DWORD";
+    case REG_DWORD_BIG_ENDIAN:              return L"REG_DWORD_BIG_ENDIAN";
+    case REG_LINK:                          return L"REG_LINK";
+    case REG_MULTI_SZ:                      return L"REG_MULTI_SZ";
+    case REG_RESOURCE_LIST:                 return L"REG_RESOURCE_LIST";
+    case REG_FULL_RESOURCE_DESCRIPTOR:      return L"REG_FULL_RESOURCE_DESCRIPTOR";
+    case REG_RESOURCE_REQUIREMENTS_LIST:    return L"REG_RESOURCE_REQUIREMENTS_LIST";
+    case REG_QWORD:                         return L"REG_QWORD";
+    default:                                return L"Unknown";
+    }
+}
+
 vector<KEY_NAME>
 GetKeysNames(
     _In_ PWSTR FullKeyPath
@@ -322,13 +345,16 @@ BOOL
 RegGetKeyValue(
     _In_ PWSTR FullKeyPath,
     _In_ PWSTR ValueName,
-    _Out_ PVOID Data,
-    _In_ ULONG DataLength
+    _Out_writes_bytes_to_(Length, *DataLength) PVOID Buffer,
+    _In_ ULONG Length,
+    _Out_ PULONG DataLength
     )
 {
     BOOL Status = FALSE;
 
-    ZeroMemory(Data, DataLength);
+    ZeroMemory(Buffer, Length);
+
+    *DataLength = 0;
 
     try {
 
@@ -373,9 +399,9 @@ RegGetKeyValue(
 
                                 if (KeyValue.Field("Signature").GetUshort() == CM_KEY_VALUE_SIGNATURE) {
 
-                                    ULONG ValueLength = (KeyValue.Field("DataLength").GetUlong()) & 0x7FFFFFFF;
+                                    *DataLength = (KeyValue.Field("DataLength").GetUlong()) & 0x7FFFFFFF;
 
-                                    if (ValueLength <= DataLength) {
+                                    if (*DataLength <= Length) {
 
                                         switch (KeyValue.Field("Type").GetUlong()) {
 
@@ -387,7 +413,7 @@ RegGetKeyValue(
                                         {
                                             ULONG64 ValueAddress = RegGetCellPaged(CmHive, KeyValue.Field("Data").GetUlong());
 
-                                            if (ExtRemoteTypedEx::ReadVirtual(ValueAddress, Data, ValueLength, NULL) == S_OK) {
+                                            if (ExtRemoteTypedEx::ReadVirtual(ValueAddress, Buffer, *DataLength, NULL) == S_OK) {
 
                                                 Status = TRUE;
                                             }
@@ -397,7 +423,7 @@ RegGetKeyValue(
                                         case REG_DWORD:
                                         case REG_DWORD_BIG_ENDIAN:
                                         {
-                                            *(PDWORD)Data = KeyValue.Field("Data").GetUlong();
+                                            *(PDWORD)Buffer = KeyValue.Field("Data").GetUlong();
 
                                             Status = TRUE;
 
@@ -405,7 +431,7 @@ RegGetKeyValue(
                                         }
                                         case REG_QWORD:
                                         {
-                                            *(PDWORD64)Data = KeyValue.Field("Data").GetLong64();
+                                            *(PDWORD64)Buffer = KeyValue.Field("Data").GetLong64();
 
                                             Status = TRUE;
 
