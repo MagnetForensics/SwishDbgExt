@@ -231,7 +231,7 @@ EXT_COMMAND(ms_process,
 
     for each (MsProcessObject ProcObj in CachedProcessList) {
 
-        Dml("\n<col fg=\"changed\">Process:</col>       <link cmd=\"!process %p 1\">%-20s</link> (PID=0x%4x) | "
+        Dml("\n<col fg=\"changed\">Process:</col>       <link cmd=\"!process %p 1\">%-20s</link> (PID=0x%04x [%d]) | "
             "[<link cmd=\"!ms_process /pid 0x%I64X /dlls\">+Dlls</link>] "
             "[<link cmd=\"!ms_process /pid 0x%I64X /dlls /exports\">+Exports</link>] "
             "[<link cmd=\"!ms_process /pid 0x%I64X /handles\">+Handles</link>] "
@@ -241,7 +241,7 @@ EXT_COMMAND(ms_process,
             "[<link cmd=\".process /p /r 0x%016I64X \">+Select context</link>] "
             "\n",
             ProcObj.m_CcProcessObject.ProcessObjectPtr, ProcObj.m_CcProcessObject.ImageFileName,
-            (ULONG)ProcObj.m_CcProcessObject.ProcessId,
+            (ULONG)ProcObj.m_CcProcessObject.ProcessId, (ULONG)ProcObj.m_CcProcessObject.ProcessId,
             ProcObj.m_CcProcessObject.ProcessId,
             ProcObj.m_CcProcessObject.ProcessId,
             ProcObj.m_CcProcessObject.ProcessId,
@@ -249,6 +249,9 @@ EXT_COMMAND(ms_process,
             ProcObj.m_CcProcessObject.ProcessId,
             ProcObj.m_CcProcessObject.ProcessId,
             ProcObj.m_CcProcessObject.ProcessObjectPtr);
+
+		Dml("    <col fg=\"emphfg\">ImageBase:</col> 0x%I64X <col fg=\"emphfg\">ImageSize:</col> 0x%I64X (IsPagedOut = %s, IsSigned = %d)\n",
+			ProcObj.m_ImageBase, ProcObj.m_ImageSize, ProcObj.m_IsPagedOut ? "True" : "False", ProcObj.m_IsSigned ? "True" : "False");
 
         if (wcslen(ProcObj.m_CcProcessObject.FullPath)) Dml("    <col fg=\"emphfg\">Path:          </col> %S\n", ProcObj.m_CcProcessObject.FullPath);
         if (strlen(ProcObj.m_PdbInfo.PdbName)) Dml("    <col fg=\"emphfg\">PDB:           </col> %s\n", ProcObj.m_PdbInfo.PdbName);
@@ -316,10 +319,11 @@ EXT_COMMAND(ms_process,
 
         for each (MsDllObject DllObj in ProcObj.m_DllList) {
 
-            Dml("    -> [%3d]: (%s) %S\n",
+            Dml("    -> [%3d]: (%s) %S (ImageBase: 0x%I64X, ImageSize: 0x%I64X)\n",
                 i,
                 DllObj.mm_CcDllObject.IsWow64 ? "<col fg=\"changed\">Wow64</col>" : "     ",
-                DllObj.mm_CcDllObject.FullDllName);
+                DllObj.mm_CcDllObject.FullDllName,
+				DllObj.m_ImageBase, DllObj.m_ImageSize);
 
             i += 1;
 
@@ -1163,6 +1167,23 @@ EXT_COMMAND(ms_callbacks,
             }
         }
     }
+
+#if 0
+	0: kd > dt nt!_OBJECT_TYPE ffff83089e63a870
+		+ 0x000 TypeList         : _LIST_ENTRY[0xffff8308`9e63a870 - 0xffff8308`9e63a870]
+		+ 0x010 Name             : _UNICODE_STRING "Process"
+		+ 0x020 DefaultObject : (null)
+		+0x028 Index : 0x7 ''
+		+ 0x02c TotalNumberOfObjects : 0x15f
+		+ 0x030 TotalNumberOfHandles : 0x17f2
+		+ 0x034 HighWaterNumberOfObjects : 0x1da
+		+ 0x038 HighWaterNumberOfHandles : 0x1cfe
+		+ 0x040 TypeInfo : _OBJECT_TYPE_INITIALIZER // TODO
+		+ 0x0b8 TypeLock : _EX_PUSH_LOCK
+		+ 0x0c0 Key : 0x636f7250
+		+ 0x0c8 CallbackList : _LIST_ENTRY[0xffffba0d`fa134f70 - 0xffffba0e`26b33660] // TODO
+
+#endif
 
 Exit:
     return;

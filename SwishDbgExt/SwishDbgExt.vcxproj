@@ -22,7 +22,7 @@
     <ProjectGuid>{3DEADBA0-BE78-43B7-A17A-027F185957E6}</ProjectGuid>
     <RootNamespace>SwishDbgExt</RootNamespace>
     <ProjectName>SwishDbgExt</ProjectName>
-    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
