@@ -1169,6 +1169,51 @@ EXT_COMMAND(ms_callbacks,
     }
 
 #if 0
+	{
+		HANDLE_OBJECT ObjectTypes = { 0 };
+		if (ObOpenChildren(NULL, L"ObjectTypes", &ObjectTypes)) {
+			vector<HANDLE_OBJECT> Handles = ObOpenObjectDirectory(ObjectTypes.ObjectPtr);
+			for each (HANDLE_OBJECT Handle in Handles) {
+				Dml("\n<col fg=\"changed\">[*] %S Object Callbacks:</col>\n", Handle.Name);
+
+				ExtRemoteTyped currentType("(nt!_OBJECT_TYPE *)@$extin", Handle.ObjectPtr);
+				ULONG64 Entry = currentType.Field("CallbackList.Flink").GetPtr();
+
+				ExtRemoteTypedList EntryList(Entry, "nt!_LIST_ENTRY", "FLink");
+				for (EntryList.StartHead(); EntryList.HasNode(); EntryList.Next()) {
+
+					ULONG64 Object = EntryList.GetNodeOffset();
+					ULONG64 ObjectTypeCallbackOffset = Object + m_PtrSize * 5;
+					ULONG64 PreCallbackOffset = Object + m_PtrSize * 5;
+					ULONG64 PostCallbackOffset = Object + m_PtrSize * 5;
+
+					ULONG64 ObjectTypePtr = 0;
+					ReadPointer(ObjectTypeCallbackOffset, &ObjectTypePtr);
+					// Sanity check
+					if (ObjectTypePtr == Handle.ObjectPtr) {
+						ULONG64 Pre, Post;
+						ReadPointer(PreCallbackOffset, &Pre);
+						ReadPointer(PostCallbackOffset, &Post);
+
+						if (Pre) {
+							Dml("PreCallback Procedure: <link cmd = \"u 0x%016I64X L5\">0x%016I64X</link> (%s) \n",
+								Pre, Pre,
+								GetNameByOffset(Pre, (PSTR)Buffer, _countof(Buffer)));
+						}
+						if (Post) {
+							Dml("PostCallback Procedure: <link cmd = \"u 0x%016I64X L5\">0x%016I64X</link> (%s) \n",
+								Post, Post,
+								GetNameByOffset(Post, (PSTR)Buffer, _countof(Buffer)));
+						}
+					}
+
+				}
+			}
+		}
+	}
+#endif
+
+#if 0
 	0: kd > dt nt!_OBJECT_TYPE ffff83089e63a870
 		+ 0x000 TypeList         : _LIST_ENTRY[0xffff8308`9e63a870 - 0xffff8308`9e63a870]
 		+ 0x010 Name             : _UNICODE_STRING "Process"
