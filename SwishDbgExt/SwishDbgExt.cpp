@@ -1194,7 +1194,7 @@ EXT_COMMAND(ms_callbacks,
                         ULONG64 Object = EntryList.GetNodeOffset();
                         ULONG64 ObjectTypeCallbackOffset = Object + m_PtrSize * 5;
                         ULONG64 PreCallbackOffset = Object + m_PtrSize * 5;
-                        ULONG64 PostCallbackOffset = Object + m_PtrSize * 5;
+                        ULONG64 PostCallbackOffset = Object + m_PtrSize * 6;
 
                         // Dml("[entry] Object = 0x%I64X\n", Object);
                         // Dml("ObjectTypeCallbackOffset = 0x%I64X\n", ObjectTypeCallbackOffset);
