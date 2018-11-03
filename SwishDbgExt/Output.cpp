@@ -148,6 +148,11 @@ Return Value:
 
     if (!ExpandFlag) return;
 
+    if (strlen(Driver->m_PdbInfo.PdbName)) g_Ext->Dml("    <col fg=\"emphfg\">PDB:           </col> %s\n", Driver->m_PdbInfo.PdbName);
+    if (wcslen(Driver->m_FileVersion.CompanyName)) g_Ext->Dml("    <col fg=\"emphfg\">Vendor:        </col> %S\n", Driver->m_FileVersion.CompanyName);
+    if (wcslen(Driver->m_FileVersion.FileVersion)) g_Ext->Dml("    <col fg=\"emphfg\">Version:       </col> %S\n", Driver->m_FileVersion.FileVersion);
+    if (wcslen(Driver->m_FileVersion.FileDescription)) g_Ext->Dml("    <col fg=\"emphfg\">Description:   </col> %S\n", Driver->m_FileVersion.FileDescription);
+
     for (UINT i = 0; IrpMajor[i]; i += 1)
     {
         g_Ext->Dml("    \\---| %-32s | 0x%I64X | <col fg=\"changed\">%-6s</col> | %s\n",

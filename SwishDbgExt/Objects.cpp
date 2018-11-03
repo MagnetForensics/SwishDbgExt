@@ -351,6 +351,34 @@ ULONG64.
 }
 
 ULONG64
+ObGetObjectTypesObject(
+    VOID
+)
+/*++
+
+Routine Description:
+
+Description.
+
+Arguments:
+
+-
+
+Return Value:
+
+ULONG64.
+
+--*/
+{
+    ULONG64 Object = 0;
+
+    HANDLE_OBJECT Handle;
+    if (ObOpenChildren(0, L"ObjectTypes", &Handle)) Object = Handle.ObjectPtr;
+
+    return Object;
+}
+
+ULONG64
 ObGetDriverObject(
 )
 /*++
