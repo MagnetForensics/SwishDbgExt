@@ -56,5 +56,6 @@ EXPORTS
 
     ms_yarascan
     ms_regcheck
+	ms_pools
 
     help
