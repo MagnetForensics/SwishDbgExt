@@ -832,82 +832,17 @@ Return Value:
 
     if (Buffer) {
 
-        if (ProcObj) ProcObj->SwitchContext();
+        ProcObj->SwitchContext();
 
         if (ExtRemoteTypedEx::ReadVirtual(BaseAddress, Buffer, Length, NULL) == S_OK) {
 
             MalScore = GetMalScore(Verbose, BaseAddress, Buffer, Length);
         }
 
-        if (ProcObj) ProcObj->RestoreContext();
+        ProcObj->RestoreContext();
 
         free(Buffer);
     }
 
     return MalScore;
-}
-
-BOOLEAN
-IsImageInMemoryEx(
-    MsProcessObject *ProcObj,
-    ULONG64 Offset,
-    PUSHORT Sig
-) {
-    BOOLEAN Status = FALSE;
-
-    if (ProcObj) ProcObj->SwitchContext();
-
-    Status = IsImageInMemory(Offset, Sig);
-
-    if (ProcObj) ProcObj->RestoreContext();
-
-    return Status;
-}
-
-BOOLEAN
-IsImageInMemory(
-    ULONG64 Offset,
-    PUSHORT Sig
-
-) {
-    UCHAR Data[0x100] = { 0 };
-    ULONG BytesRead = 0;
-
-    BOOLEAN Status = FALSE;
-
-    if (g_Ext->m_Data->ReadVirtual(Offset, Data, sizeof(Data), &BytesRead) == S_OK) {
-
-        USHORT Signature = *(PUSHORT)Data;
-        if (Sig) *Sig = Signature;
-
-        if (Signature == IMAGE_DOS_SIGNATURE) {
-            Status = TRUE;
-        }
-        else if (memcmp(&Data[0x4e], "Is this program", strlen("Is this program")) == 0) {
-            Status = TRUE;
-        }
-        else if (memcmp(&Data[0x4e], "This program cannot be run", strlen("This program cannot be run")) == 0) {
-            Status = TRUE;
-        }
-    }
-
-    return Status;
-}
-
-ULONG64
-GetPteFromAddress(
-    ULONG64 Va
-) {
-    ULONG Levels = 0;
-
-    ULONG64 Tables[10];
-
-    HRESULT Result = g_Ext->m_Data3->GetVirtualTranslationPhysicalOffsets(Va, Tables, 10, &Levels);
-    if (Result != S_OK) return FALSE;
-
-    ULONG64 PteAddress = Tables[Levels - 2];
-    ULONG64 PteEntry = 0;
-    Result = g_Ext->m_Data3->ReadPhysical(PteAddress, &PteEntry, sizeof(ULONG64), NULL);
-
-    return PteEntry;
 }

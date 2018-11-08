@@ -53,32 +53,4 @@ GetMalScoreEx(
     ULONG64 BaseAddress,
     ULONG Length
 );
-
-BOOLEAN
-IsImageInMemory(
-    ULONG64 Offset,
-    PUSHORT Sig
-
-);
-
-BOOLEAN
-IsImageInMemory(
-    ULONG64 Offset,
-    PUSHORT Sig
-
-);
-
-BOOLEAN
-IsImageInMemoryEx(
-    MsProcessObject *ProcObj,
-    ULONG64 Offset,
-    PUSHORT Sig
-);
-
-ULONG64
-GetPteFromAddress(
-    ULONG64 Va
-);
-
-#define IS_PTE_OWNER_USERMODE(x) ((x >> 2) & 1)
 #endif
