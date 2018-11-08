@@ -614,7 +614,7 @@ Return Value:
 --*/
 {
     ULONG i;
-    ULONG val = 0, val2 = 0, addr = 0;
+    ULONG64 val = 0, val2 = 0, addr = 0;
 
     InitPatternTable(g_PatternTable);
     ULONG MaxPatternLen = GetMaxPatternLen();

@@ -62,13 +62,6 @@ IsImageInMemory(
 );
 
 BOOLEAN
-IsImageInMemory(
-    ULONG64 Offset,
-    PUSHORT Sig
-
-);
-
-BOOLEAN
 IsImageInMemoryEx(
     MsProcessObject *ProcObj,
     ULONG64 Offset,
