@@ -477,7 +477,7 @@ RegGetKeyValue(
 
     }
 	
-	*pValueLength = ValueLength;
+	if (pValueLength) *pValueLength = ValueLength;
 
     return Status;
 }

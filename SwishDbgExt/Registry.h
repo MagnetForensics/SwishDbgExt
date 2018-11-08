@@ -150,7 +150,7 @@ RegGetKeyValue(
     _In_ PWSTR ValueName,
     _Out_writes_bytes_to_(DataLength, *pDataLength) PVOID Data,
     _In_ ULONG DataLength,
-    _Out_ PULONG pValueLength
+    _Out_opt_ PULONG pValueLength
 );
 
 vector<KEY_NAME>
