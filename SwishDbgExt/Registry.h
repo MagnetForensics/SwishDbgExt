@@ -123,35 +123,35 @@ GetRegistryValueTypeName(
 
 ULONG64
 RegGetCellPaged(
-    ExtRemoteTyped KeyHive,
-    ULONG CellIndex
-);
+    _In_ ExtRemoteTyped KeyHive,
+    _In_ ULONG CellIndex
+    );
 
 VOID
 RegReadKeyNode(
-    ExtRemoteTyped KeyHive,
-    ExtRemoteTyped KeyNode
-);
+    _In_ ExtRemoteTyped KeyHive,
+    _In_ ExtRemoteTyped KeyNode
+    );
 
 VOID
 RegReadKeyValue(
-    ExtRemoteTyped KeyHive,
-    ExtRemoteTyped KeyValue
+    _In_ ExtRemoteTyped KeyHive,
+    _In_ ExtRemoteTyped KeyValue
 );
 
-LPWSTR
+PWSTR
 RegGetKeyName(
-    ExtRemoteTyped KeyControlBlock
+    _In_ ULONG64 KeyControlBlock
 );
 
 BOOL
 RegGetKeyValue(
     _In_ PWSTR FullKeyPath,
     _In_ PWSTR ValueName,
-    _Out_writes_bytes_to_(Length, *DataLength) PVOID Buffer,
-    _In_ ULONG Length,
-    _Out_ PULONG DataLength
-    );
+    _Out_writes_bytes_to_(DataLength, *pDataLength) PVOID Data,
+    _In_ ULONG DataLength,
+    _Out_ PULONG pValueLength
+);
 
 vector<KEY_NAME>
 RegGetKeyValuesNames(

@@ -345,16 +345,15 @@ BOOL
 RegGetKeyValue(
     _In_ PWSTR FullKeyPath,
     _In_ PWSTR ValueName,
-    _Out_writes_bytes_to_(Length, *DataLength) PVOID Buffer,
-    _In_ ULONG Length,
-    _Out_ PULONG DataLength
-    )
+    _Out_writes_bytes_to_(DataLength, *pDataLength) PVOID Data,
+    _In_ ULONG DataLength,
+    _Out_ PULONG pValueLength
+)
 {
     BOOL Status = FALSE;
+	ULONG ValueLength = 0;
 
-    ZeroMemory(Buffer, Length);
-
-    *DataLength = 0;
+    ZeroMemory(Data, DataLength);
 
     try {
 
@@ -374,76 +373,99 @@ RegGetKeyValue(
 
                 if (ExtRemoteTypedEx::ReadVirtual(ValuesTableAddress, ValuesTable, ValuesCount * sizeof(ULONG), NULL) == S_OK) {
 
-                    CHAR ValueNameAnsi[MAX_VALUE_NAME];
-                    WCHAR ValueNameWide[MAX_VALUE_NAME];
+                    PCHAR ValueNameAnsi = (PCHAR)calloc(MAX_VALUE_NAME, sizeof(CHAR));
 
-                    for (UINT j = 0; j < ValuesCount; j++) {
+                    if (ValueNameAnsi) {
 
-                        ULONG64 KeyValueAddress = RegGetCellPaged(CmHive, ValuesTable[j]);
+                        PWCHAR ValueNameWide = (PWCHAR)calloc(MAX_VALUE_NAME, sizeof(WCHAR));
 
-                        ExtRemoteTyped KeyValue("(nt!_CM_KEY_VALUE *)@$extin", KeyValueAddress);
+                        if (ValueNameWide) {
 
-                        USHORT NameLength = KeyValue.Field("NameLength").GetUshort();
+                            for (UINT j = 0; j < ValuesCount; j++) {
 
-                        if (NameLength) {
+                                ULONG64 KeyValueAddress = RegGetCellPaged(CmHive, ValuesTable[j]);
 
-                            ZeroMemory(ValueNameAnsi, sizeof(ValueNameAnsi));
+                                ExtRemoteTyped KeyValue("(nt!_CM_KEY_VALUE *)@$extin", KeyValueAddress);
 
-                            ULONG64 NameAddress = KeyValue.Field("Name").GetPointerTo().GetPtr();
+                                USHORT NameLength = KeyValue.Field("NameLength").GetUshort();
 
-                            ExtRemoteTypedEx::ReadVirtual(NameAddress, ValueNameAnsi, min(NameLength, sizeof(ValueNameAnsi) - 1), NULL);
+                                if (NameLength) {
 
-                            StringCchPrintfW(ValueNameWide, _countof(ValueNameWide), L"%S", ValueNameAnsi);
+                                    ZeroMemory(ValueNameAnsi, MAX_VALUE_NAME * sizeof(CHAR));
 
-                            if (0 == wcscmp(ValueName, ValueNameWide)) {
+                                    ULONG64 NameAddress = KeyValue.Field("Name").GetPointerTo().GetPtr();
 
-                                if (KeyValue.Field("Signature").GetUshort() == CM_KEY_VALUE_SIGNATURE) {
+                                    ExtRemoteTypedEx::ReadVirtual(NameAddress, ValueNameAnsi, min(NameLength, sizeof(ValueNameAnsi) - 1), NULL);
 
-                                    *DataLength = (KeyValue.Field("DataLength").GetUlong()) & 0x7FFFFFFF;
+                                    StringCchPrintfW(ValueNameWide, MAX_VALUE_NAME, L"%S", ValueNameAnsi);
 
-                                    if (*DataLength <= Length) {
+                                    if (0 == wcscmp(ValueName, ValueNameWide)) {
 
-                                        switch (KeyValue.Field("Type").GetUlong()) {
+                                        if (KeyValue.Field("Signature").GetUshort() == CM_KEY_VALUE_SIGNATURE) {
 
-                                        case REG_SZ:
-                                        case REG_EXPAND_SZ:
-                                        case REG_MULTI_SZ:
-                                        case REG_BINARY:
-                                        case REG_LINK:
-                                        {
-                                            ULONG64 ValueAddress = RegGetCellPaged(CmHive, KeyValue.Field("Data").GetUlong());
+                                        	ValueLength = (KeyValue.Field("DataLength").GetUlong()) & 0x7FFFFFFF;
 
-                                            if (ExtRemoteTypedEx::ReadVirtual(ValueAddress, Buffer, *DataLength, NULL) == S_OK) {
+                                            if (ValueLength <= DataLength) {
 
-                                                Status = TRUE;
+                                                switch (KeyValue.Field("Type").GetUlong()) {
+
+                                                case REG_SZ:
+                                                case REG_EXPAND_SZ:
+                                                case REG_MULTI_SZ:
+                                                case REG_LINK:
+                                                {
+                                                    ULONG64 ValueAddress = RegGetCellPaged(CmHive, KeyValue.Field("Data").GetUlong());
+
+                                                    ValueLength = min(ValueLength, DataLength - sizeof(WCHAR));
+
+                                                    if (ExtRemoteTypedEx::ReadVirtual(ValueAddress, Data, ValueLength, NULL) == S_OK) {
+
+                                                        Status = TRUE;
+                                                    }
+
+                                                    break;
+                                                }
+                                                case REG_BINARY:
+                                                {
+                                                    ULONG64 ValueAddress = RegGetCellPaged(CmHive, KeyValue.Field("Data").GetUlong());
+
+                                                    if (ExtRemoteTypedEx::ReadVirtual(ValueAddress, Data, ValueLength, NULL) == S_OK) {
+
+                                                        Status = TRUE;
+                                                    }
+
+                                                    break;
+                                                }
+                                                case REG_DWORD:
+                                                case REG_DWORD_BIG_ENDIAN:
+                                                {
+                                                    *(PDWORD)Data = KeyValue.Field("Data").GetUlong();
+
+                                                    Status = TRUE;
+
+                                                    break;
+                                                }
+                                                case REG_QWORD:
+                                                {
+                                                    *(PDWORD64)Data = KeyValue.Field("Data").GetLong64();
+
+                                                    Status = TRUE;
+
+                                                    break;
+                                                }
+                                                }
                                             }
-
-                                            break;
                                         }
-                                        case REG_DWORD:
-                                        case REG_DWORD_BIG_ENDIAN:
-                                        {
-                                            *(PDWORD)Buffer = KeyValue.Field("Data").GetUlong();
 
-                                            Status = TRUE;
-
-                                            break;
-                                        }
-                                        case REG_QWORD:
-                                        {
-                                            *(PDWORD64)Buffer = KeyValue.Field("Data").GetLong64();
-
-                                            Status = TRUE;
-
-                                            break;
-                                        }
-                                        }
+                                        break;
                                     }
                                 }
-
-                                break;
                             }
+
+                            free(ValueNameWide);
                         }
+
+                        free(ValueNameAnsi);
                     }
                 }
 
@@ -454,6 +476,8 @@ RegGetKeyValue(
     catch (...) {
 
     }
+	
+	*pValueLength = ValueLength;
 
     return Status;
 }
@@ -484,31 +508,42 @@ RegGetKeyValuesNames(
 
                 if (ExtRemoteTypedEx::ReadVirtual(ValuesTableAddress, ValuesTable, ValuesCount * sizeof(ULONG), NULL) == S_OK) {
 
-                    CHAR ValueNameAnsi[MAX_VALUE_NAME];
-                    WCHAR ValueNameWide[MAX_VALUE_NAME];
+                    PCHAR ValueNameAnsi = (PCHAR)calloc(MAX_VALUE_NAME, sizeof(CHAR));
 
-                    for (UINT j = 0; j < ValuesCount; j++) {
+                    if (ValueNameAnsi) {
 
-                        ULONG64 KeyValueAddress = RegGetCellPaged(CmHive, ValuesTable[j]);
+                        PWCHAR ValueNameWide = (PWCHAR)calloc(MAX_VALUE_NAME, sizeof(WCHAR));
 
-                        ExtRemoteTyped KeyValue("(nt!_CM_KEY_VALUE *)@$extin", KeyValueAddress);
+                        if (ValueNameWide) {
 
-                        USHORT NameLength = KeyValue.Field("NameLength").GetUshort();
+                            for (UINT j = 0; j < ValuesCount; j++) {
 
-                        if (NameLength) {
+                                ULONG64 KeyValueAddress = RegGetCellPaged(CmHive, ValuesTable[j]);
 
-                            ZeroMemory(ValueNameAnsi, sizeof(ValueNameAnsi));
+                                ExtRemoteTyped KeyValue("(nt!_CM_KEY_VALUE *)@$extin", KeyValueAddress);
 
-                            ULONG64 NameAddress = KeyValue.Field("Name").GetPointerTo().GetPtr();
+                                USHORT NameLength = KeyValue.Field("NameLength").GetUshort();
 
-                            ExtRemoteTypedEx::ReadVirtual(NameAddress, ValueNameAnsi, min(NameLength, sizeof(ValueNameAnsi) - 1), NULL);
+                                if (NameLength) {
 
-                            StringCchPrintfW(ValueNameWide, _countof(ValueNameWide), L"%S", ValueNameAnsi);
+                                    ZeroMemory(ValueNameAnsi, MAX_VALUE_NAME * sizeof(CHAR));
 
-                            StringCchCopyW(ValueName.Name, _countof(ValueName.Name), ValueNameWide);
+                                    ULONG64 NameAddress = KeyValue.Field("Name").GetPointerTo().GetPtr();
 
-                            KeyValuesNames.push_back(ValueName);
+                                    ExtRemoteTypedEx::ReadVirtual(NameAddress, ValueNameAnsi, min(NameLength, sizeof(ValueNameAnsi) - 1), NULL);
+
+                                    StringCchPrintfW(ValueNameWide, MAX_VALUE_NAME, L"%S", ValueNameAnsi);
+
+                                    StringCchCopyW(ValueName.Name, _countof(ValueName.Name), ValueNameWide);
+
+                                    KeyValuesNames.push_back(ValueName);
+                                }
+                            }
+
+                            free(ValueNameWide);
                         }
+
+                        free(ValueNameAnsi);
                     }
                 }
 
@@ -853,10 +888,10 @@ Return Value:
     }
 }
 
-LPWSTR
+PWSTR
 RegGetKeyName(
-    _In_ ExtRemoteTyped KeyControlBlock
-)
+    _In_ ULONG64 KeyControlBlock
+    )
 /*++
 
 Routine Description:
@@ -873,78 +908,79 @@ Return Value:
 
 --*/
 {
-    CHAR Children[64] = { 0 };
-    LPWSTR FullNameA = NULL, TmpName = NULL;
+    ExtRemoteTyped Kcb;
+    vector<KEY_NAME> KeyNames;
+    KEY_NAME KeyName;
+    ULONG64 Address;
+    CHAR Name[MAX_PATH] = {0};
+    USHORT NameLength;
+    PWSTR FullName = NULL;
+    ULONG FullNameLength = 0;
 
-    BOOLEAN Result = FALSE;
+    if (!KeyControlBlock) {
 
-    ExtRemoteTyped Kcb = KeyControlBlock;
-
-    ULONG64 ParentKcb;
-    ULONG AllocateSize = (MAX_PATH + 1) * sizeof(FullNameA[0]);
-
-    FullNameA = (LPWSTR)malloc(AllocateSize);
-    TmpName = (LPWSTR)malloc(AllocateSize);
-
-    if (!FullNameA || !TmpName) goto CleanUp;
-
-    RtlZeroMemory(TmpName, AllocateSize);
-    RtlZeroMemory(FullNameA, AllocateSize);
+        return NULL;
+    }
 
     try {
 
-        while (1) {
+        Address = KeyControlBlock;
 
-            USHORT MaxLen = Kcb.Field("NameBlock").Field("NameLength").GetUshort();
-            if (MaxLen >= sizeof(Children)) goto CleanUp;
+        while (Address) {
 
-            RtlZeroMemory(Children, sizeof(Children));
-            if (g_Ext->m_Data->ReadVirtual(Kcb.Field("NameBlock").Field("Name").GetPointerTo().GetPtr(),
-                                           (PSTR)Children,
-                                           MaxLen,
-                                           NULL) != S_OK) goto CleanUp;
+            Kcb = ExtRemoteTyped("(nt!_CM_KEY_CONTROL_BLOCK *)@$extin", Address);
 
-            StringCchPrintfW(FullNameA, MAX_PATH, L"%s\\%S", TmpName, Children);
-            StringCchCopyW(TmpName, MAX_PATH, FullNameA);
+            NameLength = Kcb.Field("NameBlock").Field("NameLength").GetUshort();
 
-            ParentKcb = Kcb.Field("ParentKcb").GetPtr();
-            if (!ParentKcb) break;
-            Kcb = ExtRemoteTyped("(nt!_CM_KEY_CONTROL_BLOCK *)@$extin", ParentKcb);
+            if (!NameLength || (NameLength >= sizeof(Name))) {
+
+                break;
+            }
+
+            ZeroMemory(Name, sizeof(Name));
+
+            if (g_Ext->m_Data->ReadVirtual(Kcb.Field("NameBlock").Field("Name").GetPointerTo().GetPtr(), Name, NameLength, NULL) != S_OK) {
+
+                break;
+            }
+
+            FullNameLength += (ULONG)strlen(Name) + 1;
+
+            StringCchPrintfW(KeyName.Name, _countof(KeyName.Name), L"%S", Name);
+
+            KeyNames.push_back(KeyName);
+
+            Address = Kcb.Field("ParentKcb").GetPtr();
         }
     }
     catch (...) {
 
     }
 
-    Result = TRUE;
+    if (FullNameLength) {
 
-CleanUp:
+        FullNameLength += 1;
 
-    if (!Result) {
+        FullName = (PWSTR)calloc(FullNameLength, sizeof(WCHAR));
 
-        if (FullNameA) {
+        if (FullName) {
 
-            free(FullNameA);
+            for (size_t i = KeyNames.size(); i > 0 ; i--) {
 
-            FullNameA = NULL;
+                StringCchCatW(FullName, FullNameLength, L"\\");
+                StringCchCatW(FullName, FullNameLength, KeyNames[i - 1].Name);
+            }
         }
     }
 
-    if (TmpName) {
-
-        free(TmpName);
-
-        TmpName = NULL;
-    }
-
-    return FullNameA;
+    return FullName;
 }
 
 VOID
 RegReadKeyValue(
-    ExtRemoteTyped KeyHive,
-    ExtRemoteTyped KeyValue
-)
+    _In_ ExtRemoteTyped KeyHive,
+    _In_ ExtRemoteTyped KeyValue
+    )
 /*++
 
 Routine Description:

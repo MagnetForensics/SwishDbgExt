@@ -65,7 +65,7 @@ Return Value:
 --*/
 {
     BOOLEAN Result = FALSE;
-    LPWSTR ObjName = NULL;
+    PWSTR ObjectName = NULL;
     WCHAR TypeStr[64] = {0};
     ULONG BodyOffset = 0;
 
@@ -117,12 +117,12 @@ Return Value:
         if (_wcsicmp(TypeStr, L"File") == 0)
         {
             ExtRemoteTyped FileObject("(nt!_FILE_OBJECT *)@$extin", HandleObj->ObjectPtr);
-            ObjName = ExtRemoteTypedEx::GetUnicodeString2(FileObject.Field("FileName"));
+            ObjectName = ExtRemoteTypedEx::GetUnicodeString2(FileObject.Field("FileName"));
         }
         else if (_wcsicmp(TypeStr, L"Driver") == 0)
         {
             ExtRemoteTyped DrvObject("(nt!_DRIVER_OBJECT *)@$extin", HandleObj->ObjectPtr);
-            ObjName = ExtRemoteTypedEx::GetUnicodeString2(DrvObject.Field("DriverName"));
+            ObjectName = ExtRemoteTypedEx::GetUnicodeString2(DrvObject.Field("DriverName"));
         }
         else if (_wcsicmp(TypeStr, L"Process") == 0)
         {
@@ -157,7 +157,7 @@ Return Value:
         {
             ExtRemoteTyped KeyObject("(nt!_CM_KEY_BODY *)@$extin", HandleObj->ObjectPtr);
             HandleObj->ObjectKcb = KeyObject.Field("KeyControlBlock").GetPtr();
-            ObjName = RegGetKeyName(KeyObject.Field("KeyControlBlock"));
+            ObjectName = RegGetKeyName(HandleObj->ObjectKcb);
             // dt nt!_CM_KEY_BODY -> nt!_CM_KEY_CONTROL_BLOCK
         }
         else
@@ -183,7 +183,7 @@ Return Value:
             if (Offset)
             {
                 ExtRemoteTyped ObjNameInfo("(nt!_OBJECT_HEADER_NAME_INFO *)@$extin", ObjHeaderAddr - Offset);
-                ObjName = ExtRemoteTypedEx::GetUnicodeString2(ObjNameInfo.Field("Name"));
+                ObjectName = ExtRemoteTypedEx::GetUnicodeString2(ObjNameInfo.Field("Name"));
             }
         }
     }
@@ -191,12 +191,12 @@ Return Value:
 
     }
 
-    if (ObjName)
+    if (ObjectName)
     {
-        StringCchCopyW(HandleObj->Name, _countof(HandleObj->Name), ObjName);
+        StringCchCopyW(HandleObj->Name, _countof(HandleObj->Name), ObjectName);
 
-        free(ObjName);
-        ObjName = NULL;
+        free(ObjectName);
+        ObjectName = NULL;
     }
 
     Result = TRUE;
@@ -308,6 +308,8 @@ Return Value:
 {
     vector<HANDLE_OBJECT> Dir = ObOpenObjectDirectory(Root);
     BOOLEAN Result = FALSE;
+
+    ZeroMemory(OutHandle, sizeof(HANDLE_OBJECT));
 
     for each (HANDLE_OBJECT Handle in Dir)
     {
