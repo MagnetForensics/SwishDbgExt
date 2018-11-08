@@ -2,8 +2,8 @@
     Incident Response & Digital Forensics Debugging Extension
 
     Copyright (C) 2014 MoonSols Ltd.
-    Copyright (C) 2016 Comae Technologies FZE
-    Copyright (C) 2014-2016 Matthieu Suiche (@msuiche)
+    Copyright (C) 2018 Comae Technologies DMCC
+    Copyright (C) 2014-2018 Matthieu Suiche (@msuiche)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -126,6 +126,7 @@ public:
 
     EXT_COMMAND_METHOD(ms_yarascan);
     EXT_COMMAND_METHOD(ms_regcheck);
+    EXT_COMMAND_METHOD(ms_pools);
 
     HRESULT
     Initialize(void)
@@ -142,8 +143,8 @@ public:
         DebugControl->GetWindbgExtensionApis64(&ExtensionApis);
 
         dprintf("       SwishDbgExt %s - Incident Response & Digital Forensics Debugging Extension\n"
-                "       SwishDbgExt Copyright (C) 2016 Comae Technologies FZE\n"
-                "       SwishDbgExt Copyright (C) 2014-2016 Matthieu Suiche (@msuiche) - http://msuiche.net\n\n"
+                "       SwishDbgExt Copyright (C) 2018 Comae Technologies DMCC - www.comae.com\n"
+                "       SwishDbgExt Copyright (C) 2014-2018 Matthieu Suiche (@msuiche)\n\n"
                 "       This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.\n"
                 "       This is free software, and you are welcome to redistribute it\n"
                 "       under certain conditions; type `show c' for details.\n",
@@ -2403,4 +2404,89 @@ EXT_COMMAND(ms_regcheck,
             Dml("\n");
         }
     }
+}
+
+// Great article from aionescu on this: https://www.crowdstrike.com/blog/sheep-year-kernel-heap-fengshui-spraying-big-kids-pool/
+EXT_COMMAND(ms_pools,
+    "Display list of big pools for suspicious allocations",
+    "{;e,o;;}"
+    "{scan;b,o;scan;Display only malicious artifacts}")
+{
+    ULONG64 Offset = 0;
+    ULONG64 PoolBigPageTablePtr = 0;
+    ULONG PoolBigPageTableSize = 0;
+
+    BOOLEAN bScan = FALSE;
+
+    if (HasArg("scan"))
+    {
+        bScan = TRUE;
+    }
+    
+    if (g_Ext->m_Symbols->GetOffsetByName("nt!PoolBigPageTable", &Offset) != S_OK) goto Exit;
+    if (!ReadPointer(Offset, &PoolBigPageTablePtr)) goto Exit;
+
+    if (g_Ext->m_Symbols->GetOffsetByName("nt!PoolBigPageTableSize", &Offset) != S_OK) goto Exit;
+    if (g_Ext->m_Data->ReadVirtual(Offset, (PUCHAR)&PoolBigPageTableSize, sizeof(PoolBigPageTableSize), NULL) != S_OK) goto Exit;
+
+    ULONG sizePoolTrackerBigPages = GetTypeSize("nt!_POOL_TRACKER_BIG_PAGES");
+    ULONG maxEntries = PoolBigPageTableSize / sizePoolTrackerBigPages;
+
+    for (ULONG i = 0; i < maxEntries; i++) {
+        UCHAR Key[5] = { 0 };
+        ULONG Key32 = 0;
+
+        ULONG64 TableEntryOffset = PoolBigPageTablePtr + (i * sizePoolTrackerBigPages);
+        ExtRemoteTyped TableEntry("(nt!_POOL_TRACKER_BIG_PAGES *)@$extin", TableEntryOffset);
+
+        ULONG64 Va = TableEntry.Field("Va").GetPtr();
+        Va = Va & ~1;
+
+        Key32 = TableEntry.Field("Key").GetUlong();
+
+        Key[0] = (Key32 >> 0 & 0xFF);
+        Key[1] = (Key32 >> 8 & 0xFF);
+        Key[2] = (Key32 >> 16 & 0xFF);
+        Key[3] = (Key32 >> 24 & 0xFF);
+
+        ULONG NumberOfBytes = (ULONG)TableEntry.Field("NumberOfBytes").GetPtr();
+
+        ULONG CodeScore = 0;
+        BOOLEAN IsImage = FALSE;
+        USHORT Sig = 0;
+
+        ULONG64 Pte = 0;
+        BOOLEAN IsUserMode = FALSE;
+
+        if (Va) {
+            CHAR executableCmd[128] = { 0 };
+            CHAR cmd[128] = { 0 };
+
+            if (TRUE) { // bScan) {
+                CodeScore = GetMalScoreEx(FALSE, NULL, Va, NumberOfBytes);
+                IsImage = IsImageInMemory(Va, &Sig);
+                Pte = GetPteFromAddress(Va);
+                IsUserMode = IS_PTE_OWNER_USERMODE(Pte);
+            }
+
+            sprintf_s(cmd, sizeof(cmd), "0x%I64X", Va);
+            sprintf_s(executableCmd, sizeof(executableCmd), "<link cmd=\"!dh 0x%I64X\">0x%I64X</link>", Va, Va);
+
+            if ((bScan && (IsImage || CodeScore || IsUserMode)) || (!bScan)) {
+                Dml("<link cmd=\"dt nt!_POOL_TRACKER_BIG_PAGES 0x%I64X\">[%05d]</link> VA: %s Size: 0x%06lx Tag: %c%c%c%c PoolType: 0x%04x CodeScore: <col fg=\"%s\">%d</col> IsImage: <col fg=\"%s\">%s</col> Mode: <col fg=\"%s\">%s</col>\n",
+                    TableEntryOffset,
+                    i,
+                    IsImage ? executableCmd : cmd,
+                    NumberOfBytes,
+                    Key[0], Key[1], Key[2], Key[3],
+                    TableEntry.Field("PoolType").GetLong(),
+                    CodeScore ? "changed" : "", CodeScore,
+                    IsImage ? "changed" : "", IsImage ? "Yes" : "No",
+                    IsUserMode ? "changed" : "", IsUserMode ? "User-Mode" : "Kernel-Mode");
+            }
+        }
+    }
+
+Exit:
+    return;
 }
