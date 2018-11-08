@@ -347,7 +347,7 @@ RegGetKeyValue(
     _In_ PWSTR ValueName,
     _Out_writes_bytes_to_(DataLength, *pDataLength) PVOID Data,
     _In_ ULONG DataLength,
-    _Out_ PULONG pValueLength
+    _Out_range_(0, DataLength) PULONG pValueLength
 )
 {
     BOOL Status = FALSE;
