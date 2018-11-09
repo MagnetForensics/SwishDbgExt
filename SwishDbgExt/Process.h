@@ -119,6 +119,7 @@ typedef struct _HANDLE_OBJECT {
     ULONG ObjectTypeIndex;
     ULONG64 ObjectPtr;
     ULONG64 ObjectKcb; // Only for Keys
+    ULONG64 CreatorUniquePid;
 } HANDLE_OBJECT, *PHANDLE_OBJECT;
 
 typedef struct _VAD_OBJECT {

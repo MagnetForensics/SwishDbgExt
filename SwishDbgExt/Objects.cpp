@@ -171,7 +171,11 @@ Return Value:
 
                 if (InfoMask & OBP_NAME_INFO_BIT)
                 {
-                    if (InfoMask & OBP_CREATOR_INFO_BIT) Offset += GetTypeSize("nt!_OBJECT_HEADER_CREATOR_INFO");
+                    if (InfoMask & OBP_CREATOR_INFO_BIT) {
+                        ExtRemoteTyped HeaderCreatorInfo("(nt!_OBJECT_HEADER_CREATOR_INFO *)@$extin", Offset);
+                        HandleObj->CreatorUniquePid = HeaderCreatorInfo.Field("CreatorUniqueProcess").GetPtr();
+                        Offset += GetTypeSize("nt!_OBJECT_HEADER_CREATOR_INFO");
+                    }
                     Offset += GetTypeSize("nt!_OBJECT_HEADER_NAME_INFO");
                 }
             }
