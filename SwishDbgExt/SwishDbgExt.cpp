@@ -1177,8 +1177,17 @@ EXT_COMMAND(ms_callbacks,
         vector<HANDLE_OBJECT> Handles = ObOpenObjectDirectory(ObjectTypesPtr);
         for each (HANDLE_OBJECT Handle in Handles) {
             ExtRemoteTyped currentType("(nt!_OBJECT_TYPE *)@$extin", Handle.ObjectPtr);
-            ULONG64 FieldOffset = currentType.GetFieldOffset("CallbackList.Flink");
-            ULONG64 Head = currentType.Field("CallbackList.Flink").GetPtr();
+            ULONG64 FieldOffset = 0;
+			ULONG64 Head = 0;
+
+			if (currentType.HasField("CallbackList")) {
+				FieldOffset = currentType.GetFieldOffset("CallbackList.Flink");
+				Head = currentType.Field("CallbackList.Flink").GetPtr();
+			}
+			else {
+				FieldOffset = currentType.GetFieldOffset("TypeList.Flink");
+				Head = currentType.Field("TypeList.Flink").GetPtr();
+			}
 
             if (Head == (Handle.ObjectPtr + FieldOffset)) continue;
 
