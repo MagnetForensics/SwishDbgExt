@@ -1226,6 +1226,50 @@ EXT_COMMAND(ms_callbacks,
         }
     }
 
+	ULONG64 PspSiloMonitorList = 0;
+	
+	// Credit aionescu: https://twitter.com/aionescu/status/1069738308924780545
+	if (g_Ext->m_Symbols->GetOffsetByName("nt!PspSiloMonitorList", &PspSiloMonitorList) == S_OK) {
+		ULONG64 FieldOffset = 0;
+
+		FieldOffset = GetTypeSize("nt!_LIST_ENTRY");
+		FieldOffset += sizeof(ULONG);
+		FieldOffset += sizeof(ULONG);
+
+		ULONG64 entry = 0;
+		ReadPointer(PspSiloMonitorList, &entry);
+
+		Dml("\n<col fg=\"changed\">[*] PspSiloMonitorList Callbacks:</col>\n");
+		
+		while (entry) {
+
+			ULONG64 CreateCallback = 0, DestroyCallback = 0;
+			ULONG64 SiloIndex = 0;
+
+			ReadPointer(entry + FieldOffset, &CreateCallback);
+			ReadPointer(entry + FieldOffset + GetPtrSize(), &DestroyCallback);
+
+			ReadPointer(entry + FieldOffset - sizeof(ULONG), &SiloIndex);
+			SiloIndex = (ULONG)(SiloIndex & 0xFFFFFFFF);
+
+			if (CreateCallback) {
+				Dml("     [0x%04x] CreateCallback  Procedure: <link cmd = \"u 0x%016I64X L5\">0x%016I64X</link> (%s) \n",
+					SiloIndex,
+					CreateCallback, CreateCallback,
+					GetNameByOffset(CreateCallback, (PSTR)Buffer, _countof(Buffer)));
+			}
+			if (DestroyCallback) {
+				Dml("     [0x%04x] DestroyCallback Procedure: <link cmd = \"u 0x%016I64X L5\">0x%016I64X</link> (%s) \n",
+					SiloIndex,
+					DestroyCallback, DestroyCallback,
+					GetNameByOffset(DestroyCallback, (PSTR)Buffer, _countof(Buffer)));
+			}
+
+			ReadPointer(entry, &entry);
+			if (entry == PspSiloMonitorList) break;
+		}
+	}
+	
 Exit:
     ReleaseObjectTypeTable();
 
