@@ -1274,8 +1274,9 @@ EXT_COMMAND(ms_callbacks,
 					GetNameByOffset(DestroyCallback, (PSTR)Buffer, _countof(Buffer)));
 			}
 
-			ReadPointer(entry, &entry);
-			if (entry == PspSiloMonitorList) break;
+			ULONG64 prev = entry;
+			ReadPointer(prev, &entry);
+			if ((entry == PspSiloMonitorList) || (prev == entry)) break;
 		}
 	}
 	
